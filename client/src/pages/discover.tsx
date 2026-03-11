@@ -89,8 +89,10 @@ export default function Discover() {
           <div key={animKey} className="animate-fade-up">
             <div className="mx-3.5 mt-4 rounded-[28px] overflow-hidden"
                  style={{ background: "var(--roam-moss)", border: "1px solid rgba(242,237,227,0.07)", boxShadow: "0 8px 32px rgba(0,0,0,0.45)" }}>
-              <div className="relative h-[310px] overflow-hidden">
-                <img src={profile.hero} alt={profile.name} className="w-full h-full object-cover transition-transform duration-[6s] ease-out hover:scale-[1.04]" />
+              <div className="relative h-[310px] overflow-hidden" style={{ userSelect: "none" }}>
+                <img src={profile.hero} alt={profile.name} className="w-full h-full object-cover transition-transform duration-[6s] ease-out hover:scale-[1.04]"
+                     draggable={false} onContextMenu={e => e.preventDefault()} style={{ pointerEvents: "none" }} />
+                <div className="absolute inset-0" onContextMenu={e => e.preventDefault()} />
                 <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(14,26,13,0.95) 0%, rgba(14,26,13,0.3) 50%, transparent 100%)" }} />
                 <div className="absolute top-3.5 left-3.5 backdrop-blur-lg rounded-full flex items-center gap-1.5 px-2.5 py-1"
                      style={{ background: "rgba(14,26,13,0.78)", border: "1px solid rgba(200,230,74,0.35)" }}>
@@ -107,8 +109,10 @@ export default function Discover() {
 
               <div className="grid grid-cols-3 gap-[3px] mx-[3px]">
                 {profile.strip.map((p, i) => (
-                  <div key={i} className="relative h-[105px] overflow-hidden cursor-pointer group">
-                    <img src={p.url} alt={p.tag} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.08]" />
+                  <div key={i} className="relative h-[105px] overflow-hidden cursor-pointer group" style={{ userSelect: "none" }}>
+                    <img src={p.url} alt={p.tag} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.08]"
+                         draggable={false} onContextMenu={e => e.preventDefault()} style={{ pointerEvents: "none" }} />
+                    <div className="absolute inset-0" onContextMenu={e => e.preventDefault()} />
                     <div className="absolute bottom-1.5 left-1.5 backdrop-blur-lg rounded-lg px-1.5 py-0.5 font-mono text-[8px] tracking-wider"
                          style={{ background: "rgba(14,26,13,0.82)", border: "1px solid rgba(200,230,74,0.25)", color: "var(--roam-electric)" }}>
                       {p.tag}

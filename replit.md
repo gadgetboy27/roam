@@ -60,8 +60,8 @@ ROAM is an adventure-matching dating app where users post real travel/adventure 
 
 ## Database Tables
 
-- `users` — id (uuid), email, password, name, dob, gender, location, tagline, tier (free/adventurer/contributor), adventureTags[], avatarUrl
-- `photos` — id (uuid), userId, storageUrl, personScore, authenticityScore, adventureScore, verdict (approved/needs_person/rejected_*), tags[], isLicensable
+- `users` — id (uuid), email, password, name, dob, gender, ethnicity, location, tagline (max 60 chars), tier (free/adventurer/contributor), adventureTags[], avatarUrl
+- `photos` — id (uuid), userId, storageUrl, caption, personScore, authenticityScore, adventureScore, verdict (approved/needs_person/rejected_*), tags[], isLicensable
 - `matches` — id (uuid), userAId, userBId, overlapScore, sharedTags[], status (pending/liked_a/liked_b/matched/passed), almostMetLocation/Date
 - `messages` — id (uuid), matchId, senderId, content
 - `bucket_list` — id (uuid), userId, destinationName, imageUrl

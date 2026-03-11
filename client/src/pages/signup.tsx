@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
-import { ArrowLeft, Check, X } from "lucide-react";
+import { ArrowLeft, Check, X, Camera, Compass } from "lucide-react";
 
 const TIERS = [
   {
@@ -95,10 +95,46 @@ const HERO_URLS = [
   "https://images.unsplash.com/photo-1527856263986-730571966ce7?w=400&q=75&fit=crop",
 ];
 
+const ETHNICITIES = [
+  "Prefer not to say",
+  "Asian",
+  "Black / African / Caribbean",
+  "East Asian",
+  "Hispanic / Latino",
+  "Indigenous / First Nations",
+  "Middle Eastern / North African",
+  "Mixed / Multiracial",
+  "Pacific Islander",
+  "South Asian",
+  "Southeast Asian",
+  "White / European",
+  "Other",
+];
+
+function InputField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(242,237,227,0.38)" }}>
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+const inputStyle = {
+  background: "var(--roam-moss)",
+  border: "1px solid rgba(242,237,227,0.14)",
+  color: "var(--roam-cream)",
+};
+
 export default function Signup() {
   const [, navigate] = useLocation();
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ name: "", email: "", password: "", dob: "", gender: "", location: "" });
+  const [form, setForm] = useState({
+    name: "", email: "", password: "", dob: "",
+    gender: "", ethnicity: "", location: "", tagline: "",
+  });
   const [tier, setTier] = useState<"free" | "adventurer" | "contributor">("adventurer");
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [warnConsent, setWarnConsent] = useState(false);
@@ -111,6 +147,7 @@ export default function Signup() {
   const step1Valid = form.name && form.email && form.password && form.password.length >= 8 && form.dob;
   const requiredConsents = CONSENTS.filter(c => c.required).map(c => c.id);
   const consentValid = requiredConsents.every(id => checked[id]);
+  const taglineLen = form.tagline.length;
 
   const handleSubmit = async () => {
     if (!consentValid) { setWarnConsent(true); return; }
@@ -123,7 +160,9 @@ export default function Signup() {
         password: form.password,
         dob: form.dob,
         gender: form.gender,
+        ethnicity: form.ethnicity,
         location: form.location,
+        tagline: form.tagline,
         tier,
         photoLicenseAgreed: tier === "contributor" && !!checked["photo_license"],
       });
@@ -141,18 +180,18 @@ export default function Signup() {
       <div className="min-h-screen relative" data-testid="page-signup-success">
         <div className="topo-bg" />
         <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6 text-center">
-          <div className="text-6xl mb-5 animate-pop">
+          <div className="mb-5 animate-pop">
             <Compass size={56} style={{ color: "var(--roam-electric)" }} />
           </div>
           <h1 className="font-serif text-4xl font-black mb-3 animate-fade-up">
             Welcome to<br /><span className="italic" style={{ color: "var(--roam-electric)" }}>roam.</span>
           </h1>
           <p className="text-sm max-w-xs mb-6 animate-fade-up-1" style={{ color: "rgba(242,237,227,0.5)" }}>
-            Your adventure profile is being built. Upload your first photos and let the AI find your people.
+            Your adventure profile is ready. Upload your first photos and let the AI find your people.
           </p>
           <div className="font-mono text-xs px-5 py-3 rounded-2xl mb-8 animate-fade-up-2"
                style={{ background: "var(--roam-moss)", border: "1px solid rgba(200,230,74,0.25)", color: "var(--roam-electric)" }}>
-            {selectedTierData.name} plan {tier === "contributor" && " · Photo contributor"}
+            {selectedTierData.name} plan{tier === "contributor" ? " · Photo contributor" : ""}
           </div>
           <div className="flex flex-col gap-3 w-full max-w-xs animate-fade-up-3">
             <button className="py-3.5 rounded-2xl text-sm font-mono tracking-wider uppercase font-medium transition-all"
@@ -177,32 +216,31 @@ export default function Signup() {
     <div className="min-h-screen relative" data-testid="page-signup">
       <div className="topo-bg" />
       <div className="relative z-10 flex flex-col min-h-screen">
-        <div className="relative h-56 overflow-hidden flex-shrink-0">
+        <div className="relative h-48 overflow-hidden flex-shrink-0">
           <div className="grid grid-cols-3 h-full gap-0.5">
             {HERO_URLS.map((u, i) => (
               <div key={i} className="overflow-hidden">
-                <img src={u} alt="" className="w-full h-full object-cover brightness-[0.55]" loading="lazy" />
+                <img src={u} alt="" className="w-full h-full object-cover brightness-[0.55]" loading="lazy"
+                     draggable={false} onContextMenu={e => e.preventDefault()} />
               </div>
             ))}
           </div>
           <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, transparent 30%, rgba(14,26,13,0.97) 100%)" }} />
-          <div className="absolute bottom-6 left-0 right-0 text-center">
-            <div className="font-serif text-5xl font-black tracking-tight">
+          <div className="absolute bottom-5 left-0 right-0 text-center">
+            <div className="font-serif text-4xl font-black tracking-tight">
               roam<span style={{ color: "var(--roam-electric)" }}>.</span>
             </div>
-            <div className="font-mono text-[11px] tracking-[2.5px] uppercase mt-1" style={{ color: "var(--roam-sand)" }}>
+            <div className="font-mono text-[10px] tracking-[2.5px] uppercase mt-0.5" style={{ color: "var(--roam-sand)" }}>
               match on where you've been
             </div>
           </div>
         </div>
 
-        <div className="flex-1 px-5 pt-7 pb-10 max-w-lg mx-auto w-full">
-          <div className="flex items-center justify-center gap-0 mb-7 animate-fade-up">
+        <div className="flex-1 px-5 pt-6 pb-10 max-w-lg mx-auto w-full">
+          <div className="flex items-center justify-center gap-0 mb-6 animate-fade-up">
             {[1, 2, 3].map((n, i) => (
               <div key={n} className="flex items-center">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-medium transition-all flex-shrink-0 ${
-                  step > n ? '' : step === n ? '' : ''
-                }`}
+                <div className="w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-medium transition-all flex-shrink-0"
                      style={{
                        background: step > n ? "var(--roam-electric)" : "transparent",
                        borderColor: step >= n ? "var(--roam-electric)" : "rgba(242,237,227,0.14)",
@@ -222,97 +260,120 @@ export default function Signup() {
 
           {step === 1 && (
             <div className="animate-fade-up">
-              <h2 className="font-serif text-[26px] font-black leading-tight mb-1">
-                Create your<br /><span className="italic" style={{ color: "var(--roam-electric)" }}>account</span>
+              <h2 className="font-serif text-[24px] font-black leading-tight mb-1">
+                Create your <span className="italic" style={{ color: "var(--roam-electric)" }}>account</span>
               </h2>
-              <p className="text-[13px] mb-6 leading-relaxed" style={{ color: "rgba(242,237,227,0.38)" }}>
-                Takes 60 seconds. No bio, no questionnaire — your photos do the talking.
+              <p className="text-[13px] mb-5 leading-relaxed" style={{ color: "rgba(242,237,227,0.38)" }}>
+                Takes 60 seconds. Your photos do the talking.
               </p>
 
-              <div className="space-y-3.5">
-                <div>
-                  <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(242,237,227,0.38)" }}>Full name</label>
-                  <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none transition-all"
-                         style={{ background: "var(--roam-moss)", border: "1px solid rgba(242,237,227,0.14)", color: "var(--roam-cream)" }}
+              <div className="space-y-3">
+                <InputField label="Full name">
+                  <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={inputStyle}
                          placeholder="Your name" value={form.name} onChange={e => set("name", e.target.value)}
                          data-testid="input-name" />
-                </div>
-                <div>
-                  <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(242,237,227,0.38)" }}>Email</label>
-                  <input type="email" className="w-full py-3 px-4 rounded-2xl text-sm outline-none transition-all"
-                         style={{ background: "var(--roam-moss)", border: "1px solid rgba(242,237,227,0.14)", color: "var(--roam-cream)" }}
+                </InputField>
+
+                <InputField label="Email">
+                  <input type="email" className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={inputStyle}
                          placeholder="you@example.com" value={form.email} onChange={e => set("email", e.target.value)}
                          data-testid="input-email" />
-                </div>
-                <div>
-                  <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(242,237,227,0.38)" }}>Password</label>
-                  <input type="password" className="w-full py-3 px-4 rounded-2xl text-sm outline-none transition-all"
-                         style={{ background: "var(--roam-moss)", border: "1px solid rgba(242,237,227,0.14)", color: "var(--roam-cream)" }}
+                </InputField>
+
+                <InputField label="Password">
+                  <input type="password" className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={inputStyle}
                          placeholder="Min. 8 characters" value={form.password} onChange={e => set("password", e.target.value)}
                          data-testid="input-password" />
-                </div>
+                </InputField>
+
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(242,237,227,0.38)" }}>Date of birth</label>
-                    <input type="date" className="w-full py-3 px-4 rounded-2xl text-sm outline-none transition-all"
-                           style={{ background: "var(--roam-moss)", border: "1px solid rgba(242,237,227,0.14)", color: "var(--roam-cream)" }}
+                  <InputField label="Date of birth">
+                    <input type="date" className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={inputStyle}
                            value={form.dob} onChange={e => set("dob", e.target.value)}
                            data-testid="input-dob" />
-                  </div>
-                  <div>
-                    <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(242,237,227,0.38)" }}>I identify as</label>
-                    <select className="w-full py-3 px-4 rounded-2xl text-sm outline-none transition-all appearance-none"
-                            style={{ background: "var(--roam-moss)", border: "1px solid rgba(242,237,227,0.14)", color: "var(--roam-cream)" }}
+                  </InputField>
+                  <InputField label="I identify as">
+                    <select className="w-full py-3 px-4 rounded-2xl text-sm outline-none appearance-none" style={inputStyle}
                             value={form.gender} onChange={e => set("gender", e.target.value)}
                             data-testid="select-gender">
                       <option value="">Select...</option>
-                      <option value="Woman">Woman</option>
-                      <option value="Man">Man</option>
-                      <option value="Non-binary">Non-binary</option>
-                      <option value="Prefer not to say">Prefer not to say</option>
+                      <option>Woman</option>
+                      <option>Man</option>
+                      <option>Non-binary</option>
+                      <option>Prefer not to say</option>
                     </select>
-                  </div>
+                  </InputField>
                 </div>
-                <div>
-                  <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(242,237,227,0.38)" }}>Base location (city)</label>
-                  <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none transition-all"
-                         style={{ background: "var(--roam-moss)", border: "1px solid rgba(242,237,227,0.14)", color: "var(--roam-cream)" }}
+
+                <InputField label="Ethnicity (optional)">
+                  <select className="w-full py-3 px-4 rounded-2xl text-sm outline-none appearance-none" style={inputStyle}
+                          value={form.ethnicity} onChange={e => set("ethnicity", e.target.value)}
+                          data-testid="select-ethnicity">
+                    <option value="">Prefer not to say</option>
+                    {ETHNICITIES.map(e => <option key={e}>{e}</option>)}
+                  </select>
+                </InputField>
+
+                <InputField label="Base location (city)">
+                  <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={inputStyle}
                          placeholder="e.g. Auckland, NZ" value={form.location} onChange={e => set("location", e.target.value)}
                          data-testid="input-location" />
-                </div>
+                </InputField>
+
+                <InputField label={`One-line tagline (${taglineLen}/60)`}>
+                  <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={{
+                           ...inputStyle,
+                           borderColor: taglineLen > 60 ? "rgba(232,98,26,0.6)" : "rgba(242,237,227,0.14)",
+                         }}
+                         placeholder="e.g. Always chasing the next summit or night market"
+                         value={form.tagline}
+                         maxLength={60}
+                         onChange={e => set("tagline", e.target.value)}
+                         data-testid="input-tagline" />
+                  {taglineLen > 0 && (
+                    <p className="text-[10px] font-mono mt-1.5 text-right"
+                       style={{ color: taglineLen > 55 ? "var(--roam-ember)" : "rgba(242,237,227,0.3)" }}>
+                      {60 - taglineLen} left
+                    </p>
+                  )}
+                </InputField>
               </div>
 
               {error && (
-                <div className="mt-4 text-xs font-mono py-2 px-3 rounded-xl" style={{ background: "rgba(232,98,26,0.1)", border: "1px solid rgba(232,98,26,0.3)", color: "var(--roam-ember)" }}>
+                <div className="mt-4 text-xs font-mono py-2 px-3 rounded-xl"
+                     style={{ background: "rgba(232,98,26,0.1)", border: "1px solid rgba(232,98,26,0.3)", color: "var(--roam-ember)" }}>
                   {error}
                 </div>
               )}
 
-              <button className="w-full py-4 rounded-2xl text-[13px] font-mono tracking-wider uppercase font-medium mt-6 transition-all disabled:opacity-40"
+              <button className="w-full py-4 rounded-2xl text-[13px] font-mono tracking-wider uppercase font-medium mt-5 transition-all disabled:opacity-40"
                       style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
                       disabled={!step1Valid} onClick={() => { setStep(2); setError(""); }}
                       data-testid="button-step1-continue">
                 Continue &rarr; Choose your plan
               </button>
               <div className="text-center mt-4 text-[13px]" style={{ color: "rgba(242,237,227,0.38)" }}>
-                Already have an account? <button onClick={() => navigate("/")} className="underline" style={{ color: "var(--roam-electric)" }} data-testid="link-signin">Sign in</button>
+                Already have an account?{" "}
+                <button onClick={() => navigate("/")} className="underline" style={{ color: "var(--roam-electric)" }} data-testid="link-signin">
+                  Sign in
+                </button>
               </div>
             </div>
           )}
 
           {step === 2 && (
             <div className="animate-fade-up">
-              <h2 className="font-serif text-[26px] font-black leading-tight mb-1">
+              <h2 className="font-serif text-[24px] font-black leading-tight mb-1">
                 <span className="italic" style={{ color: "var(--roam-electric)" }}>Choose</span> your<br />adventure plan
               </h2>
               <p className="text-[13px] mb-5 leading-relaxed" style={{ color: "rgba(242,237,227,0.38)" }}>
-                You can change or cancel anytime. Contributor access is genuinely free — we just need your photos.
+                You can change or cancel anytime. Contributor access is genuinely free.
               </p>
 
               <div className="space-y-2.5 mb-5">
                 {TIERS.map(t => (
                   <div key={t.id}
-                       className={`rounded-[22px] cursor-pointer transition-all relative overflow-hidden`}
+                       className="rounded-[22px] cursor-pointer transition-all relative overflow-hidden"
                        style={{
                          background: tier === t.id ? "var(--roam-surface)" : "var(--roam-moss)",
                          border: tier === t.id ? "1.5px solid var(--roam-electric)" : "1.5px solid rgba(242,237,227,0.07)",
@@ -342,8 +403,10 @@ export default function Signup() {
                       </div>
                       <div className="mt-3 pt-3 space-y-1.5" style={{ borderTop: "1px solid rgba(242,237,227,0.06)" }}>
                         {t.features.map((f, i) => (
-                          <div key={i} className="flex items-baseline gap-2 text-xs" style={{ color: f.included ? "rgba(242,237,227,0.7)" : "rgba(242,237,227,0.3)" }}>
-                            <span className="flex-shrink-0 text-[11px]" style={{ color: f.included ? ((f as any).sky ? "var(--roam-sky)" : "var(--roam-electric)") : "rgba(242,237,227,0.25)" }}>
+                          <div key={i} className="flex items-baseline gap-2 text-xs"
+                               style={{ color: f.included ? "rgba(242,237,227,0.7)" : "rgba(242,237,227,0.3)" }}>
+                            <span className="flex-shrink-0 text-[11px]"
+                                  style={{ color: f.included ? ((f as any).sky ? "var(--roam-sky)" : "var(--roam-electric)") : "rgba(242,237,227,0.25)" }}>
                               {f.included ? <Check size={11} /> : <X size={11} />}
                             </span>
                             {f.text}
@@ -361,7 +424,8 @@ export default function Signup() {
                   <Camera size={20} className="flex-shrink-0 mt-0.5" style={{ color: "var(--roam-electric)" }} />
                   <div className="text-xs leading-relaxed" style={{ color: "rgba(242,237,227,0.7)" }}>
                     <strong className="block mb-1 text-[13px]" style={{ color: "var(--roam-electric)" }}>How photo licensing works</strong>
-                    Your photos stay yours. We may pitch them non-exclusively to travel brands, NZ tourism operators, and adventure gear companies. You earn a royalty cut if a photo sells above $200 NZD.
+                    Your photos stay yours. We may pitch them non-exclusively to travel brands and tourism operators.
+                    You earn a royalty if a photo sells above $200 NZD.
                   </div>
                 </div>
               )}
@@ -370,7 +434,7 @@ export default function Signup() {
                       style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
                       onClick={() => setStep(3)}
                       data-testid="button-step2-continue">
-                Continue &rarr; Review & sign
+                Continue &rarr; Review &amp; sign
               </button>
               <button className="w-full mt-2 py-2 text-xs font-mono underline"
                       style={{ color: "rgba(242,237,227,0.38)" }}
@@ -383,11 +447,11 @@ export default function Signup() {
 
           {step === 3 && (
             <div className="animate-fade-up">
-              <h2 className="font-serif text-[26px] font-black leading-tight mb-1">
+              <h2 className="font-serif text-[24px] font-black leading-tight mb-1">
                 Almost <span className="italic" style={{ color: "var(--roam-electric)" }}>there</span>
               </h2>
               <p className="text-[13px] mb-5 leading-relaxed" style={{ color: "rgba(242,237,227,0.38)" }}>
-                Read and tick each item below. The required ones must be checked to create your account.
+                Read and tick each item. Required ones must be checked.
               </p>
 
               <div className="space-y-2.5 mb-5">
@@ -431,8 +495,9 @@ export default function Signup() {
                             <div className="font-mono text-[9px] tracking-[1px] uppercase mb-2" style={{ color: "var(--roam-electric)" }}>What you're agreeing to</div>
                             <div className="space-y-1.5">
                               {["Non-exclusive — you keep full ownership", "We may sublicense to travel & tourism brands", "Royalties paid for sales above $200 NZD", "Opt out any photo, any time, no questions", "AI-rejected photos are never licensed"].map((t, i) => (
-                                <div key={i} className="text-[11px] flex gap-2 items-baseline" style={{ color: "rgba(242,237,227,0.65)" }}>
-                                  <span style={{ color: "var(--roam-electric)" }}>&rarr;</span>{t}
+                                <div key={i} className="flex items-start gap-2 text-[11px]" style={{ color: "rgba(242,237,227,0.6)" }}>
+                                  <Check size={10} className="flex-shrink-0 mt-0.5" style={{ color: "var(--roam-electric)" }} />
+                                  {t}
                                 </div>
                               ))}
                             </div>
@@ -445,23 +510,25 @@ export default function Signup() {
               </div>
 
               {warnConsent && (
-                <div className="text-xs font-mono mb-4 py-2 animate-fade-up" style={{ color: "var(--roam-ember)" }}>
-                  Please check the required items above to continue.
+                <div className="text-xs font-mono py-2 px-3 rounded-xl mb-4"
+                     style={{ background: "rgba(232,98,26,0.1)", border: "1px solid rgba(232,98,26,0.3)", color: "var(--roam-ember)" }}>
+                  Please tick all required items above.
                 </div>
               )}
 
               {error && (
-                <div className="text-xs font-mono mb-4 py-2 px-3 rounded-xl" style={{ background: "rgba(232,98,26,0.1)", border: "1px solid rgba(232,98,26,0.3)", color: "var(--roam-ember)" }}>
+                <div className="text-xs font-mono py-2 px-3 rounded-xl mb-4"
+                     style={{ background: "rgba(232,98,26,0.1)", border: "1px solid rgba(232,98,26,0.3)", color: "var(--roam-ember)" }}>
                   {error}
                 </div>
               )}
 
-              <button className="w-full py-4 rounded-2xl text-[13px] font-mono tracking-wider uppercase font-medium transition-all disabled:opacity-40"
+              <button className="w-full py-4 rounded-2xl text-[13px] font-mono tracking-wider uppercase font-medium transition-all disabled:opacity-50"
                       style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
                       disabled={submitting}
                       onClick={handleSubmit}
-                      data-testid="button-create-account">
-                {submitting ? "Creating account..." : "Create my ROAM account"}
+                      data-testid="button-submit">
+                {submitting ? "Creating your account..." : "Create my account →"}
               </button>
               <button className="w-full mt-2 py-2 text-xs font-mono underline"
                       style={{ color: "rgba(242,237,227,0.38)" }}
@@ -474,13 +541,5 @@ export default function Signup() {
         </div>
       </div>
     </div>
-  );
-}
-
-function Compass({ size, style, className }: { size: number, style?: any, className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style} className={className}>
-      <circle cx="12" cy="12" r="10" /><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
-    </svg>
   );
 }

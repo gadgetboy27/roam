@@ -201,3 +201,13 @@
     inset: -1px;
   }
 }
+
+/* Photo protection — makes casual right-click saving difficult */
+img {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+img[draggable="false"] {
+  -webkit-user-drag: none;
+}

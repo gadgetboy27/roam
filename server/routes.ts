@@ -3,6 +3,9 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { signupSchema } from "@shared/schema";
 import { hashPassword, comparePassword } from "./auth";
+import { writeFile, mkdir } from "fs/promises";
+import { existsSync } from "fs";
+import path from "path";
 import session from "express-session";
 import MemoryStore from "memorystore";
 
@@ -12,6 +15,11 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  const uploadsDir = path.join(process.cwd(), "uploads");
+  if (!existsSync(uploadsDir)) {
+    await mkdir(uploadsDir, { recursive: true });
+  }
+
   app.use(
     session({
       secret: process.env.SESSION_SECRET || "roam-dev-secret-key",
@@ -42,7 +50,9 @@ export async function registerRoutes(
         password: hashedPassword,
         dob: parsed.data.dob,
         gender: parsed.data.gender,
+        ethnicity: parsed.data.ethnicity,
         location: parsed.data.location,
+        tagline: parsed.data.tagline,
         tier: parsed.data.tier,
         photoLicenseAgreed: parsed.data.photoLicenseAgreed,
       });
@@ -115,6 +125,49 @@ export async function registerRoutes(
   app.post("/api/photos", async (req, res) => {
     try {
       const photo = await storage.createPhoto(req.body);
+      res.status(201).json(photo);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/upload", async (req, res) => {
+    try {
+      const { dataUrl, filename, userId, caption, displayOrder } = req.body;
+      if (!dataUrl || !filename || !userId) {
+        return res.status(400).json({ message: "dataUrl, filename, userId required" });
+      }
+
+      const MAX_SIZE = 8 * 1024 * 1024;
+      if (dataUrl.length > MAX_SIZE * 1.37) {
+        return res.status(413).json({ message: "Image too large. Please use a photo under 8 MB." });
+      }
+
+      const matches = dataUrl.match(/^data:image\/(jpeg|jpg|png|webp|gif);base64,(.+)$/);
+      if (!matches) {
+        return res.status(400).json({ message: "Invalid image format. Use JPEG, PNG, or WebP." });
+      }
+
+      const ext = matches[1] === "jpeg" ? "jpg" : matches[1];
+      const base64Data = matches[2];
+      const safeFilename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const filePath = path.join(uploadsDir, safeFilename);
+
+      await writeFile(filePath, Buffer.from(base64Data, "base64"));
+
+      const storageUrl = `/uploads/${safeFilename}`;
+      const photo = await storage.createPhoto({
+        userId,
+        storageUrl,
+        caption: caption || null,
+        displayOrder: displayOrder ?? 0,
+        personScore: 0,
+        authenticityScore: 100,
+        adventureScore: 0,
+        verdict: "approved",
+        isLicensable: false,
+      });
+
       res.status(201).json(photo);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
