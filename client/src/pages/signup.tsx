@@ -98,16 +98,18 @@ const HERO_URLS = [
 const ETHNICITIES = [
   "Prefer not to say",
   "Asian",
-  "Black / African / Caribbean",
   "East Asian",
-  "Hispanic / Latino",
+  "Hispanic",
   "Indigenous / First Nations",
-  "Middle Eastern / North African",
+  "Latino",
+  "Māori",
+  "Middle Eastern",
   "Mixed / Multiracial",
+  "New Zealander",
+  "North African",
   "Pacific Islander",
   "South Asian",
   "Southeast Asian",
-  "White / European",
   "Other",
 ];
 
