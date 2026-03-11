@@ -1,26 +1,26 @@
-modules = ["nodejs-24"]
+modules = ["nodejs-20", "web", "postgresql-16"]
+run = "npm run dev"
+hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
-[[artifacts]]
-id = "artifacts/api-server"
+[nix]
+channel = "stable-24_05"
 
-[[artifacts]]
-id = "artifacts/mockup-sandbox"
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8081
+externalPort = 8081
+
+[env]
+PORT = "5000"
 
 [deployment]
-router = "application"
 deploymentTarget = "autoscale"
-
-[deployment.postBuild]
-args = ["pnpm", "store", "prune"]
-env = { "CI" = "true" }
-
-[workflows]
-runButton = "Project"
-
-[agent]
-stack = "PNPM_WORKSPACE"
-expertMode = true
-
-[postMerge]
-path = "scripts/post-merge.sh"
-timeoutMs = 20000
+run = ["node", "./dist/index.cjs"]
+build = ["npm", "run", "build"]
