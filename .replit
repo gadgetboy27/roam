@@ -23,7 +23,7 @@ PORT = "5000"
 [deployment]
 deploymentTarget = "autoscale"
 run = ["node", "dist/index.cjs"]
-build = ["bash", "-c", "npm run build && (cd artifacts/api-server && npm run build)"]
+build = ["bash", "-c", "npm run build && pnpm --filter @workspace/api-server run build"]
 
 [workflows]
 runButton = "Project"
