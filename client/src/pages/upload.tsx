@@ -104,7 +104,7 @@ export default function Upload() {
         });
         setPhotos(prev => prev.map(p => p.id === photo.id ? { ...p, status: "done" } : p));
       } catch (err: any) {
-        const msg = err.message?.includes("413") ? "Too large (max 8 MB)" : err.message || "Upload failed";
+        const msg = err.message?.includes("413") ? "Too large (max 12 MB)" : err.message || "Upload failed";
         setPhotos(prev => prev.map(p => p.id === photo.id ? { ...p, status: "error", errorMsg: msg } : p));
       }
     }

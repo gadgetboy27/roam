@@ -1,5 +1,6 @@
+import { useState } from "react";
 import AppNav from "@/components/app-nav";
-import { MapPin, Camera, Mountain, Edit3, Settings, Star } from "lucide-react";
+import { MapPin, Camera, Edit3, Settings, Star, X, Check, Bell, Shield, LogOut, ChevronRight, Plus } from "lucide-react";
 
 const PROFILE_PHOTOS = [
   { url: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=400&q=80&fit=crop", tags: ["rock climbing", "alpine"] },
@@ -10,9 +11,65 @@ const PROFILE_PHOTOS = [
   { url: "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=400&q=80&fit=crop", tags: ["aerial", "coast"] },
 ];
 
-const ADVENTURE_TAGS = ["climbing", "alpine hiking", "surfing", "night markets", "urban roaming", "kayaking", "forest trails", "coastal walks"];
+const ALL_DNA_TAGS = [
+  "rock climbing", "alpine hiking", "surfing", "night markets", "urban roaming",
+  "kayaking", "forest trails", "coastal walks", "cycling", "skiing",
+  "scuba diving", "trail running", "paragliding", "photography", "food trails",
+  "backpacking", "mountain biking", "canyoning", "yoga / wellness", "via ferrata",
+];
+
+const inputStyle: React.CSSProperties = {
+  background: "var(--roam-moss)",
+  border: "1px solid rgba(242,237,227,0.14)",
+  color: "var(--roam-cream)",
+};
+
+function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col justify-end" data-testid="sheet-overlay">
+      <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.6)" }} onClick={onClose} />
+      <div className="relative rounded-t-[28px] max-h-[90vh] overflow-y-auto"
+           style={{ background: "var(--roam-surface)", border: "1px solid rgba(242,237,227,0.1)" }}>
+        <div className="sticky top-0 z-10 flex items-center justify-between px-5 pt-5 pb-4"
+             style={{ background: "var(--roam-surface)", borderBottom: "1px solid rgba(242,237,227,0.07)" }}>
+          <h2 className="font-serif text-xl font-black">{title}</h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{ background: "rgba(242,237,227,0.07)" }} data-testid="button-close-sheet">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="px-5 pb-8 pt-4">{children}</div>
+      </div>
+    </div>
+  );
+}
 
 export default function Profile() {
+  const [editOpen, setEditOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const [profileData, setProfileData] = useState({
+    name: "You",
+    age: "28",
+    tagline: "Chasing elevation and good coffee",
+    location: "Auckland, NZ",
+    dna: ["climbing", "alpine hiking", "surfing", "night markets", "urban roaming", "kayaking", "forest trails", "coastal walks"],
+  });
+
+  const [editForm, setEditForm] = useState({ ...profileData });
+  const [notifications, setNotifications] = useState({ matches: true, messages: true, bucketList: false });
+
+  const openEdit = () => { setEditForm({ ...profileData }); setEditOpen(true); };
+  const saveEdit = () => { setProfileData({ ...editForm }); setEditOpen(false); };
+
+  const toggleDnaTag = (tag: string) => {
+    setEditForm(f => ({
+      ...f,
+      dna: f.dna.includes(tag) ? f.dna.filter(t => t !== tag) : [...f.dna, tag],
+    }));
+  };
+
   return (
     <div className="min-h-screen relative" data-testid="page-profile">
       <div className="topo-bg" />
@@ -30,26 +87,28 @@ export default function Profile() {
             <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(14,26,13,0.95) 0%, rgba(14,26,13,0.3) 50%, transparent 100%)" }} />
 
             <div className="absolute top-3 right-3 flex gap-2">
-              <button className="w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-lg"
+              <button className="w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-lg transition-all hover:scale-105"
                       style={{ background: "rgba(14,26,13,0.6)", border: "1px solid rgba(242,237,227,0.15)" }}
+                      onClick={openEdit}
                       data-testid="button-edit-profile">
                 <Edit3 size={14} />
               </button>
-              <button className="w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-lg"
+              <button className="w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-lg transition-all hover:scale-105"
                       style={{ background: "rgba(14,26,13,0.6)", border: "1px solid rgba(242,237,227,0.15)" }}
+                      onClick={() => setSettingsOpen(true)}
                       data-testid="button-settings">
                 <Settings size={14} />
               </button>
             </div>
 
             <div className="absolute bottom-4 left-5">
-              <h1 className="font-serif text-3xl font-black" data-testid="text-profile-name">You, 28</h1>
+              <h1 className="font-serif text-3xl font-black" data-testid="text-profile-name">{profileData.name}, {profileData.age}</h1>
               <p className="text-[13px] italic mt-1" style={{ color: "rgba(242,237,227,0.65)" }}>
-                "Chasing elevation and good coffee"
+                "{profileData.tagline}"
               </p>
               <div className="flex items-center gap-1.5 mt-2">
                 <MapPin size={12} style={{ color: "var(--roam-sky)" }} />
-                <span className="font-mono text-[10px]" style={{ color: "var(--roam-sky)" }}>Auckland, NZ</span>
+                <span className="font-mono text-[10px]" style={{ color: "var(--roam-sky)" }} data-testid="text-location">{profileData.location}</span>
               </div>
             </div>
           </div>
@@ -79,11 +138,19 @@ export default function Profile() {
             </div>
 
             <div className="mb-5">
-              <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(242,237,227,0.35)" }}>
-                Adventure DNA
+              <div className="flex items-center justify-between mb-3">
+                <div className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(242,237,227,0.35)" }}>
+                  Adventure DNA
+                </div>
+                <button className="flex items-center gap-1 font-mono text-[9px] tracking-wider uppercase py-1 px-2.5 rounded-lg transition-all"
+                        style={{ background: "rgba(200,230,74,0.1)", color: "var(--roam-electric)", border: "1px solid rgba(200,230,74,0.25)" }}
+                        onClick={openEdit}
+                        data-testid="button-edit-dna">
+                  <Plus size={10} /> Edit
+                </button>
               </div>
-              <div className="flex flex-wrap gap-1.5">
-                {ADVENTURE_TAGS.map(t => (
+              <div className="flex flex-wrap gap-1.5" data-testid="dna-tags">
+                {profileData.dna.map(t => (
                   <span key={t} className="px-2.5 py-1 rounded-xl text-[11px] font-mono tracking-wider"
                         style={{ background: "rgba(200,230,74,0.1)", border: "1px solid rgba(200,230,74,0.3)", color: "var(--roam-electric)" }}>
                     {t}
@@ -131,6 +198,158 @@ export default function Profile() {
           </div>
         </div>
       </div>
+
+      <Sheet open={editOpen} onClose={() => setEditOpen(false)} title="Edit profile">
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(242,237,227,0.38)" }}>
+                Name
+              </label>
+              <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={inputStyle}
+                     value={editForm.name}
+                     onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                     data-testid="input-edit-name" />
+            </div>
+            <div>
+              <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(242,237,227,0.38)" }}>
+                Age
+              </label>
+              <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={inputStyle}
+                     value={editForm.age} type="number" min="18" max="99"
+                     onChange={e => setEditForm(f => ({ ...f, age: e.target.value }))}
+                     data-testid="input-edit-age" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(242,237,227,0.38)" }}>
+              Tagline
+            </label>
+            <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={inputStyle}
+                   value={editForm.tagline} maxLength={60}
+                   placeholder="e.g. Chasing summits and night markets"
+                   onChange={e => setEditForm(f => ({ ...f, tagline: e.target.value }))}
+                   data-testid="input-edit-tagline" />
+            <p className="text-[10px] font-mono mt-1 text-right" style={{ color: "rgba(242,237,227,0.3)" }}>
+              {60 - editForm.tagline.length} left
+            </p>
+          </div>
+
+          <div>
+            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(242,237,227,0.38)" }}>
+              Base location
+            </label>
+            <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={inputStyle}
+                   value={editForm.location}
+                   placeholder="e.g. Auckland, NZ"
+                   onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))}
+                   data-testid="input-edit-location" />
+          </div>
+
+          <div>
+            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-2" style={{ color: "rgba(242,237,227,0.38)" }}>
+              Adventure DNA — tap to select your activities
+            </label>
+            <p className="text-[11px] mb-3" style={{ color: "rgba(242,237,227,0.3)" }}>
+              These are also auto-detected from your photos. Your manual picks always show first.
+            </p>
+            <div className="flex flex-wrap gap-1.5" data-testid="dna-selector">
+              {ALL_DNA_TAGS.map(tag => {
+                const active = editForm.dna.includes(tag);
+                return (
+                  <button key={tag}
+                          className="px-2.5 py-1 rounded-xl text-[11px] font-mono tracking-wider transition-all"
+                          style={{
+                            background: active ? "rgba(200,230,74,0.15)" : "rgba(242,237,227,0.04)",
+                            border: active ? "1px solid rgba(200,230,74,0.45)" : "1px solid rgba(242,237,227,0.1)",
+                            color: active ? "var(--roam-electric)" : "rgba(242,237,227,0.45)",
+                          }}
+                          onClick={() => toggleDnaTag(tag)}
+                          data-testid={`dna-tag-${tag.replace(/\s+/g, "-")}`}>
+                    {active && <Check size={9} className="inline mr-1" />}{tag}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <button className="w-full py-3.5 rounded-2xl font-mono text-sm tracking-wider uppercase font-medium transition-all hover:-translate-y-0.5 mt-2"
+                  style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
+                  onClick={saveEdit}
+                  data-testid="button-save-profile">
+            Save changes
+          </button>
+        </div>
+      </Sheet>
+
+      <Sheet open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Settings">
+        <div className="space-y-2">
+          <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(242,237,227,0.35)" }}>
+            Notifications
+          </div>
+
+          {[
+            { key: "matches" as const, label: "New matches", desc: "When someone's adventure DNA aligns with yours" },
+            { key: "messages" as const, label: "Messages", desc: "When a match sends you a message" },
+            { key: "bucketList" as const, label: "Bucket list alerts", desc: "When matches share a destination you've pinned" },
+          ].map(item => (
+            <div key={item.key} className="flex items-center justify-between p-4 rounded-2xl"
+                 style={{ background: "var(--roam-moss)", border: "1px solid rgba(242,237,227,0.07)" }}>
+              <div>
+                <div className="text-sm font-medium">{item.label}</div>
+                <div className="text-[11px] mt-0.5" style={{ color: "rgba(242,237,227,0.4)" }}>{item.desc}</div>
+              </div>
+              <button className="w-11 h-6 rounded-full relative transition-all flex-shrink-0"
+                      style={{ background: notifications[item.key] ? "var(--roam-electric)" : "rgba(242,237,227,0.12)" }}
+                      onClick={() => setNotifications(n => ({ ...n, [item.key]: !n[item.key] }))}
+                      data-testid={`toggle-notif-${item.key}`}>
+                <div className="w-4 h-4 rounded-full absolute top-1 transition-all"
+                     style={{ background: "white", left: notifications[item.key] ? "calc(100% - 20px)" : "4px" }} />
+              </button>
+            </div>
+          ))}
+
+          <div className="pt-4">
+            <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(242,237,227,0.35)" }}>
+              Account
+            </div>
+            <div className="space-y-2">
+              {[
+                { icon: Shield, label: "Privacy settings", desc: "Who can see your profile" },
+                { icon: Camera, label: "Photo licensing", desc: "Manage your contributor licence" },
+                { icon: Bell, label: "Email preferences", desc: "Adventure inspiration & updates" },
+              ].map((item, i) => (
+                <button key={i} className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all"
+                        style={{ background: "var(--roam-moss)", border: "1px solid rgba(242,237,227,0.07)" }}
+                        data-testid={`settings-item-${i}`}>
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                       style={{ background: "rgba(242,237,227,0.06)" }}>
+                    <item.icon size={15} style={{ color: "rgba(242,237,227,0.5)" }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium">{item.label}</div>
+                    <div className="text-[11px]" style={{ color: "rgba(242,237,227,0.4)" }}>{item.desc}</div>
+                  </div>
+                  <ChevronRight size={15} style={{ color: "rgba(242,237,227,0.25)" }} />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="pt-4">
+            <button className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all"
+                    style={{ background: "rgba(232,98,26,0.06)", border: "1px solid rgba(232,98,26,0.15)" }}
+                    data-testid="button-logout">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                   style={{ background: "rgba(232,98,26,0.1)" }}>
+                <LogOut size={15} style={{ color: "var(--roam-ember)" }} />
+              </div>
+              <span className="text-sm font-medium" style={{ color: "var(--roam-ember)" }}>Sign out</span>
+            </button>
+          </div>
+        </div>
+      </Sheet>
     </div>
   );
 }
