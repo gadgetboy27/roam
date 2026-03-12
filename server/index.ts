@@ -25,6 +25,9 @@ app.use(
 app.use(express.urlencoded({ extended: false }));
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
+// Fast health check — must respond before DB/routes to satisfy deployment health checks
+app.get("/api/healthz", (_req, res) => res.json({ status: "ok" }));
+
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
