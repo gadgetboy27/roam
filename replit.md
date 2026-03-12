@@ -11,6 +11,8 @@ ROAM is an adventure-matching dating app where users post real travel/adventure 
 - **Database**: PostgreSQL + Drizzle ORM
 - **Validation**: Zod + drizzle-zod
 - **Auth**: Session-based (express-session + memorystore), scrypt password hashing
+- **Real-time**: Socket.io (server) + socket.io-client (browser) — match rooms, DB-persisted messages
+- **Offline**: localStorage message cache + pending queue (auto-flushes on reconnect)
 - **Monorepo**: pnpm workspaces (artifacts/*, lib/*)
 
 ## Structure
@@ -27,6 +29,9 @@ ROAM is an adventure-matching dating app where users post real travel/adventure 
 │   ├── components/
 │   │   └── app-nav.tsx       # Shared navigation component
 │   ├── lib/queryClient.ts    # TanStack Query setup
+│   ├── lib/socket.ts         # Socket.io client singleton
+│   ├── lib/useConnectionStatus.ts  # online/offline/connecting hook
+│   ├── lib/messageCache.ts   # localStorage cache + pending queue
 │   └── App.tsx               # Router setup
 ├── server/                   # Express backend (port 5000)
 │   ├── index.ts              # Entry point + Vite setup

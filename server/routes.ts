@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { Server as SocketServer } from "socket.io";
 import { storage } from "./storage";
 import { signupSchema } from "@shared/schema";
 import { hashPassword, comparePassword } from "./auth";
@@ -15,6 +16,30 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  const io = new SocketServer(httpServer, {
+    path: "/socket.io",
+    cors: { origin: "*", methods: ["GET", "POST"] },
+    transports: ["websocket", "polling"],
+  });
+
+  io.on("connection", (socket) => {
+    socket.on("join_match", (matchId: string) => {
+      socket.join(`match:${matchId}`);
+    });
+
+    socket.on("send_message", async (data: { matchId: string; senderId: string; content: string; tempId?: string }) => {
+      try {
+        const msg = await storage.createMessage({
+          matchId: data.matchId,
+          senderId: data.senderId,
+          content: data.content,
+        });
+        io.to(`match:${data.matchId}`).emit("new_message", { ...msg, tempId: data.tempId });
+      } catch (err: any) {
+        socket.emit("message_error", { tempId: data.tempId, error: err.message });
+      }
+    });
+  });
   const uploadsDir = path.join(process.cwd(), "uploads");
   if (!existsSync(uploadsDir)) {
     await mkdir(uploadsDir, { recursive: true });
