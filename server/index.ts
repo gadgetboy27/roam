@@ -25,7 +25,7 @@ app.use(
 app.use(express.urlencoded({ extended: false }));
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
-// Fast health check — must respond before DB/routes to satisfy deployment health checks
+// Health check registered immediately so it responds before any async setup
 app.get("/api/healthz", (_req, res) => res.json({ status: "ok" }));
 
 export function log(message: string, source = "express") {
@@ -65,6 +65,12 @@ app.use((req, res, next) => {
   next();
 });
 
+// Bind the port immediately so health checks pass while setup continues
+const port = parseInt(process.env.PORT || "5000", 10);
+httpServer.listen({ port, host: "0.0.0.0", reusePort: true }, () => {
+  log(`serving on port ${port}`);
+});
+
 (async () => {
   await registerRoutes(httpServer, app);
 
@@ -85,26 +91,11 @@ app.use((req, res, next) => {
     return res.status(status).json({ message });
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
+  // Vite dev middleware or static file serving added after routes
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
   } else {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
   }
-
-  const port = parseInt(process.env.PORT || "5000", 10);
-  httpServer.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`serving on port ${port}`);
-    },
-  );
-
 })();
