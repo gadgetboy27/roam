@@ -77,7 +77,14 @@ export default function Landing() {
               <span className="font-serif text-2xl font-black tracking-tight" data-testid="text-logo">roam</span>
               <span className="text-[var(--roam-electric)] font-serif text-2xl font-black">.</span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Link href="/login">
+                <button className="px-5 py-2 rounded-full text-xs font-mono tracking-wider uppercase transition-all"
+                        style={{ border: "1px solid rgba(242,237,227,0.15)", color: "rgba(242,237,227,0.6)" }}
+                        data-testid="button-signin-nav">
+                  Sign In
+                </button>
+              </Link>
               <Link href="/signup">
                 <button className="px-5 py-2 rounded-full text-xs font-mono tracking-wider uppercase transition-all"
                         style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}

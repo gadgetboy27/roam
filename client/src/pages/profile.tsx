@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import AppNav from "@/components/app-nav";
+import { useAuth } from "@/lib/auth";
 import { MapPin, Camera, Edit3, Settings, Star, X, Check, Bell, Shield, LogOut, ChevronRight, Plus } from "lucide-react";
 
 const PROFILE_PHOTOS = [
@@ -46,14 +48,16 @@ function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () 
 }
 
 export default function Profile() {
+  const { user, logout } = useAuth();
+  const [, navigate] = useLocation();
   const [editOpen, setEditOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [profileData, setProfileData] = useState({
-    name: "You",
-    age: "28",
-    tagline: "Chasing elevation and good coffee",
-    location: "Auckland, NZ",
+    name: user?.name || "You",
+    age: user?.dob ? String(new Date().getFullYear() - new Date(user.dob).getFullYear()) : "—",
+    tagline: user?.tagline || "Chasing elevation and good coffee",
+    location: user?.location || "Auckland, NZ",
     dna: ["climbing", "alpine hiking", "surfing", "night markets", "urban roaming", "kayaking", "forest trails", "coastal walks"],
   });
 
@@ -337,9 +341,18 @@ export default function Profile() {
             </div>
           </div>
 
-          <div className="pt-4">
+          <div className="pt-2 pb-1">
+            <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-2 pt-2" style={{ color: "rgba(242,237,227,0.35)", borderTop: "1px solid rgba(242,237,227,0.07)" }}>
+              Signed in as
+            </div>
+            <div className="font-mono text-[11px] mb-3" style={{ color: "rgba(242,237,227,0.5)" }}>
+              {user?.email}
+            </div>
+          </div>
+          <div className="pt-1">
             <button className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all"
                     style={{ background: "rgba(232,98,26,0.06)", border: "1px solid rgba(232,98,26,0.15)" }}
+                    onClick={async () => { await logout(); navigate("/login"); }}
                     data-testid="button-logout">
               <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
                    style={{ background: "rgba(232,98,26,0.1)" }}>

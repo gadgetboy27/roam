@@ -29,10 +29,11 @@ ROAM is an adventure-matching dating app where users post real travel/adventure 
 │   ├── components/
 │   │   └── app-nav.tsx       # Shared navigation component
 │   ├── lib/queryClient.ts    # TanStack Query setup
+│   ├── lib/auth.tsx          # AuthProvider, useAuth, RequireAuth guard
 │   ├── lib/socket.ts         # Socket.io client singleton
 │   ├── lib/useConnectionStatus.ts  # online/offline/connecting hook
 │   ├── lib/messageCache.ts   # localStorage cache + pending queue
-│   └── App.tsx               # Router setup
+│   └── App.tsx               # Router setup (auth-guarded routes)
 ├── server/                   # Express backend (port 5000)
 │   ├── index.ts              # Entry point + Vite setup
 │   ├── routes.ts             # All API routes (/api/*)

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/lib/auth";
 import { ArrowLeft, Check, X, Camera, Compass } from "lucide-react";
 
 const TIERS = [
@@ -132,6 +133,7 @@ const inputStyle = {
 
 export default function Signup() {
   const [, navigate] = useLocation();
+  const { refresh } = useAuth();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     name: "", email: "", password: "", dob: "",
@@ -168,6 +170,7 @@ export default function Signup() {
         tier,
         photoLicenseAgreed: tier === "contributor" && !!checked["photo_license"],
       });
+      await refresh();
       setStep(4);
     } catch (e: any) {
       setError(e.message || "Something went wrong");
@@ -356,7 +359,7 @@ export default function Signup() {
               </button>
               <div className="text-center mt-4 text-[13px]" style={{ color: "rgba(242,237,227,0.38)" }}>
                 Already have an account?{" "}
-                <button onClick={() => navigate("/")} className="underline" style={{ color: "var(--roam-electric)" }} data-testid="link-signin">
+                <button onClick={() => navigate("/login")} className="underline" style={{ color: "var(--roam-electric)" }} data-testid="link-signin">
                   Sign in
                 </button>
               </div>

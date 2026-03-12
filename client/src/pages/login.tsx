@@ -1,0 +1,180 @@
+import { useState } from "react";
+import { useLocation, Link } from "wouter";
+import { useAuth } from "@/lib/auth";
+import { Eye, EyeOff, Compass } from "lucide-react";
+
+const HERO_URLS = [
+  "https://images.unsplash.com/photo-1551632811-561732d1e306?w=400&q=75&fit=crop",
+  "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=400&q=75&fit=crop",
+  "https://images.unsplash.com/photo-1473773508845-188df298d2d1?w=400&q=75&fit=crop",
+];
+
+const inputStyle: React.CSSProperties = {
+  background: "var(--roam-moss)",
+  border: "1px solid rgba(242,237,227,0.14)",
+  color: "var(--roam-cream)",
+};
+
+export default function Login() {
+  const [, navigate] = useLocation();
+  const { login } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const valid = email.includes("@") && password.length >= 6;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!valid) return;
+    setLoading(true);
+    setError("");
+    try {
+      await login(email, password);
+      navigate("/discover");
+    } catch (err: any) {
+      const msg = err?.message || "Invalid email or password";
+      setError(msg.includes("fetch") ? "Could not reach the server. Please try again." : msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen relative" data-testid="page-login">
+      <div className="topo-bg" />
+
+      <div className="relative z-10 flex flex-col min-h-screen">
+        <div className="relative h-44 overflow-hidden flex-shrink-0">
+          <div className="grid grid-cols-3 h-full gap-0.5">
+            {HERO_URLS.map((u, i) => (
+              <div key={i} className="overflow-hidden">
+                <img src={u} alt="" className="w-full h-full object-cover brightness-[0.5]" loading="lazy"
+                     draggable={false} />
+              </div>
+            ))}
+          </div>
+          <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, transparent 20%, rgba(14,26,13,0.97) 100%)" }} />
+          <div className="absolute bottom-5 left-0 right-0 text-center">
+            <div className="font-serif text-4xl font-black tracking-tight">
+              roam<span style={{ color: "var(--roam-electric)" }}>.</span>
+            </div>
+            <div className="font-mono text-[10px] tracking-[2.5px] uppercase mt-0.5" style={{ color: "var(--roam-sand)" }}>
+              welcome back, adventurer
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 flex flex-col justify-center px-5 pt-8 pb-10 max-w-md mx-auto w-full">
+          <div className="animate-fade-up">
+            <h2 className="font-serif text-[26px] font-black leading-tight mb-1">
+              Sign <span className="italic" style={{ color: "var(--roam-electric)" }}>in</span>
+            </h2>
+            <p className="text-[13px] mb-6 leading-relaxed" style={{ color: "rgba(242,237,227,0.38)" }}>
+              Your adventures are waiting.
+            </p>
+
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div>
+                <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5"
+                       style={{ color: "rgba(242,237,227,0.38)" }}>
+                  Email
+                </label>
+                <input type="email" autoComplete="email" autoFocus
+                       className="w-full py-3 px-4 rounded-2xl text-sm outline-none"
+                       style={inputStyle}
+                       placeholder="you@example.com"
+                       value={email}
+                       onChange={e => { setEmail(e.target.value); setError(""); }}
+                       data-testid="input-email" />
+              </div>
+
+              <div>
+                <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5"
+                       style={{ color: "rgba(242,237,227,0.38)" }}>
+                  Password
+                </label>
+                <div className="relative">
+                  <input type={showPw ? "text" : "password"} autoComplete="current-password"
+                         className="w-full py-3 px-4 pr-12 rounded-2xl text-sm outline-none"
+                         style={inputStyle}
+                         placeholder="Your password"
+                         value={password}
+                         onChange={e => { setPassword(e.target.value); setError(""); }}
+                         data-testid="input-password" />
+                  <button type="button" tabIndex={-1}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1"
+                          style={{ color: "rgba(242,237,227,0.3)" }}
+                          onClick={() => setShowPw(v => !v)}>
+                    {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              {error && (
+                <div className="text-xs font-mono py-2.5 px-4 rounded-xl animate-fade-up"
+                     style={{ background: "rgba(232,98,26,0.1)", border: "1px solid rgba(232,98,26,0.3)", color: "var(--roam-ember)" }}
+                     data-testid="text-login-error">
+                  {error}
+                </div>
+              )}
+
+              <button type="submit"
+                      className="w-full py-4 rounded-2xl text-[13px] font-mono tracking-wider uppercase font-medium mt-2 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+                      style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
+                      disabled={!valid || loading}
+                      data-testid="button-signin">
+                {loading ? (
+                  <>
+                    <div className="flex gap-1">
+                      {[0,1,2].map(i => (
+                        <div key={i} className="w-1.5 h-1.5 rounded-full"
+                             style={{ background: "var(--roam-forest)", animation: `bounce-dot 0.9s ${i*0.15}s infinite` }} />
+                      ))}
+                    </div>
+                    Signing in…
+                  </>
+                ) : (
+                  <>
+                    <Compass size={14} />
+                    Sign in
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="mt-5 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px" style={{ background: "rgba(242,237,227,0.08)" }} />
+                <span className="font-mono text-[10px] tracking-wider" style={{ color: "rgba(242,237,227,0.25)" }}>or</span>
+                <div className="flex-1 h-px" style={{ background: "rgba(242,237,227,0.08)" }} />
+              </div>
+
+              <div className="text-center text-[13px]" style={{ color: "rgba(242,237,227,0.38)" }}>
+                New to roam?{" "}
+                <Link href="/signup">
+                  <button className="underline font-medium" style={{ color: "var(--roam-electric)" }}
+                          data-testid="link-signup">
+                    Create an account
+                  </button>
+                </Link>
+              </div>
+
+              <div className="text-center">
+                <Link href="/">
+                  <button className="font-mono text-[11px] tracking-wider"
+                          style={{ color: "rgba(242,237,227,0.25)" }}
+                          data-testid="link-home">
+                    ← back to home
+                  </button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

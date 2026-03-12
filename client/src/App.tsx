@@ -1,10 +1,12 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider, RequireAuth } from "@/lib/auth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
+import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import Discover from "@/pages/discover";
 import Upload from "@/pages/upload";
@@ -15,11 +17,20 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Landing} />
+      <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
-      <Route path="/discover" component={Discover} />
-      <Route path="/upload" component={Upload} />
-      <Route path="/matches" component={Matches} />
-      <Route path="/profile" component={Profile} />
+      <Route path="/discover">
+        <RequireAuth><Discover /></RequireAuth>
+      </Route>
+      <Route path="/upload">
+        <RequireAuth><Upload /></RequireAuth>
+      </Route>
+      <Route path="/matches">
+        <RequireAuth><Matches /></RequireAuth>
+      </Route>
+      <Route path="/profile">
+        <RequireAuth><Profile /></RequireAuth>
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
@@ -29,8 +40,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Router />
+        <AuthProvider>
+          <Toaster />
+          <Router />
+        </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
