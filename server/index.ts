@@ -104,15 +104,4 @@ app.use((req, res, next) => {
     },
   );
 
-  // In artifact deployment mode, PORT is set to 8080 by the artifact config
-  // but the main URL (ventur-match.replit.app) routes to port 5000 based on
-  // the workspace port mapping. We start a second listener so both are covered.
-  if (port !== 5000) {
-    const http = await import("http");
-    const secondaryServer = http.createServer(app);
-    secondaryServer.listen(
-      { port: 5000, host: "0.0.0.0", reusePort: true },
-      () => { log("serving on port 5000 (secondary)"); },
-    );
-  }
 })();
