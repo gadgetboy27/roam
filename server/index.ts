@@ -65,6 +65,14 @@ app.use((req, res, next) => {
   next();
 });
 
+// Serve index.html at / immediately so deployment health checks pass
+// before the async setup (routes, DB seed) finishes.
+// Full static serving with catch-all is added inside the async block.
+if (process.env.NODE_ENV === "production") {
+  const indexPath = path.resolve(__dirname, "public", "index.html");
+  app.get("/", (_req, res) => res.sendFile(indexPath));
+}
+
 // Bind the port immediately so health checks pass while setup continues
 const port = parseInt(process.env.PORT || "5000", 10);
 httpServer.listen({ port, host: "0.0.0.0", reusePort: true }, () => {
