@@ -1,17 +1,20 @@
 #!/bin/sh
 set -e
 
-echo "=== Build environment ==="
 echo "Node: $(node --version)"
-echo "pnpm: $(pnpm --version 2>/dev/null || echo 'not found')"
-echo "npm:  $(npm --version)"
 
-# Install dependencies so tsx and other build tools are available
-pnpm install --frozen-lockfile
+# Install dependencies — try pnpm first, fall back to npm
+if command -v pnpm > /dev/null 2>&1; then
+  echo "Using pnpm"
+  pnpm install --frozen-lockfile
+else
+  echo "pnpm not found, using npm"
+  npm install
+fi
 
 # Build frontend (dist/public/) and server bundle (dist/index.cjs)
-pnpm run build
+npm run build
 
-echo "=== Build output ==="
+echo "=== dist/ ==="
 ls -lh dist/index.cjs
 ls -lh dist/public/index.html
