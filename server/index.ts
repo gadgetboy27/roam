@@ -92,12 +92,7 @@ app.use((req, res, next) => {
     await setupVite(httpServer, app);
   }
 
-  // In production builds, esbuild inlines NODE_ENV as "production", so this
-  // resolves to 8080 at compile time — bypassing the dev-only PORT=5000 env var.
-  // In development (tsx), NODE_ENV is "development", so we use PORT or 5000.
-  const port = process.env.NODE_ENV === "production"
-    ? 8080
-    : parseInt(process.env.PORT || "5000", 10);
+  const port = parseInt(process.env.PORT || "5000", 10);
   httpServer.listen(
     {
       port,
