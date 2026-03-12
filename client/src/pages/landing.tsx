@@ -123,11 +123,13 @@ export default function Landing() {
               </div>
 
               <div className="animate-fade-up-1 hidden lg:block">
-                <div className="grid grid-cols-2 gap-2 max-w-md ml-auto">
-                  {HERO_IMAGES.map((url, i) => (
-                    <div key={i} className={`rounded-2xl overflow-hidden ${i === 0 ? 'row-span-2' : ''}`}
-                         style={{ border: "1px solid rgba(242,237,227,0.08)" }}>
-                      <img src={url} alt="" className={`w-full object-cover ${i === 0 ? 'h-full' : 'h-40'}`} loading="lazy" />
+                <div className="grid grid-cols-2 grid-rows-[160px_160px_160px] gap-2 max-w-md ml-auto">
+                  <div className="row-span-3 rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(242,237,227,0.08)" }}>
+                    <img src={HERO_IMAGES[0]} alt="" className="w-full h-full object-cover" loading="lazy" />
+                  </div>
+                  {HERO_IMAGES.slice(1).map((url, i) => (
+                    <div key={i} className="rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(242,237,227,0.08)" }}>
+                      <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
                     </div>
                   ))}
                 </div>
