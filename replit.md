@@ -20,20 +20,20 @@ ROAM is an adventure-matching dating app where users post real travel/adventure 
 ```text
 ├── client/src/               # React frontend
 │   ├── pages/                # Page components
-│   │   ├── landing.tsx       # Hero + features + match stories
-│   │   ├── signup.tsx        # 3-step signup (account → tier → consents)
-│   │   ├── discover.tsx      # Match cards with adventure DNA overlap
+│   │   ├── landing.tsx       # Hero + features + match stories (auth-redirect)
+│   │   ├── login.tsx         # Login page (auth-redirect)
+│   │   ├── signup.tsx        # 3-step signup (auth-redirect)
+│   │   ├── discover.tsx      # Match cards + bucket-list pinning + "Roam Together"
 │   │   ├── upload.tsx        # AI photo screener demo
-│   │   ├── matches.tsx       # Match list + chat thread
-│   │   └── profile.tsx       # User profile with photo grid
+│   │   ├── matches.tsx       # Connections list (2 sections) + chat thread
+│   │   └── profile.tsx       # User profile with photo grid + DNA edit + avatar
 │   ├── components/
 │   │   └── app-nav.tsx       # Shared navigation component
 │   ├── lib/queryClient.ts    # TanStack Query setup
 │   ├── lib/auth.tsx          # AuthProvider, useAuth, RequireAuth guard
 │   ├── lib/socket.ts         # Socket.io client singleton
 │   ├── lib/useConnectionStatus.ts  # online/offline/connecting hook
-│   ├── lib/messageCache.ts   # localStorage cache + pending queue
-│   └── App.tsx               # Router setup (auth-guarded routes)
+│   └── lib/messageCache.ts   # localStorage cache + pending queue
 ├── server/                   # Express backend (port 5000)
 │   ├── index.ts              # Entry point + Vite setup
 │   ├── routes.ts             # All API routes (/api/*)
@@ -41,14 +41,8 @@ ROAM is an adventure-matching dating app where users post real travel/adventure 
 │   ├── db.ts                 # Drizzle ORM + pg pool
 │   ├── auth.ts               # Password hashing (scrypt)
 │   ├── seed.ts               # Demo data seeder
-│   ├── vite.ts               # Vite dev middleware
-│   └── static.ts             # Production static serving
-├── shared/schema.ts          # Drizzle schema + Zod schemas + types
-├── artifacts/api-server/     # Secondary API server (port 8080, not main)
-├── lib/db/                   # Workspace DB package
-├── lib/api-spec/             # OpenAPI spec
-├── lib/api-zod/              # Generated Zod schemas
-└── lib/api-client-react/     # Generated React Query hooks
+│   └── vite.ts               # Vite dev middleware
+└── shared/schema.ts          # Drizzle schema + Zod schemas + types
 ```
 
 ## Design System
@@ -60,47 +54,73 @@ ROAM is an adventure-matching dating app where users post real travel/adventure 
 - `roam-sky`: #7db8d4 (blue info)
 - `roam-cream`: #f2ede3 (text)
 - `roam-sand`: #bfb8a8 (muted text)
-- `roam-violet`: #a78bfa (secondary accent)
 
 **Fonts**: Playfair Display (serif, headings), DM Mono (mono, labels/tags), Outfit (sans, body)
 
 ## Database Tables
 
-- `users` — id (uuid), email, password, name, dob, gender, ethnicity, location, tagline (max 60 chars), tier (free/adventurer/contributor), adventureTags[], avatarUrl
-- `photos` — id (uuid), userId, storageUrl, caption, personScore, authenticityScore, adventureScore, verdict (approved/needs_person/rejected_*), tags[], isLicensable
-- `matches` — id (uuid), userAId, userBId, overlapScore, sharedTags[], status (pending/liked_a/liked_b/matched/passed), almostMetLocation/Date
+- `users` — id (uuid), email, password, name, dob, gender, ethnicity, location, tagline (≤60), tier, adventureTags[], avatarUrl
+- `photos` — id (uuid), userId, storageUrl, caption, personScore, authenticityScore, adventureScore, verdict, tags[], isLicensable
+- `matches` — id (uuid), userAId, userBId, overlapScore, sharedTags[], status (pending/liked_a/liked_b/matched/passed), matchedAt
 - `messages` — id (uuid), matchId, senderId, content
 - `bucket_list` — id (uuid), userId, destinationName, imageUrl
 
+## Match Lifecycle
+
+1. User A clicks "Roam Together" on User B → creates `matches` record with `status = liked_a`
+2. User B clicks "Roam Together" on User A → server detects reciprocal like → auto-promotes to `status = matched`, sets `matchedAt`
+3. Only `matched` connections show in the "Connections" section with messaging enabled
+4. One-sided likes show in "Waiting to roam back" section (no messaging)
+
 ## API Endpoints
 
-- `POST /api/auth/signup` — Create account
+- `POST /api/auth/register` — Create account
 - `POST /api/auth/login` — Login
 - `GET /api/auth/me` — Current user
 - `POST /api/auth/logout` — Logout
 - `GET /api/users` — List all users
+- `PATCH /api/users/:id` — Update profile (auth required, own user only)
 - `GET /api/users/:id/photos` — User's photos
 - `POST /api/photos` — Upload photo record
-- `GET /api/matches` — Current user's matches
-- `POST /api/matches` — Create match
+- `GET /api/matches` — Current user's matches (both directions, session auth)
+- `POST /api/matches` — Like someone; auto-promotes to matched if reciprocal
 - `PATCH /api/matches/:id` — Update match status
 - `GET /api/matches/:matchId/messages` — Chat messages
 - `POST /api/messages` — Send message
 - `GET /api/bucket-list/:userId` — User's bucket list
-- `POST /api/bucket-list` — Add bucket list item
+- `POST /api/bucket-list` — Pin a destination
+- `DELETE /api/bucket-list/:id` — Unpin a destination
 
-## Monetization Tiers
+## Key Features
 
-- **Explorer** (free): Basic matching, 5 photos
-- **Adventurer** ($12 NZD/mo): Unlimited photos, Almost Met radar, priority matching
-- **Contributor** (free): Adventurer features free in exchange for photo licensing (30% royalty on sales >$200 NZD)
+### Auth Persistence
+- Logged-in users visiting `/`, `/login`, `/signup` are redirected to `/discover`
+- `RequireAuth` guard redirects unauthenticated users from protected routes to `/login`
+
+### Profile Editing
+- Name, tagline, location, adventure DNA all save to DB via `PATCH /api/users/:id` + `refresh()`
+- Avatar photo picker in edit modal — reads file as data URL, saves to user record
+- 31 Adventure DNA tags including: extreme sports, horse riding, walking, running, pub games, couch surfing, food & wine trails, boating/fishing, sports matches
+
+### Bucket List
+- Discover page: bookmark button on each destination card — toggles pin/unpin in DB
+- Matches page: pinned destinations shown in horizontal scroll at top
+
+### Connections Page (matches.tsx)
+- **Connections section**: mutual `matched` pairs → messaging open
+- **Waiting section**: one-sided `liked_a`/`liked_b` → "Waiting to roam back"
+- No percentage scores — replaced with conversation momentum:
+  - "Say hi →" (no messages, green compass icon)
+  - "Your turn →" (they replied last, amber flame icon)  
+  - "Their turn…" (you replied last, muted chat icon)
+- "Keep momentum" nudge card encouraging fast first messages
 
 ## Demo Accounts
 
-- demo@roam.app / demo1234 (Demo User, Adventurer)
-- mia@demo.roam / adventure123 (Mia Chen)
-- kai@demo.roam / adventure123 (Kai Roberts, Contributor)
-- sam@demo.roam / adventure123 (Sam Taylor)
+- demo@roam.app / demo1234
+- mia@demo.roam / adventure123
+- kai@demo.roam / adventure123
+- sam@demo.roam / adventure123
 
 ## Running
 

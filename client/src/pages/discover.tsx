@@ -114,21 +114,26 @@ export default function Discover() {
 
   const roamMutation = useMutation({
     mutationFn: async (targetId: string) => {
-      if (!user) return;
-      await apiRequest("POST", "/api/matches", {
+      if (!user) return null;
+      const res = await apiRequest("POST", "/api/matches", {
         userAId: user.id,
         userBId: targetId,
         status: "liked_a",
       });
+      return res.json();
     },
-    onSuccess: (_, targetId) => {
+    onSuccess: (data: any, targetId: string) => {
       setRoamedIds(s => new Set([...s, targetId]));
-      showToast("✓ Adventure request sent!");
+      if (data?.isNewMatch) {
+        showToast("🎉 It's a match! You can now message each other");
+      } else {
+        showToast("✓ Adventure request sent!");
+      }
       setTimeout(() => {
         setAnimKey(k => k + 1);
         setProfileIdx(i => i + 1);
         setSelectedBucket(null);
-      }, 700);
+      }, data?.isNewMatch ? 1800 : 700);
     },
   });
 

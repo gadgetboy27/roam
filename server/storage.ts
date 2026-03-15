@@ -19,7 +19,8 @@ export interface IStorage {
 
   createMatch(match: InsertMatch): Promise<Match>;
   getMatchesForUser(userId: string): Promise<Match[]>;
-  updateMatchStatus(id: string, status: string): Promise<Match | undefined>;
+  getMatchBetween(userAId: string, userBId: string): Promise<Match | undefined>;
+  updateMatchStatus(id: string, status: string, extra?: Partial<InsertMatch>): Promise<Match | undefined>;
 
   createMessage(message: InsertMessage): Promise<Message>;
   getMessagesByMatch(matchId: string): Promise<Message[]>;
@@ -74,8 +75,21 @@ export class DatabaseStorage implements IStorage {
     ).orderBy(desc(matches.createdAt));
   }
 
-  async updateMatchStatus(id: string, status: string): Promise<Match | undefined> {
-    const [updated] = await db.update(matches).set({ status: status as any }).where(eq(matches.id, id)).returning();
+  async getMatchBetween(userAId: string, userBId: string): Promise<Match | undefined> {
+    const [found] = await db.select().from(matches).where(
+      or(
+        and(eq(matches.userAId, userAId), eq(matches.userBId, userBId)),
+        and(eq(matches.userAId, userBId), eq(matches.userBId, userAId)),
+      )
+    ).limit(1);
+    return found;
+  }
+
+  async updateMatchStatus(id: string, status: string, extra?: Record<string, any>): Promise<Match | undefined> {
+    const [updated] = await db.update(matches)
+      .set({ status: status as any, ...(extra || {}) })
+      .where(eq(matches.id, id))
+      .returning();
     return updated;
   }
 

@@ -241,8 +241,23 @@ export async function registerRoutes(
 
   app.post("/api/matches", async (req, res) => {
     try {
-      const match = await storage.createMatch(req.body);
-      res.status(201).json(match);
+      const { userAId, userBId, status } = req.body;
+      if (!userAId || !userBId) return res.status(400).json({ message: "userAId and userBId are required" });
+      const existing = await storage.getMatchBetween(userAId, userBId);
+      if (existing) {
+        if (existing.status === "liked_b" && existing.userBId === userAId) {
+          const updated = await storage.updateMatchStatus(existing.id, "matched", { matchedAt: new Date() });
+          return res.json({ ...updated, isNewMatch: true });
+        }
+        if (existing.status === "liked_a" && existing.userAId === userBId) {
+          const updated = await storage.updateMatchStatus(existing.id, "matched", { matchedAt: new Date() });
+          return res.json({ ...updated, isNewMatch: true });
+        }
+        return res.json({ ...existing, isNewMatch: false, alreadyExists: true });
+      }
+      const newStatus = status === "liked_b" ? "liked_b" : "liked_a";
+      const match = await storage.createMatch({ userAId, userBId, status: newStatus });
+      res.status(201).json({ ...match, isNewMatch: false });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
