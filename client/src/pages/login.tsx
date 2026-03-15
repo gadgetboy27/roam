@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { Eye, EyeOff, Compass } from "lucide-react";
@@ -17,19 +17,23 @@ const inputStyle: React.CSSProperties = {
 
 export default function Login() {
   const [, navigate] = useLocation();
-  const { login } = useAuth();
+  const { login, user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!authLoading && user) navigate("/discover");
+  }, [user, authLoading, navigate]);
 
   const valid = email.includes("@") && password.length >= 6;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!valid) return;
-    setLoading(true);
+    setSigningIn(true);
     setError("");
     try {
       await login(email, password);
@@ -38,9 +42,12 @@ export default function Login() {
       const msg = err?.message || "Invalid email or password";
       setError(msg.includes("fetch") ? "Could not reach the server. Please try again." : msg);
     } finally {
-      setLoading(false);
+      setSigningIn(false);
     }
   };
+
+  if (authLoading) return null;
+  if (user) return null;
 
   return (
     <div className="min-h-screen relative" data-testid="page-login">
@@ -124,9 +131,9 @@ export default function Login() {
               <button type="submit"
                       className="w-full py-4 rounded-2xl text-[13px] font-mono tracking-wider uppercase font-medium mt-2 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
                       style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
-                      disabled={!valid || loading}
+                      disabled={!valid || signingIn}
                       data-testid="button-signin">
-                {loading ? (
+                {signingIn ? (
                   <>
                     <div className="flex gap-1">
                       {[0,1,2].map(i => (

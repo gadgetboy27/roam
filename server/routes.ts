@@ -142,6 +142,37 @@ export async function registerRoutes(
     res.json(safe);
   });
 
+  app.patch("/api/users/:id", async (req, res) => {
+    const sessionUserId = (req.session as any)?.userId;
+    if (!sessionUserId || sessionUserId !== req.params.id) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
+    try {
+      const { name, tagline, location, avatarUrl, adventureTags } = req.body;
+      const updated = await storage.updateUser(req.params.id, {
+        ...(name !== undefined && { name }),
+        ...(tagline !== undefined && { tagline }),
+        ...(location !== undefined && { location }),
+        ...(avatarUrl !== undefined && { avatarUrl }),
+        ...(adventureTags !== undefined && { adventureTags }),
+      });
+      if (!updated) return res.status(404).json({ message: "User not found" });
+      const { password: _, ...safeUser } = updated;
+      res.json(safeUser);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/bucket-list/:id", async (req, res) => {
+    try {
+      await storage.deleteBucketItem(req.params.id);
+      res.json({ message: "Deleted" });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/users/:id/photos", async (req, res) => {
     const photos = await storage.getPhotosByUser(req.params.id);
     res.json(photos);

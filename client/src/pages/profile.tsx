@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import AppNav from "@/components/app-nav";
 import { useAuth } from "@/lib/auth";
-import { MapPin, Camera, Edit3, Settings, Star, X, Check, Bell, Shield, LogOut, ChevronRight, Plus } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { MapPin, Camera, Edit3, Settings, Star, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2 } from "lucide-react";
+
+const FALLBACK_HERO = "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&q=80&fit=crop";
 
 const PROFILE_PHOTOS = [
   { url: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=400&q=80&fit=crop", tags: ["rock climbing", "alpine"] },
@@ -14,10 +17,13 @@ const PROFILE_PHOTOS = [
 ];
 
 const ALL_DNA_TAGS = [
-  "rock climbing", "alpine hiking", "surfing", "night markets", "urban roaming",
-  "kayaking", "forest trails", "coastal walks", "cycling", "skiing",
-  "scuba diving", "trail running", "paragliding", "photography", "food trails",
-  "backpacking", "mountain biking", "canyoning", "yoga / wellness", "via ferrata",
+  "rock climbing", "alpine hiking", "surfing", "kayaking", "scuba diving",
+  "trail running", "paragliding", "mountain biking", "canyoning", "via ferrata",
+  "extreme sports", "skiing", "snowboarding", "skydiving", "bungee jumping",
+  "horse riding", "boating / fishing", "walking", "running", "cycling",
+  "night markets", "urban roaming", "food & wine trails", "pub games",
+  "sports matches", "couch surfing", "photography", "backpacking",
+  "forest trails", "coastal walks", "yoga / wellness",
 ];
 
 const inputStyle: React.CSSProperties = {
@@ -48,30 +54,82 @@ function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () 
 }
 
 export default function Profile() {
-  const { user, logout } = useAuth();
+  const { user, logout, refresh } = useAuth();
   const [, navigate] = useLocation();
   const [editOpen, setEditOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const calcAge = (dob: string | null) => {
+    if (!dob) return "—";
+    const d = new Date(dob);
+    const now = new Date();
+    let age = now.getFullYear() - d.getFullYear();
+    if (now.getMonth() < d.getMonth() || (now.getMonth() === d.getMonth() && now.getDate() < d.getDate())) age--;
+    return String(age);
+  };
 
   const [profileData, setProfileData] = useState({
     name: user?.name || "You",
-    age: user?.dob ? String(new Date().getFullYear() - new Date(user.dob).getFullYear()) : "—",
+    age: calcAge(user?.dob ?? null),
     tagline: user?.tagline || "Chasing elevation and good coffee",
     location: user?.location || "Auckland, NZ",
-    dna: ["climbing", "alpine hiking", "surfing", "night markets", "urban roaming", "kayaking", "forest trails", "coastal walks"],
+    dna: user?.adventureTags?.length ? user.adventureTags : ["alpine hiking", "surfing", "night markets", "kayaking", "coastal walks"],
+    avatarUrl: user?.avatarUrl || FALLBACK_HERO,
   });
 
   const [editForm, setEditForm] = useState({ ...profileData });
   const [notifications, setNotifications] = useState({ matches: true, messages: true, bucketList: false });
 
-  const openEdit = () => { setEditForm({ ...profileData }); setEditOpen(true); };
-  const saveEdit = () => { setProfileData({ ...editForm }); setEditOpen(false); };
+  const openEdit = () => { setEditForm({ ...profileData }); setSaveError(""); setEditOpen(true); };
+
+  const saveEdit = async () => {
+    if (!user) return;
+    setSaving(true);
+    setSaveError("");
+    try {
+      await apiRequest("PATCH", `/api/users/${user.id}`, {
+        name: editForm.name,
+        tagline: editForm.tagline,
+        location: editForm.location,
+        avatarUrl: editForm.avatarUrl,
+        adventureTags: editForm.dna,
+      });
+      await refresh();
+      setProfileData({ ...editForm });
+      setEditOpen(false);
+    } catch (err: any) {
+      setSaveError(err?.message || "Failed to save. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const toggleDnaTag = (tag: string) => {
     setEditForm(f => ({
       ...f,
       dna: f.dna.includes(tag) ? f.dna.filter(t => t !== tag) : [...f.dna, tag],
     }));
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const dataUrl = ev.target?.result as string;
+        setEditForm(f => ({ ...f, avatarUrl: dataUrl }));
+        setUploadingAvatar(false);
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      setUploadingAvatar(false);
+    }
   };
 
   return (
@@ -81,7 +139,7 @@ export default function Profile() {
         <AppNav />
         <div className="max-w-lg mx-auto pb-10">
           <div className="relative h-56 overflow-hidden" style={{ userSelect: "none" }}>
-            <img src="https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&q=80&fit=crop"
+            <img src={profileData.avatarUrl || FALLBACK_HERO}
                  alt="Profile hero"
                  className="w-full h-full object-cover"
                  draggable={false}
@@ -205,6 +263,28 @@ export default function Profile() {
 
       <Sheet open={editOpen} onClose={() => setEditOpen(false)} title="Edit profile">
         <div className="space-y-4">
+          <div>
+            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-2" style={{ color: "rgba(242,237,227,0.38)" }}>
+              Profile photo
+            </label>
+            <div className="flex items-center gap-3">
+              <div className="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0" style={{ border: "2px solid rgba(200,230,74,0.3)" }}>
+                <img src={editForm.avatarUrl || FALLBACK_HERO} alt="Avatar preview"
+                     className="w-full h-full object-cover" />
+              </div>
+              <input ref={avatarInputRef} type="file" accept="image/*" className="hidden"
+                     onChange={handleAvatarChange} data-testid="input-avatar-file" />
+              <button className="flex items-center gap-2 py-2 px-4 rounded-xl text-[12px] font-mono tracking-wider"
+                      style={{ background: "rgba(242,237,227,0.06)", border: "1px solid rgba(242,237,227,0.15)", color: "rgba(242,237,227,0.7)" }}
+                      onClick={() => avatarInputRef.current?.click()}
+                      disabled={uploadingAvatar}
+                      data-testid="button-upload-avatar">
+                {uploadingAvatar ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                {uploadingAvatar ? "Uploading…" : "Change photo"}
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(242,237,227,0.38)" }}>
@@ -219,9 +299,9 @@ export default function Profile() {
               <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(242,237,227,0.38)" }}>
                 Age
               </label>
-              <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={inputStyle}
-                     value={editForm.age} type="number" min="18" max="99"
-                     onChange={e => setEditForm(f => ({ ...f, age: e.target.value }))}
+              <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none"
+                     style={{ ...inputStyle, opacity: 0.5 }}
+                     value={editForm.age} type="number" min="18" max="99" disabled
                      data-testid="input-edit-age" />
             </div>
           </div>
@@ -270,7 +350,7 @@ export default function Profile() {
                             color: active ? "var(--roam-electric)" : "rgba(242,237,227,0.45)",
                           }}
                           onClick={() => toggleDnaTag(tag)}
-                          data-testid={`dna-tag-${tag.replace(/\s+/g, "-")}`}>
+                          data-testid={`dna-tag-${tag.replace(/[\s/]+/g, "-")}`}>
                     {active && <Check size={9} className="inline mr-1" />}{tag}
                   </button>
                 );
@@ -278,11 +358,26 @@ export default function Profile() {
             </div>
           </div>
 
-          <button className="w-full py-3.5 rounded-2xl font-mono text-sm tracking-wider uppercase font-medium transition-all hover:-translate-y-0.5 mt-2"
+          {saveError && (
+            <div className="text-xs font-mono py-2.5 px-4 rounded-xl"
+                 style={{ background: "rgba(232,98,26,0.1)", border: "1px solid rgba(232,98,26,0.3)", color: "var(--roam-ember)" }}
+                 data-testid="text-save-error">
+              {saveError}
+            </div>
+          )}
+
+          <button className="w-full py-3.5 rounded-2xl font-mono text-sm tracking-wider uppercase font-medium transition-all hover:-translate-y-0.5 mt-2 flex items-center justify-center gap-2 disabled:opacity-50"
                   style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
                   onClick={saveEdit}
+                  disabled={saving}
                   data-testid="button-save-profile">
-            Save changes
+            {saving ? (
+              <><Loader2 size={14} className="animate-spin" /> Saving…</>
+            ) : (
+              <>
+                <Check size={14} /> Save changes
+              </>
+            )}
           </button>
         </div>
       </Sheet>

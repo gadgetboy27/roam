@@ -13,6 +13,8 @@ export interface AuthUser {
   tagline: string | null;
   tier: string;
   photoLicenseAgreed: boolean;
+  adventureTags: string[] | null;
+  avatarUrl: string | null;
 }
 
 interface AuthCtx {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
@@ -133,7 +133,11 @@ const inputStyle = {
 
 export default function Signup() {
   const [, navigate] = useLocation();
-  const { refresh } = useAuth();
+  const { refresh, user, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && user) navigate("/discover");
+  }, [user, authLoading, navigate]);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     name: "", email: "", password: "", dob: "",

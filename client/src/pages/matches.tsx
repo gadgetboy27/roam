@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import AppNav from "@/components/app-nav";
-import { Send, ArrowLeft, Wifi, WifiOff, Clock } from "lucide-react";
+import { Send, ArrowLeft, Wifi, WifiOff, Clock, MapPin, BookmarkCheck } from "lucide-react";
 import { getSocket } from "@/lib/socket";
 import { useConnectionStatus } from "@/lib/useConnectionStatus";
+import { useAuth } from "@/lib/auth";
+import { useQuery } from "@tanstack/react-query";
 import {
   getCachedMessages, appendCachedMessage, cacheMessages,
   enqueuePending, loadPendingQueue, clearPendingQueue,
@@ -68,6 +70,12 @@ function formatTime(d: Date | string) {
 }
 
 export default function Matches() {
+  const { user } = useAuth();
+  const { data: bucketList = [] } = useQuery<{ id: string; destinationName: string; imageUrl: string | null }[]>({
+    queryKey: ["/api/bucket-list", user?.id],
+    enabled: !!user,
+  });
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Record<string, CachedMessage[]>>(() => {
     const init: Record<string, CachedMessage[]> = {};
@@ -243,6 +251,35 @@ export default function Matches() {
               </div>
 
               {statusBadge()}
+
+              {bucketList.length > 0 && (
+                <div className="px-3.5 mb-4 animate-fade-up">
+                  <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-2.5 flex items-center gap-2" style={{ color: "rgba(242,237,227,0.35)" }}>
+                    <BookmarkCheck size={11} style={{ color: "var(--roam-sky)" }} />
+                    Your pinned destinations
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+                    {bucketList.map(b => (
+                      <div key={b.id} className="flex-shrink-0 rounded-2xl overflow-hidden relative"
+                           style={{ width: 100, height: 100, border: "1px solid rgba(125,184,212,0.3)" }}>
+                        {b.imageUrl ? (
+                          <img src={b.imageUrl} alt={b.destinationName} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--roam-moss)" }}>
+                            <MapPin size={20} style={{ color: "var(--roam-sky)" }} />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 flex items-end p-1.5"
+                             style={{ background: "linear-gradient(to top, rgba(14,26,13,0.88) 0%, transparent 55%)" }}>
+                          <span className="font-mono text-[9px] tracking-wider leading-tight" style={{ color: "var(--roam-sky)" }}>
+                            {b.destinationName}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="px-3.5 space-y-2.5">
                 {DEMO_MATCHES.map((m, i) => {

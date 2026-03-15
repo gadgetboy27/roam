@@ -1,28 +1,34 @@
 import { useState } from "react";
 import AppNav from "@/components/app-nav";
-import { MapPin } from "lucide-react";
+import { MapPin, Bookmark, BookmarkCheck, Heart, X } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 const DEMO_PROFILES = [
   {
-    id: "1",
+    id: "demo-p1",
     name: "Mia", age: 28,
     ethnicity: "New Zealander",
     tagline: "Chasing elevation, good coffee and anything with a summit",
     hero: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&q=85&fit=crop",
+    dna: ["alpine hiking", "rock climbing", "night markets"],
   },
   {
-    id: "2",
+    id: "demo-p2",
     name: "Kai", age: 31,
     ethnicity: "Māori",
     tagline: "Lost in alleyways, found in barrels",
     hero: "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=800&q=85&fit=crop",
+    dna: ["surfing", "night markets", "urban roaming"],
   },
   {
-    id: "3",
+    id: "demo-p3",
     name: "Sam", age: 26,
     ethnicity: "Pacific Islander",
     tagline: "Every forest has a path worth getting lost on",
     hero: "https://images.unsplash.com/photo-1473773508845-188df298d2d1?w=800&q=85&fit=crop",
+    dna: ["backpacking", "kayaking", "forest trails"],
   },
 ];
 
@@ -70,17 +76,77 @@ const BUCKET_LIST = [
 ];
 
 export default function Discover() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
   const [profileIdx, setProfileIdx] = useState(0);
   const [animKey, setAnimKey] = useState(0);
   const [selectedBucket, setSelectedBucket] = useState<typeof BUCKET_LIST[0] | null>(null);
   const [bucketAnimKey, setBucketAnimKey] = useState(0);
+  const [roamedIds, setRoamedIds] = useState<Set<string>>(new Set());
+  const [toast, setToast] = useState<string | null>(null);
 
   const profile = DEMO_PROFILES[profileIdx % DEMO_PROFILES.length];
+
+  const { data: savedBucketList = [] } = useQuery<{ id: string; destinationName: string }[]>({
+    queryKey: ["/api/bucket-list", user?.id],
+    enabled: !!user,
+  });
+
+  const isPinned = (name: string) => savedBucketList.some((b: any) => b.destinationName === name);
+  const getPinnedId = (name: string) => savedBucketList.find((b: any) => b.destinationName === name)?.id;
+
+  const pinMutation = useMutation({
+    mutationFn: async (dest: typeof BUCKET_LIST[0]) => {
+      const pinned = isPinned(dest.name);
+      if (pinned) {
+        const id = getPinnedId(dest.name);
+        if (id) await apiRequest("DELETE", `/api/bucket-list/${id}`);
+      } else {
+        await apiRequest("POST", "/api/bucket-list", {
+          userId: user!.id,
+          destinationName: dest.name,
+          imageUrl: dest.url,
+        });
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/bucket-list", user?.id] }),
+  });
+
+  const roamMutation = useMutation({
+    mutationFn: async (targetId: string) => {
+      if (!user) return;
+      await apiRequest("POST", "/api/matches", {
+        userAId: user.id,
+        userBId: targetId,
+        status: "liked_a",
+      });
+    },
+    onSuccess: (_, targetId) => {
+      setRoamedIds(s => new Set([...s, targetId]));
+      showToast("✓ Adventure request sent!");
+      setTimeout(() => {
+        setAnimKey(k => k + 1);
+        setProfileIdx(i => i + 1);
+        setSelectedBucket(null);
+      }, 700);
+    },
+  });
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2200);
+  };
 
   const handlePass = () => {
     setAnimKey(k => k + 1);
     setProfileIdx(i => i + 1);
     setSelectedBucket(null);
+  };
+
+  const handleRoam = () => {
+    if (!user) return;
+    const targetId = selectedBucket ? `bucket-${selectedBucket.name}` : profile.id;
+    roamMutation.mutate(targetId);
   };
 
   const handleBucketClick = (b: typeof BUCKET_LIST[0]) => {
@@ -92,16 +158,33 @@ export default function Discover() {
     }
   };
 
+  const handlePinToggle = (e: React.MouseEvent, b: typeof BUCKET_LIST[0]) => {
+    e.stopPropagation();
+    if (!user) return;
+    pinMutation.mutate(b);
+    showToast(isPinned(b.name) ? "Unpinned" : `📌 ${b.name} pinned to your bucket list!`);
+  };
+
   const displayHero = selectedBucket ? selectedBucket.hero : profile.hero;
   const displayName = selectedBucket ? selectedBucket.match.name : profile.name;
   const displayAge = selectedBucket ? selectedBucket.match.age : profile.age;
   const displayEthnicity = selectedBucket ? selectedBucket.match.ethnicity : profile.ethnicity;
   const displayTagline = selectedBucket ? selectedBucket.match.tagline : profile.tagline;
-  const cardKey = selectedBucket ? `bucket-${selectedBucket.name}` : `profile-${animKey}`;
+  const displayDna = selectedBucket ? [] : profile.dna;
+  const cardKey = selectedBucket ? `bucket-${selectedBucket.name}-${bucketAnimKey}` : `profile-${animKey}`;
+
+  const currentTargetId = selectedBucket ? `bucket-${selectedBucket.name}` : profile.id;
+  const alreadyRoamed = roamedIds.has(currentTargetId);
 
   return (
     <div className="min-h-screen relative" data-testid="page-discover">
       <div className="topo-bg" />
+      {toast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl font-mono text-[11px] tracking-wider animate-fade-up shadow-lg"
+             style={{ background: "var(--roam-electric)", color: "var(--roam-forest)", whiteSpace: "nowrap" }}>
+          {toast}
+        </div>
+      )}
       <div className="relative z-10">
         <AppNav />
         <div className="max-w-lg mx-auto pb-8">
@@ -138,22 +221,44 @@ export default function Discover() {
                         data-testid="text-card-ethnicity">
                     {displayEthnicity}
                   </span>
-                  <p className="text-[13px] italic leading-snug" style={{ color: "rgba(242,237,227,0.7)" }}>"{displayTagline}"</p>
+                  <p className="text-[13px] italic leading-snug mb-3" style={{ color: "rgba(242,237,227,0.7)" }}>"{displayTagline}"</p>
+                  {displayDna.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {displayDna.map(t => (
+                        <span key={t} className="font-mono text-[9px] tracking-wider px-2 py-0.5 rounded-lg"
+                              style={{ background: "rgba(14,26,13,0.7)", border: "1px solid rgba(200,230,74,0.25)", color: "var(--roam-electric)" }}>
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className="p-4 pt-4">
                 <div className="flex gap-2.5">
-                  <button className="flex-1 py-3.5 rounded-2xl font-mono text-[11px] tracking-wider uppercase transition-all"
+                  <button className="flex-none w-12 h-12 rounded-2xl flex items-center justify-center transition-all"
                           style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(242,237,227,0.5)" }}
                           onClick={handlePass}
                           data-testid="button-pass">
-                    Pass
+                    <X size={18} />
                   </button>
-                  <button className="flex-[2.2] py-3.5 rounded-2xl font-mono text-[12px] tracking-wider uppercase font-medium transition-all hover:-translate-y-0.5"
-                          style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
+                  <button className="flex-1 py-3.5 rounded-2xl font-mono text-[12px] tracking-wider uppercase font-medium transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50"
+                          style={{
+                            background: alreadyRoamed ? "rgba(200,230,74,0.2)" : "var(--roam-electric)",
+                            color: alreadyRoamed ? "var(--roam-electric)" : "var(--roam-forest)",
+                            border: alreadyRoamed ? "1px solid rgba(200,230,74,0.4)" : "none",
+                          }}
+                          onClick={handleRoam}
+                          disabled={roamMutation.isPending || alreadyRoamed}
                           data-testid="button-roam">
-                    Roam Together
+                    {alreadyRoamed ? (
+                      <><Heart size={14} fill="currentColor" /> Requested!</>
+                    ) : roamMutation.isPending ? (
+                      "Sending…"
+                    ) : (
+                      <>Roam Together</>
+                    )}
                   </button>
                 </div>
               </div>
@@ -161,17 +266,26 @@ export default function Discover() {
           </div>
 
           <div className="mt-5 px-3.5 animate-fade-up-1">
-            <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(242,237,227,0.35)" }}>
-              Bucket list matches near you
+            <div className="flex items-center justify-between mb-3">
+              <div className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(242,237,227,0.35)" }}>
+                Bucket list matches near you
+              </div>
+              {savedBucketList.length > 0 && (
+                <span className="font-mono text-[9px] px-2 py-0.5 rounded-lg"
+                      style={{ background: "rgba(200,230,74,0.1)", border: "1px solid rgba(200,230,74,0.25)", color: "var(--roam-electric)" }}>
+                  {savedBucketList.length} pinned
+                </span>
+              )}
             </div>
             <div className="flex gap-2.5 overflow-x-auto pb-2" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
               {BUCKET_LIST.map((b, i) => {
                 const isSelected = selectedBucket?.name === b.name;
+                const pinned = isPinned(b.name);
                 return (
                   <div key={i}
                        className="flex-shrink-0 w-[120px] rounded-2xl overflow-hidden relative cursor-pointer transition-all"
                        style={{
-                         border: isSelected ? "2px solid var(--roam-electric)" : "1px solid rgba(242,237,227,0.07)",
+                         border: isSelected ? "2px solid var(--roam-electric)" : pinned ? "2px solid rgba(125,184,212,0.5)" : "1px solid rgba(242,237,227,0.07)",
                          transform: isSelected ? "scale(1.03)" : "scale(1)",
                        }}
                        onClick={() => handleBucketClick(b)}
@@ -186,6 +300,17 @@ export default function Discover() {
                          style={{ background: isSelected ? "var(--roam-electric)" : "rgba(200,230,74,0.8)", color: "var(--roam-forest)" }}>
                       {b.count}x
                     </div>
+                    <button className="absolute bottom-1.5 right-1.5 w-6 h-6 rounded-lg flex items-center justify-center transition-all"
+                            style={{
+                              background: pinned ? "rgba(125,184,212,0.25)" : "rgba(14,26,13,0.7)",
+                              border: pinned ? "1px solid rgba(125,184,212,0.5)" : "1px solid rgba(242,237,227,0.2)",
+                            }}
+                            onClick={e => handlePinToggle(e, b)}
+                            data-testid={`pin-${b.name.replace(/\s+/g, "-")}`}>
+                      {pinned
+                        ? <BookmarkCheck size={11} style={{ color: "var(--roam-sky)" }} />
+                        : <Bookmark size={11} style={{ color: "rgba(242,237,227,0.6)" }} />}
+                    </button>
                   </div>
                 );
               })}

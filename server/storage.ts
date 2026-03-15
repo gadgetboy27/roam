@@ -26,6 +26,7 @@ export interface IStorage {
 
   createBucketItem(item: InsertBucketList): Promise<BucketListItem>;
   getBucketListByUser(userId: string): Promise<BucketListItem[]>;
+  deleteBucketItem(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -94,6 +95,10 @@ export class DatabaseStorage implements IStorage {
 
   async getBucketListByUser(userId: string): Promise<BucketListItem[]> {
     return db.select().from(bucketList).where(eq(bucketList.userId, userId));
+  }
+
+  async deleteBucketItem(id: string): Promise<void> {
+    await db.delete(bucketList).where(eq(bucketList.id, id));
   }
 }
 

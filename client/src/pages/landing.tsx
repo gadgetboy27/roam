@@ -1,5 +1,7 @@
-import { Link } from "wouter";
+import { useEffect } from "react";
+import { Link, useLocation } from "wouter";
 import { Mountain, Camera, MapPin, Compass, Shield, Zap, Users, ArrowRight } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 const HERO_IMAGES = [
   "https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&q=80&fit=crop",
@@ -66,6 +68,15 @@ const STORIES = [
 ];
 
 export default function Landing() {
+  const { user, loading } = useAuth();
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    if (!loading && user) navigate("/discover");
+  }, [user, loading, navigate]);
+
+  if (loading || user) return null;
+
   return (
     <div className="min-h-screen relative" data-testid="page-landing">
       <div className="topo-bg" />
