@@ -4,6 +4,7 @@ import { Server as SocketServer } from "socket.io";
 import { storage } from "./storage";
 import { signupSchema } from "@shared/schema";
 import { hashPassword, comparePassword } from "./auth";
+import { buildFingerprint, computeOverlap, detectAlmostMet, computeHonestyTier } from "./fingerprint";
 import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
@@ -243,21 +244,62 @@ export async function registerRoutes(
     try {
       const { userAId, userBId, status } = req.body;
       if (!userAId || !userBId) return res.status(400).json({ message: "userAId and userBId are required" });
+
       const existing = await storage.getMatchBetween(userAId, userBId);
       if (existing) {
-        if (existing.status === "liked_b" && existing.userBId === userAId) {
-          const updated = await storage.updateMatchStatus(existing.id, "matched", { matchedAt: new Date() });
-          return res.json({ ...updated, isNewMatch: true });
-        }
-        if (existing.status === "liked_a" && existing.userAId === userBId) {
+        if (
+          (existing.status === "liked_b" && existing.userBId === userAId) ||
+          (existing.status === "liked_a" && existing.userAId === userBId)
+        ) {
           const updated = await storage.updateMatchStatus(existing.id, "matched", { matchedAt: new Date() });
           return res.json({ ...updated, isNewMatch: true });
         }
         return res.json({ ...existing, isNewMatch: false, alreadyExists: true });
       }
+
+      // Silently compute adventure fingerprint overlap — never exposed to clients
+      let overlapScore = 0;
+      let sharedTags: string[] = [];
+      let almostMetLocation: string | null = null;
+      let almostMetDate: string | null = null;
+      try {
+        const [photosA, photosB, userA, userB] = await Promise.all([
+          storage.getPhotosByUser(userAId),
+          storage.getPhotosByUser(userBId),
+          storage.getUser(userAId),
+          storage.getUser(userBId),
+        ]);
+        if (userA && userB) {
+          const fpA = buildFingerprint(photosA, userA.adventureTags);
+          const fpB = buildFingerprint(photosB, userB.adventureTags);
+          const overlap = computeOverlap(fpA, fpB);
+          overlapScore = overlap.score;
+          sharedTags = overlap.sharedTags;
+          const almostMet = detectAlmostMet(photosA, photosB);
+          if (almostMet) {
+            almostMetLocation = almostMet.location;
+            almostMetDate = almostMet.dateHint;
+          }
+        }
+      } catch { /* fingerprint errors must never block match creation */ }
+
       const newStatus = status === "liked_b" ? "liked_b" : "liked_a";
-      const match = await storage.createMatch({ userAId, userBId, status: newStatus });
+      const match = await storage.createMatch({
+        userAId, userBId, status: newStatus,
+        overlapScore, sharedTags,
+        ...(almostMetLocation && { almostMetLocation, almostMetDate }),
+      });
       res.status(201).json({ ...match, isNewMatch: false });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/users/:id/honesty", async (req, res) => {
+    try {
+      const photos = await storage.getPhotosByUser(req.params.id);
+      const tier = computeHonestyTier(photos);
+      res.json({ tier });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

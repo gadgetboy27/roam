@@ -4,6 +4,7 @@ import AppNav from "@/components/app-nav";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
 import { MapPin, Camera, Edit3, Settings, Star, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2 } from "lucide-react";
+import { computeVibeWord, getHonestyDisplay } from "@/lib/fingerprint";
 
 const FALLBACK_HERO = "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&q=80&fit=crop";
 
@@ -198,6 +199,27 @@ export default function Profile() {
                 </div>
               </div>
             </div>
+
+            {(() => {
+              const vibeWord = computeVibeWord(profileData.dna);
+              const honesty = getHonestyDisplay("verified-adventure");
+              return (
+                <div className="flex items-center gap-2 mb-5">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+                       style={{ background: "rgba(200,230,74,0.08)", border: "1px solid rgba(200,230,74,0.2)" }}
+                       data-testid="badge-vibe-word">
+                    <span className="font-mono text-[9px] tracking-widest uppercase" style={{ color: "rgba(242,237,227,0.4)" }}>Vibe</span>
+                    <span className="font-mono text-[10px] tracking-wider" style={{ color: "var(--roam-electric)" }}>{vibeWord}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+                       style={{ background: "rgba(200,230,74,0.08)", border: "1px solid rgba(200,230,74,0.2)" }}
+                       data-testid="badge-honesty-profile">
+                    <span style={{ color: honesty.color, fontSize: "11px" }}>{honesty.symbol}</span>
+                    <span className="font-mono text-[10px] tracking-wider" style={{ color: "var(--roam-electric)" }}>{honesty.label}</span>
+                  </div>
+                </div>
+              );
+            })()}
 
             <div className="mb-5">
               <div className="flex items-center justify-between mb-3">

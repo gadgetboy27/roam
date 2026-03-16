@@ -1,0 +1,19 @@
+On the profile statement — leave it to the photos.
+The whole premise of ROAM is that where you've been tells more truth about you than anything you'd write about yourself. The moment you add a text bio you're back in Tinder/Hinge territory where people craft a persona rather than reveal one. The tagline you already have — one italic sentence pulled from their first upload caption — is exactly right. It's found language, not performed language. That's the difference.
+The only text addition worth considering is a single "next adventure" field — not a bio, just one destination or experience they're actively planning. It's forward-facing, optimistic, and immediately conversational. "Planning: Torres del Paine, March." That's a better opener than any bio paragraph.
+
+What would genuinely make ROAM different — the honest list:
+1. The Honesty Score — show it publicly
+Every profile shows a small authenticity badge derived from the AI screening. Not a number, just a simple visual — something like three tiers: Verified Adventure, Mostly Verified, Unverified. Users who game it with stock photos get visibly lower trust. This becomes a social norm fast. People want the verified badge and self-police their own uploads.
+2. "Been There" mutual map
+When you match, instead of just a percentage you see a shared mini-map showing every location both of you have tagged photos from. Overlapping dots glow. It's visceral and immediate — you can see your shared world. This is the feature people screenshot and share. Nothing else does this.
+3. Adventure Type as a vibe, not a category
+Don't make people pick from a dropdown of adventure types. Instead, after the AI tags enough photos it quietly assigns a vibe word to their profile — something like Deep Wilderness, Urban Nomad, Coastal Drifter, High Altitude, Festival Circuit, Slow Travel. One word. Displayed subtly on the card. Instantly tells you if you're the same kind of adventurer without asking.
+4. The "Would You" feature — future tense matching
+Current matching is backward-looking — where you've been. Add a forward-looking layer: users pin 3 experiences they want to do and ROAM shows you people whose bucket list overlaps yours. The match email reads: "You and Mia both want to do the Tongariro Crossing this summer." That's not a match notification — that's a plan waiting to happen.
+5. Seasonal activity
+ROAM should know that a surfer in Auckland isn't surfing in July — they're doing something else. Profiles that post regularly show a Currently tag that updates with their latest location or activity. It's dynamic. It shows the person is actually living the life, not just curating old photos.
+6. No ghosting design — the graceful exit
+Every dating app has a ghosting problem. ROAM can build a culture against it by making passing generous rather than dismissive. Instead of just passing silently, you can optionally send a one-tap "Not my adventure style but good luck out there 🤙" — no text required, just a gesture. Small thing, completely changes the emotional tone of the app.
+7. Group adventures — the sleeper feature
+This one nobody else is doing. Let two matched people co-create a bucket list destination together and then ROAM shows them other matched pairs who want to go to the same place. Four people who all want to kayak Fiordland in March find each other. That's not a dating feature — that's a lifestyle product. That's the version that gets written about.

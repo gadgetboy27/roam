@@ -4,6 +4,8 @@ import { MapPin, Bookmark, BookmarkCheck, Heart, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { computeVibeWord, getHonestyDisplay } from "@/lib/fingerprint";
+import type { HonestyTier } from "@/lib/fingerprint";
 
 const DEMO_PROFILES = [
   {
@@ -13,6 +15,9 @@ const DEMO_PROFILES = [
     tagline: "Chasing elevation, good coffee and anything with a summit",
     hero: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&q=85&fit=crop",
     dna: ["alpine hiking", "rock climbing", "night markets"],
+    vibeWord: "Deep Wilderness",
+    honestyTier: "verified-adventure" as HonestyTier,
+    almostMet: null,
   },
   {
     id: "demo-p2",
@@ -21,6 +26,9 @@ const DEMO_PROFILES = [
     tagline: "Lost in alleyways, found in barrels",
     hero: "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=800&q=85&fit=crop",
     dna: ["surfing", "night markets", "urban roaming"],
+    vibeWord: "Coastal Drifter",
+    honestyTier: "verified-adventure" as HonestyTier,
+    almostMet: null,
   },
   {
     id: "demo-p3",
@@ -29,6 +37,20 @@ const DEMO_PROFILES = [
     tagline: "Every forest has a path worth getting lost on",
     hero: "https://images.unsplash.com/photo-1473773508845-188df298d2d1?w=800&q=85&fit=crop",
     dna: ["backpacking", "kayaking", "forest trails"],
+    vibeWord: "Slow Travel",
+    honestyTier: "mostly-verified" as HonestyTier,
+    almostMet: null,
+  },
+  {
+    id: "demo-p4",
+    name: "Astrid", age: 27,
+    ethnicity: "Norwegian",
+    tagline: "Storm-chasing sea cliffs. Been to Faroe twice, going again",
+    hero: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=800&q=85&fit=crop",
+    dna: ["canyoning", "coastal walks", "photography"],
+    vibeWord: "Deep Wilderness",
+    honestyTier: "verified-adventure" as HonestyTier,
+    almostMet: { location: "Faroe Islands", dateHint: "2024 — you were both there" },
   },
 ];
 
@@ -84,6 +106,7 @@ export default function Discover() {
   const [bucketAnimKey, setBucketAnimKey] = useState(0);
   const [roamedIds, setRoamedIds] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<string | null>(null);
+  const [passExpanded, setPassExpanded] = useState(false);
 
   const profile = DEMO_PROFILES[profileIdx % DEMO_PROFILES.length];
 
@@ -133,6 +156,7 @@ export default function Discover() {
         setAnimKey(k => k + 1);
         setProfileIdx(i => i + 1);
         setSelectedBucket(null);
+        setPassExpanded(false);
       }, data?.isNewMatch ? 1800 : 700);
     },
   });
@@ -142,16 +166,31 @@ export default function Discover() {
     setTimeout(() => setToast(null), 2200);
   };
 
-  const handlePass = () => {
+  const advanceCard = () => {
     setAnimKey(k => k + 1);
     setProfileIdx(i => i + 1);
     setSelectedBucket(null);
+    setPassExpanded(false);
+  };
+
+  const handlePass = () => {
+    if (passExpanded) {
+      advanceCard();
+    } else {
+      setPassExpanded(true);
+    }
+  };
+
+  const handleGracefulExit = () => {
+    showToast("🤙 Sent — good vibes only");
+    advanceCard();
   };
 
   const handleRoam = () => {
     if (!user) return;
     const targetId = selectedBucket ? `bucket-${selectedBucket.name}` : profile.id;
     roamMutation.mutate(targetId);
+    setPassExpanded(false);
   };
 
   const handleBucketClick = (b: typeof BUCKET_LIST[0]) => {
@@ -161,6 +200,7 @@ export default function Discover() {
       setSelectedBucket(b);
       setBucketAnimKey(k => k + 1);
     }
+    setPassExpanded(false);
   };
 
   const handlePinToggle = (e: React.MouseEvent, b: typeof BUCKET_LIST[0]) => {
@@ -176,10 +216,15 @@ export default function Discover() {
   const displayEthnicity = selectedBucket ? selectedBucket.match.ethnicity : profile.ethnicity;
   const displayTagline = selectedBucket ? selectedBucket.match.tagline : profile.tagline;
   const displayDna = selectedBucket ? [] : profile.dna;
+  const displayVibeWord = selectedBucket ? null : profile.vibeWord;
+  const displayHonestyTier = selectedBucket ? ("mostly-verified" as HonestyTier) : profile.honestyTier;
+  const displayAlmostMet = selectedBucket ? null : profile.almostMet;
   const cardKey = selectedBucket ? `bucket-${selectedBucket.name}-${bucketAnimKey}` : `profile-${animKey}`;
 
   const currentTargetId = selectedBucket ? `bucket-${selectedBucket.name}` : profile.id;
   const alreadyRoamed = roamedIds.has(currentTargetId);
+
+  const honesty = getHonestyDisplay(displayHonestyTier);
 
   return (
     <div className="min-h-screen relative" data-testid="page-discover">
@@ -203,13 +248,45 @@ export default function Discover() {
                 <div className="absolute inset-0" onContextMenu={e => e.preventDefault()} />
                 <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(14,26,13,0.97) 0%, rgba(14,26,13,0.45) 55%, transparent 100%)" }} />
 
-                {selectedBucket && (
-                  <div className="absolute top-3.5 left-3.5 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl backdrop-blur-md"
-                       style={{ background: "rgba(14,26,13,0.7)", border: "1px solid rgba(125,184,212,0.35)" }}>
-                    <MapPin size={10} style={{ color: "var(--roam-sky)" }} />
-                    <span className="font-mono text-[9px] tracking-wider uppercase" style={{ color: "var(--roam-sky)" }}>
-                      also wants {selectedBucket.name}
+                <div className="absolute top-3.5 left-3.5 right-3.5 flex items-start justify-between gap-2">
+                  {selectedBucket ? (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl backdrop-blur-md"
+                         style={{ background: "rgba(14,26,13,0.7)", border: "1px solid rgba(125,184,212,0.35)" }}>
+                      <MapPin size={10} style={{ color: "var(--roam-sky)" }} />
+                      <span className="font-mono text-[9px] tracking-wider uppercase" style={{ color: "var(--roam-sky)" }}>
+                        also wants {selectedBucket.name}
+                      </span>
+                    </div>
+                  ) : displayVibeWord ? (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl backdrop-blur-md"
+                         style={{ background: "rgba(14,26,13,0.6)", border: "1px solid rgba(200,230,74,0.2)" }}>
+                      <span className="font-mono text-[9px] tracking-widest uppercase" style={{ color: "var(--roam-electric)" }}>
+                        {displayVibeWord}
+                      </span>
+                    </div>
+                  ) : <div />}
+
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl backdrop-blur-md"
+                       style={{ background: "rgba(14,26,13,0.6)", border: `1px solid rgba(${honesty.tier === "verified-adventure" ? "200,230,74" : "125,184,212"},0.25)` }}
+                       data-testid="badge-honesty">
+                    <span style={{ color: honesty.color, fontSize: "10px" }}>{honesty.symbol}</span>
+                    <span className="font-mono text-[8px] tracking-wider" style={{ color: honesty.tier === "verified-adventure" ? "var(--roam-electric)" : "var(--roam-sky)" }}>
+                      {honesty.label}
                     </span>
+                  </div>
+                </div>
+
+                {displayAlmostMet && (
+                  <div className="absolute top-14 left-3.5 flex items-center gap-2 px-3 py-2 rounded-xl"
+                       style={{ background: "rgba(167,139,250,0.18)", border: "1px solid rgba(167,139,250,0.45)", backdropFilter: "blur(8px)" }}
+                       data-testid="badge-almost-met">
+                    <span style={{ fontSize: "12px" }}>👻</span>
+                    <div>
+                      <div className="font-mono text-[9px] tracking-widest uppercase" style={{ color: "rgba(167,139,250,0.9)" }}>Almost Met</div>
+                      <div className="font-mono text-[8px]" style={{ color: "rgba(242,237,227,0.55)" }}>
+                        {displayAlmostMet.location} · {displayAlmostMet.dateHint}
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -242,12 +319,29 @@ export default function Discover() {
 
               <div className="p-4 pt-4">
                 <div className="flex gap-2.5">
-                  <button className="flex-none w-12 h-12 rounded-2xl flex items-center justify-center transition-all"
-                          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(242,237,227,0.5)" }}
-                          onClick={handlePass}
-                          data-testid="button-pass">
-                    <X size={18} />
-                  </button>
+                  {passExpanded ? (
+                    <>
+                      <button className="flex-none h-12 px-3 rounded-2xl flex items-center justify-center gap-1.5 font-mono text-[10px] tracking-wider transition-all"
+                              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(242,237,227,0.5)" }}
+                              onClick={advanceCard}
+                              data-testid="button-pass-silent">
+                        <X size={14} /> Pass
+                      </button>
+                      <button className="flex-none h-12 px-3 rounded-2xl flex items-center justify-center gap-1.5 font-mono text-[10px] tracking-wider transition-all animate-fade-up"
+                              style={{ background: "rgba(125,184,212,0.1)", border: "1px solid rgba(125,184,212,0.3)", color: "var(--roam-sky)" }}
+                              onClick={handleGracefulExit}
+                              data-testid="button-not-my-adventure">
+                        🤙 Not my adventure
+                      </button>
+                    </>
+                  ) : (
+                    <button className="flex-none w-12 h-12 rounded-2xl flex items-center justify-center transition-all"
+                            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(242,237,227,0.5)" }}
+                            onClick={handlePass}
+                            data-testid="button-pass">
+                      <X size={18} />
+                    </button>
+                  )}
                   <button className="flex-1 py-3.5 rounded-2xl font-mono text-[12px] tracking-wider uppercase font-medium transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50"
                           style={{
                             background: alreadyRoamed ? "rgba(200,230,74,0.2)" : "var(--roam-electric)",
@@ -266,6 +360,12 @@ export default function Discover() {
                     )}
                   </button>
                 </div>
+                {passExpanded && (
+                  <p className="font-mono text-[9px] tracking-wider text-center mt-2 animate-fade-up"
+                     style={{ color: "rgba(242,237,227,0.25)" }}>
+                    silent pass or send a kind wave — no text needed
+                  </p>
+                )}
               </div>
             </div>
           </div>
