@@ -185,11 +185,9 @@ export default function Upload() {
                        style={{ background: "var(--roam-moss)", border: p.status === "error" ? "1px solid rgba(232,98,26,0.4)" : p.status === "done" ? "1px solid rgba(200,230,74,0.25)" : "1px solid rgba(242,237,227,0.07)" }}>
                     <div className="flex gap-3 p-3">
                       <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 relative"
-                           style={{ userSelect: "none" }}>
+                           style={{ userSelect: "none" }} onContextMenu={e => e.preventDefault()}>
                         <img src={p.previewUrl} alt="" className="w-full h-full object-cover"
-                             draggable={false} onContextMenu={e => e.preventDefault()}
-                             style={{ pointerEvents: "none" }} />
-                        <div className="absolute inset-0" onContextMenu={e => e.preventDefault()} />
+                             draggable={false} style={{ pointerEvents: "none" }} />
                         {p.status === "uploading" && (
                           <div className="absolute inset-0 flex items-center justify-center"
                                style={{ background: "rgba(14,26,13,0.7)" }}>

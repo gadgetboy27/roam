@@ -139,15 +139,14 @@ export default function Profile() {
       <div className="relative z-10">
         <AppNav />
         <div className="max-w-lg mx-auto pb-10">
-          <div className="relative h-56 overflow-hidden" style={{ userSelect: "none" }}>
+          <div className="relative h-56 overflow-hidden" style={{ userSelect: "none" }}
+               onContextMenu={e => e.preventDefault()}>
             <img src={profileData.avatarUrl || FALLBACK_HERO}
                  alt="Profile hero"
                  className="w-full h-full object-cover"
                  draggable={false}
-                 onContextMenu={e => e.preventDefault()}
                  style={{ pointerEvents: "none" }} />
-            <div className="absolute inset-0" onContextMenu={e => e.preventDefault()} />
-            <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(14,26,13,0.95) 0%, rgba(14,26,13,0.3) 50%, transparent 100%)" }} />
+            <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(14,26,13,0.95) 0%, rgba(14,26,13,0.3) 50%, transparent 100%)", pointerEvents: "none" }} />
 
             <div className="absolute top-3 right-3 flex gap-2">
               <button className="w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-lg transition-all hover:scale-105"
@@ -249,10 +248,10 @@ export default function Profile() {
               </div>
               <div className="grid grid-cols-3 gap-1.5">
                 {PROFILE_PHOTOS.map((p, i) => (
-                  <div key={i} className="aspect-square rounded-xl overflow-hidden relative" style={{ userSelect: "none" }} data-testid={`profile-photo-${i}`}>
+                  <div key={i} className="aspect-square rounded-xl overflow-hidden relative" style={{ userSelect: "none" }}
+                       onContextMenu={e => e.preventDefault()} data-testid={`profile-photo-${i}`}>
                     <img src={p.url} alt="" className="w-full h-full object-cover" loading="lazy"
-                         draggable={false} onContextMenu={e => e.preventDefault()} style={{ pointerEvents: "none" }} />
-                    <div className="absolute inset-0" onContextMenu={e => e.preventDefault()} />
+                         draggable={false} style={{ pointerEvents: "none" }} />
                     <div className="absolute bottom-0 left-0 right-0 p-1.5">
                       <div className="flex flex-wrap gap-1">
                         {p.tags.slice(0, 2).map(t => (

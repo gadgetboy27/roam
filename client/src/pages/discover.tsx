@@ -241,12 +241,12 @@ export default function Discover() {
           <div key={cardKey} className="animate-fade-up">
             <div className="mx-3.5 mt-4 rounded-[28px] overflow-hidden"
                  style={{ background: "var(--roam-moss)", border: "1px solid rgba(242,237,227,0.07)", boxShadow: "0 8px 32px rgba(0,0,0,0.45)" }}>
-              <div className="relative h-[380px] overflow-hidden" style={{ userSelect: "none" }}>
+              <div className="relative h-[380px] overflow-hidden" style={{ userSelect: "none" }}
+                   onContextMenu={e => e.preventDefault()}>
                 <img src={displayHero} alt={displayName}
                      className="w-full h-full object-cover transition-transform duration-[6s] ease-out hover:scale-[1.04]"
-                     draggable={false} onContextMenu={e => e.preventDefault()} style={{ pointerEvents: "none" }} />
-                <div className="absolute inset-0" onContextMenu={e => e.preventDefault()} />
-                <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(14,26,13,0.97) 0%, rgba(14,26,13,0.45) 55%, transparent 100%)" }} />
+                     draggable={false} style={{ pointerEvents: "none" }} />
+                <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(14,26,13,0.97) 0%, rgba(14,26,13,0.45) 55%, transparent 100%)", pointerEvents: "none" }} />
 
                 <div className="absolute top-3.5 left-3.5 right-3.5 flex items-start justify-between gap-2">
                   {selectedBucket ? (
