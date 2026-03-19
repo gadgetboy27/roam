@@ -92,7 +92,7 @@ function MomentumBadge({ state, compact = false }: { state: MomentumState; compa
   );
   return (
     <div className={`flex items-center gap-1 font-mono tracking-wider ${compact ? "text-[9px]" : "text-[10px]"}`}
-         style={{ color: "rgba(242,237,227,0.35)" }}>
+         style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
       <MessageCircle size={compact ? 9 : 11} />
       <span>Their turn…</span>
     </div>
@@ -250,13 +250,13 @@ export default function Matches() {
           {!selectedId ? (
             <>
               <div className="px-4 pt-6 pb-4 animate-fade-up">
-                <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-1" style={{ color: "rgba(242,237,227,0.35)" }}>
+                <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
                   mutual roamers
                 </div>
                 <h1 className="font-serif text-[28px] font-black leading-[1.05]" data-testid="text-match-count">
                   {DEMO_CONNECTIONS.length} connections
                 </h1>
-                <p className="text-[11px] mt-1.5" style={{ color: "rgba(242,237,227,0.38)" }}>
+                <p className="text-[11px] mt-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
                   You and these adventurers have both said yes. Start planning.
                 </p>
               </div>
@@ -266,14 +266,14 @@ export default function Matches() {
               {bucketList.length > 0 && (
                 <div className="px-3.5 mb-4 animate-fade-up">
                   <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-2.5 flex items-center gap-1.5"
-                       style={{ color: "rgba(242,237,227,0.35)" }}>
+                       style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
                     <BookmarkCheck size={11} style={{ color: "var(--roam-sky)" }} />
                     Your pinned destinations
                   </div>
                   <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
                     {bucketList.map(b => (
                       <div key={b.id} className="flex-shrink-0 rounded-2xl overflow-hidden relative"
-                           style={{ width: 90, height: 90, border: "1px solid rgba(125,184,212,0.3)" }}>
+                           style={{ width: 90, height: 90, border: "1px solid rgba(var(--roam-sky-rgb),0.3)" }}>
                         {b.imageUrl
                           ? <img src={b.imageUrl} alt={b.destinationName} className="w-full h-full object-cover" />
                           : <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--roam-moss)" }}>
@@ -281,7 +281,7 @@ export default function Matches() {
                             </div>
                         }
                         <div className="absolute inset-0 flex items-end p-1.5"
-                             style={{ background: "linear-gradient(to top, rgba(14,26,13,0.88) 0%, transparent 55%)" }}>
+                             style={{ background: "linear-gradient(to top, rgba(var(--roam-forest-rgb),0.88) 0%, transparent 55%)" }}>
                           <span className="font-mono text-[8px] tracking-wider leading-tight" style={{ color: "var(--roam-sky)" }}>
                             {b.destinationName}
                           </span>
@@ -301,7 +301,7 @@ export default function Matches() {
                   return (
                     <div key={m.id}
                          className="rounded-[22px] p-3.5 flex gap-3 items-center cursor-pointer transition-all animate-fade-up"
-                         style={{ background: "var(--roam-moss)", border: "1px solid rgba(242,237,227,0.06)", animationDelay: `${i * 0.07}s` }}
+                         style={{ background: "var(--roam-moss)", border: "1px solid rgba(var(--roam-cream-rgb),0.06)", animationDelay: `${i * 0.07}s` }}
                          onClick={() => openChat(m.id)}
                          data-testid={`match-row-${m.id}`}>
                       <div className="relative flex-shrink-0">
@@ -324,18 +324,18 @@ export default function Matches() {
                         <div className="flex flex-wrap gap-1 mt-0.5 mb-1">
                           {m.shared.map(t => (
                             <span key={t} className="font-mono text-[8px] tracking-wider px-1.5 py-0.5 rounded-md"
-                                  style={{ background: "rgba(200,230,74,0.08)", border: "1px solid rgba(200,230,74,0.2)", color: "var(--roam-electric)" }}>
+                                  style={{ background: "rgba(var(--roam-electric-rgb),0.08)", border: "1px solid rgba(var(--roam-electric-rgb),0.2)", color: "var(--roam-electric)" }}>
                               {t}
                             </span>
                           ))}
                         </div>
                         {last ? (
-                          <div className="text-[11px] truncate" style={{ color: "rgba(242,237,227,0.45)" }}>
-                            {last.senderId === MY_USER_ID && <span style={{ color: "rgba(242,237,227,0.3)" }}>You: </span>}
+                          <div className="text-[11px] truncate" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                            {last.senderId === MY_USER_ID && <span style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>You: </span>}
                             {last.content}
                           </div>
                         ) : (
-                          <div className="text-[11px]" style={{ color: "rgba(242,237,227,0.3)" }}>
+                          <div className="text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
                             {m.when}
                           </div>
                         )}
@@ -351,40 +351,40 @@ export default function Matches() {
               {waitingMatches.length > 0 && (
                 <div className="px-3.5 mt-5 animate-fade-up">
                   <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-2.5 flex items-center gap-1.5"
-                       style={{ color: "rgba(242,237,227,0.35)" }}>
+                       style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
                     <Hourglass size={10} />
                     Waiting to roam back ({waitingMatches.length})
                   </div>
                   <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
                     {waitingMatches.map((m: any) => (
                       <div key={m.id} className="flex-shrink-0 rounded-2xl p-3 flex flex-col items-center gap-1.5"
-                           style={{ width: 90, background: "var(--roam-moss)", border: "1px solid rgba(242,237,227,0.07)" }}>
+                           style={{ width: 90, background: "var(--roam-moss)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                             style={{ background: "rgba(200,230,74,0.06)", border: "1px solid rgba(200,230,74,0.15)" }}>
-                          <Compass size={16} style={{ color: "rgba(200,230,74,0.5)" }} />
+                             style={{ background: "rgba(var(--roam-electric-rgb),0.06)", border: "1px solid rgba(var(--roam-electric-rgb),0.15)" }}>
+                          <Compass size={16} style={{ color: "rgba(var(--roam-electric-rgb),0.5)" }} />
                         </div>
                         <span className="font-mono text-[8px] tracking-wider text-center leading-tight"
-                              style={{ color: "rgba(242,237,227,0.35)" }}>
+                              style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
                           Waiting…
                         </span>
                       </div>
                     ))}
                   </div>
-                  <p className="font-mono text-[9px] mt-2" style={{ color: "rgba(242,237,227,0.25)" }}>
+                  <p className="font-mono text-[9px] mt-2" style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}>
                     When they roam you back, messaging unlocks
                   </p>
                 </div>
               )}
 
               <div className="mx-3.5 mt-5 rounded-2xl p-4"
-                   style={{ background: "rgba(200,230,74,0.04)", border: "1px solid rgba(200,230,74,0.1)" }}>
+                   style={{ background: "rgba(var(--roam-electric-rgb),0.04)", border: "1px solid rgba(var(--roam-electric-rgb),0.1)" }}>
                 <div className="flex items-center gap-2 mb-1.5">
                   <Flame size={12} style={{ color: "var(--roam-electric)" }} />
                   <span className="font-mono text-[9px] tracking-wider uppercase" style={{ color: "var(--roam-electric)" }}>
                     Keep momentum
                   </span>
                 </div>
-                <p className="text-[11px] leading-relaxed" style={{ color: "rgba(242,237,227,0.45)" }}>
+                <p className="text-[11px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
                   Connections with messages in the first 24 hours are 4× more likely to plan a real adventure together.
                 </p>
               </div>
@@ -392,9 +392,9 @@ export default function Matches() {
           ) : (
             <div className="flex flex-col animate-fade-up" style={{ height: "calc(100vh - 64px)" }}>
               <div className="px-4 pt-4 pb-3 flex items-center gap-3 flex-shrink-0"
-                   style={{ borderBottom: "1px solid rgba(242,237,227,0.07)" }}>
+                   style={{ borderBottom: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
                 <button className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{ background: "rgba(242,237,227,0.06)" }}
+                        style={{ background: "rgba(var(--roam-cream-rgb),0.06)" }}
                         onClick={() => setSelectedId(null)}
                         data-testid="button-back-matches">
                   <ArrowLeft size={15} />
@@ -406,9 +406,9 @@ export default function Matches() {
                   <div className="font-semibold text-sm">{selectedMatch!.nameAge}</div>
                   <div className="flex items-center gap-1.5">
                     <div className="w-1.5 h-1.5 rounded-full"
-                         style={{ background: isOnline ? "var(--roam-electric)" : "rgba(242,237,227,0.25)" }} />
+                         style={{ background: isOnline ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.25)" }} />
                     <div className="font-mono text-[9px]"
-                         style={{ color: isOnline ? "var(--roam-electric)" : "rgba(242,237,227,0.3)" }}>
+                         style={{ color: isOnline ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.3)" }}>
                       {isOnline
                         ? selectedMatch!.shared.slice(0, 2).join(" · ")
                         : "offline — cached view"}
@@ -443,12 +443,12 @@ export default function Matches() {
                     <div className="flex flex-wrap justify-center gap-1 mb-3">
                       {selectedMatch!.shared.map(t => (
                         <span key={t} className="font-mono text-[9px] tracking-wider px-2 py-0.5 rounded-md"
-                              style={{ background: "rgba(200,230,74,0.08)", border: "1px solid rgba(200,230,74,0.2)", color: "var(--roam-electric)" }}>
+                              style={{ background: "rgba(var(--roam-electric-rgb),0.08)", border: "1px solid rgba(var(--roam-electric-rgb),0.2)", color: "var(--roam-electric)" }}>
                           {t}
                         </span>
                       ))}
                     </div>
-                    <p className="text-xs max-w-[220px] mx-auto" style={{ color: "rgba(242,237,227,0.4)" }}>
+                    <p className="text-xs max-w-[220px] mx-auto" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
                       Ask about their next adventure — shared experiences start with a message.
                     </p>
                   </div>
@@ -473,7 +473,7 @@ export default function Matches() {
                           {msg.content}
                         </div>
                         <div className={`font-mono text-[9px] mt-1 flex items-center gap-1 ${isMe ? "justify-end" : "justify-start"}`}
-                             style={{ color: "rgba(242,237,227,0.25)" }}>
+                             style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}>
                           {formatTime(msg.createdAt)}
                           {msg.pending && <Clock size={8} style={{ color: "#f59e0b" }} />}
                         </div>
@@ -491,7 +491,7 @@ export default function Matches() {
                       <div className="flex gap-1 items-center">
                         {[0,1,2].map(i => (
                           <div key={i} className="w-1.5 h-1.5 rounded-full"
-                               style={{ background: "rgba(242,237,227,0.4)", animation: `bounce-dot 0.9s ${i*0.15}s infinite` }} />
+                               style={{ background: "rgba(var(--roam-cream-rgb),0.4)", animation: `bounce-dot 0.9s ${i*0.15}s infinite` }} />
                         ))}
                       </div>
                     </div>
@@ -501,11 +501,11 @@ export default function Matches() {
               </div>
 
               <div className="px-3.5 py-3 flex-shrink-0"
-                   style={{ borderTop: "1px solid rgba(242,237,227,0.07)", background: "rgba(14,26,13,0.85)", backdropFilter: "blur(12px)" }}>
+                   style={{ borderTop: "1px solid rgba(var(--roam-cream-rgb),0.07)", background: "rgba(var(--roam-forest-rgb),0.85)", backdropFilter: "blur(12px)" }}>
                 <div className="flex gap-2">
                   <input ref={inputRef}
                          className="flex-1 py-3 px-4 rounded-2xl text-sm outline-none"
-                         style={{ background: "var(--roam-surface)", border: "1px solid rgba(242,237,227,0.1)", color: "var(--roam-cream)" }}
+                         style={{ background: "var(--roam-surface)", border: "1px solid rgba(var(--roam-cream-rgb),0.1)", color: "var(--roam-cream)" }}
                          placeholder={isOnline ? "Say something adventurous..." : "Offline — queues and sends when back…"}
                          value={inputVal}
                          onChange={e => setInputVal(e.target.value)}
@@ -513,8 +513,8 @@ export default function Matches() {
                          data-testid="input-message" />
                   <button className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all flex-shrink-0"
                           style={{
-                            background: inputVal.trim() ? (isOnline ? "var(--roam-electric)" : "#f59e0b") : "rgba(242,237,227,0.06)",
-                            color: inputVal.trim() ? "var(--roam-forest)" : "rgba(242,237,227,0.25)",
+                            background: inputVal.trim() ? (isOnline ? "var(--roam-electric)" : "#f59e0b") : "rgba(var(--roam-cream-rgb),0.06)",
+                            color: inputVal.trim() ? "var(--roam-forest)" : "rgba(var(--roam-cream-rgb),0.25)",
                           }}
                           onClick={sendMessage}
                           disabled={!inputVal.trim()}
@@ -523,7 +523,7 @@ export default function Matches() {
                   </button>
                 </div>
                 {!isOnline && (
-                  <p className="font-mono text-[9px] mt-1.5 text-center" style={{ color: "rgba(242,237,227,0.25)" }}>
+                  <p className="font-mono text-[9px] mt-1.5 text-center" style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}>
                     No cellular used · sends automatically when data returns
                   </p>
                 )}

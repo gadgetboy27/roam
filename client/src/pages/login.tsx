@@ -11,7 +11,7 @@ const HERO_URLS = [
 
 const inputStyle: React.CSSProperties = {
   background: "var(--roam-moss)",
-  border: "1px solid rgba(242,237,227,0.14)",
+  border: "1px solid rgba(var(--roam-cream-rgb),0.14)",
   color: "var(--roam-cream)",
 };
 
@@ -63,7 +63,7 @@ export default function Login() {
               </div>
             ))}
           </div>
-          <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, transparent 20%, rgba(14,26,13,0.97) 100%)" }} />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, transparent 20%, rgba(var(--roam-forest-rgb),0.97) 100%)" }} />
           <div className="absolute bottom-5 left-0 right-0 text-center">
             <div className="font-serif text-4xl font-black tracking-tight">
               roam<span style={{ color: "var(--roam-electric)" }}>.</span>
@@ -79,14 +79,14 @@ export default function Login() {
             <h2 className="font-serif text-[26px] font-black leading-tight mb-1">
               Sign <span className="italic" style={{ color: "var(--roam-electric)" }}>in</span>
             </h2>
-            <p className="text-[13px] mb-6 leading-relaxed" style={{ color: "rgba(242,237,227,0.38)" }}>
+            <p className="text-[13px] mb-6 leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
               Your adventures are waiting.
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
                 <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5"
-                       style={{ color: "rgba(242,237,227,0.38)" }}>
+                       style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
                   Email
                 </label>
                 <input type="email" autoComplete="email" autoFocus
@@ -100,7 +100,7 @@ export default function Login() {
 
               <div>
                 <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5"
-                       style={{ color: "rgba(242,237,227,0.38)" }}>
+                       style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
                   Password
                 </label>
                 <div className="relative">
@@ -113,7 +113,7 @@ export default function Login() {
                          data-testid="input-password" />
                   <button type="button" tabIndex={-1}
                           className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1"
-                          style={{ color: "rgba(242,237,227,0.3)" }}
+                          style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}
                           onClick={() => setShowPw(v => !v)}>
                     {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -154,12 +154,12 @@ export default function Login() {
 
             <div className="mt-5 space-y-3">
               <div className="flex items-center gap-3">
-                <div className="flex-1 h-px" style={{ background: "rgba(242,237,227,0.08)" }} />
-                <span className="font-mono text-[10px] tracking-wider" style={{ color: "rgba(242,237,227,0.25)" }}>or</span>
-                <div className="flex-1 h-px" style={{ background: "rgba(242,237,227,0.08)" }} />
+                <div className="flex-1 h-px" style={{ background: "rgba(var(--roam-cream-rgb),0.08)" }} />
+                <span className="font-mono text-[10px] tracking-wider" style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}>or</span>
+                <div className="flex-1 h-px" style={{ background: "rgba(var(--roam-cream-rgb),0.08)" }} />
               </div>
 
-              <div className="text-center text-[13px]" style={{ color: "rgba(242,237,227,0.38)" }}>
+              <div className="text-center text-[13px]" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
                 New to roam?{" "}
                 <Link href="/signup">
                   <button className="underline font-medium" style={{ color: "var(--roam-electric)" }}
@@ -172,7 +172,7 @@ export default function Login() {
               <div className="text-center">
                 <Link href="/">
                   <button className="font-mono text-[11px] tracking-wider"
-                          style={{ color: "rgba(242,237,227,0.25)" }}
+                          style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}
                           data-testid="link-home">
                     ← back to home
                   </button>

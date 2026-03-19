@@ -129,18 +129,18 @@ export default function Upload() {
             <h1 className="font-serif text-[28px] font-black leading-[1.1]">
               Your <span className="italic" style={{ color: "var(--roam-electric)" }}>adventure</span><br />story
             </h1>
-            <p className="text-[13px] mt-2 leading-relaxed" style={{ color: "rgba(242,237,227,0.38)" }}>
+            <p className="text-[13px] mt-2 leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
               Upload real photos from your travels and adventures. Our AI checks every photo before it goes live.
             </p>
           </div>
 
           <div className="mx-3.5 mt-4 rounded-2xl overflow-hidden animate-fade-up-1"
-               style={{ border: "1px solid rgba(242,237,227,0.07)" }}>
+               style={{ border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
             {RULES.map((r, i) => (
               <div key={i} className="flex items-center gap-3 p-3"
-                   style={{ background: "rgba(255,255,255,0.02)", borderBottom: i < RULES.length - 1 ? "1px solid rgba(242,237,227,0.05)" : "none" }}>
+                   style={{ background: "rgba(255,255,255,0.02)", borderBottom: i < RULES.length - 1 ? "1px solid rgba(var(--roam-cream-rgb),0.05)" : "none" }}>
                 <r.icon size={14} style={{ color: r.color, flexShrink: 0 }} />
-                <span className="text-xs" style={{ color: r.color === "var(--roam-electric)" ? "rgba(242,237,227,0.6)" : "rgba(232,98,26,0.85)" }}>
+                <span className="text-xs" style={{ color: r.color === "var(--roam-electric)" ? "rgba(var(--roam-cream-rgb),0.6)" : "rgba(232,98,26,0.85)" }}>
                   {r.text}
                 </span>
               </div>
@@ -151,8 +151,8 @@ export default function Upload() {
             <div
               className="rounded-2xl transition-all"
               style={{
-                background: dragOver ? "rgba(200,230,74,0.08)" : "rgba(242,237,227,0.02)",
-                border: dragOver ? "2px dashed var(--roam-electric)" : "2px dashed rgba(242,237,227,0.15)",
+                background: dragOver ? "rgba(var(--roam-electric-rgb),0.08)" : "rgba(var(--roam-cream-rgb),0.02)",
+                border: dragOver ? "2px dashed var(--roam-electric)" : "2px dashed rgba(var(--roam-cream-rgb),0.15)",
                 padding: "24px 16px",
               }}
               onDragOver={e => { e.preventDefault(); setDragOver(true); }}
@@ -161,11 +161,11 @@ export default function Upload() {
               data-testid="drop-zone">
               <div className="text-center">
                 <div className="w-14 h-14 rounded-2xl mx-auto mb-3 flex items-center justify-center"
-                     style={{ background: "rgba(200,230,74,0.1)", border: "1px solid rgba(200,230,74,0.25)" }}>
+                     style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)" }}>
                   <UploadCloud size={24} style={{ color: "var(--roam-electric)" }} />
                 </div>
                 <p className="text-sm font-medium mb-1">Drop photos here</p>
-                <p className="text-xs mb-4" style={{ color: "rgba(242,237,227,0.35)" }}>JPEG, PNG, WebP · max 12 MB each</p>
+                <p className="text-xs mb-4" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>JPEG, PNG, WebP · max 12 MB each</p>
                 <button
                   className="px-5 py-2.5 rounded-xl font-mono text-xs tracking-wider uppercase font-medium transition-all"
                   style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
@@ -182,7 +182,7 @@ export default function Upload() {
               <div className="mt-4 space-y-3">
                 {photos.map((p, idx) => (
                   <div key={p.id} className="rounded-2xl overflow-hidden animate-fade-up"
-                       style={{ background: "var(--roam-moss)", border: p.status === "error" ? "1px solid rgba(232,98,26,0.4)" : p.status === "done" ? "1px solid rgba(200,230,74,0.25)" : "1px solid rgba(242,237,227,0.07)" }}>
+                       style={{ background: "var(--roam-moss)", border: p.status === "error" ? "1px solid rgba(232,98,26,0.4)" : p.status === "done" ? "1px solid rgba(var(--roam-electric-rgb),0.25)" : "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
                     <div className="flex gap-3 p-3">
                       <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 relative"
                            style={{ userSelect: "none" }} onContextMenu={e => e.preventDefault()}>
@@ -190,7 +190,7 @@ export default function Upload() {
                              draggable={false} style={{ pointerEvents: "none" }} />
                         {p.status === "uploading" && (
                           <div className="absolute inset-0 flex items-center justify-center"
-                               style={{ background: "rgba(14,26,13,0.7)" }}>
+                               style={{ background: "rgba(var(--roam-forest-rgb),0.7)" }}>
                             <div className="flex gap-1">
                               {[0, 1, 2].map(i => (
                                 <div key={i} className="w-1.5 h-1.5 rounded-full"
@@ -201,7 +201,7 @@ export default function Upload() {
                         )}
                         {p.status === "done" && (
                           <div className="absolute inset-0 flex items-center justify-center"
-                               style={{ background: "rgba(14,26,13,0.5)" }}>
+                               style={{ background: "rgba(var(--roam-forest-rgb),0.5)" }}>
                             <Check size={22} style={{ color: "var(--roam-electric)" }} />
                           </div>
                         )}
@@ -209,7 +209,7 @@ export default function Upload() {
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
-                          <p className="text-xs truncate font-mono" style={{ color: "rgba(242,237,227,0.45)" }}>
+                          <p className="text-xs truncate font-mono" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
                             {p.file.name}
                           </p>
                           {p.status !== "done" && (
@@ -237,7 +237,7 @@ export default function Upload() {
                         {(p.status === "pending" || p.status === "error") && (
                           <div className="mt-2">
                             <input className="w-full py-1.5 px-3 rounded-lg text-xs outline-none"
-                                   style={{ background: "rgba(242,237,227,0.06)", border: "1px solid rgba(242,237,227,0.1)", color: "var(--roam-cream)" }}
+                                   style={{ background: "rgba(var(--roam-cream-rgb),0.06)", border: "1px solid rgba(var(--roam-cream-rgb),0.1)", color: "var(--roam-cream)" }}
                                    placeholder="Short caption — where was this? (optional)"
                                    value={p.caption}
                                    maxLength={80}
@@ -247,7 +247,7 @@ export default function Upload() {
                         )}
 
                         {p.status === "uploading" && (
-                          <div className="text-[11px] font-mono mt-2" style={{ color: "rgba(242,237,227,0.4)" }}>
+                          <div className="text-[11px] font-mono mt-2" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
                             Uploading…
                           </div>
                         )}
@@ -259,7 +259,7 @@ export default function Upload() {
                 <div className="flex gap-2 mt-2">
                   <button
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-mono text-xs tracking-wider uppercase transition-all"
-                    style={{ background: "rgba(242,237,227,0.05)", border: "1.5px dashed rgba(242,237,227,0.15)", color: "rgba(242,237,227,0.45)" }}
+                    style={{ background: "rgba(var(--roam-cream-rgb),0.05)", border: "1.5px dashed rgba(var(--roam-cream-rgb),0.15)", color: "rgba(var(--roam-cream-rgb),0.45)" }}
                     onClick={() => fileInputRef.current?.click()}
                     data-testid="button-add-more">
                     <Plus size={14} /> Add more
@@ -278,10 +278,10 @@ export default function Upload() {
           </div>
 
           <div className="px-3.5 mt-8">
-            <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-1" style={{ color: "rgba(242,237,227,0.35)" }}>
+            <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
               See how AI scoring works
             </div>
-            <p className="text-xs mb-3" style={{ color: "rgba(242,237,227,0.3)" }}>
+            <p className="text-xs mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
               Tap a sample photo to see what the AI checks
             </p>
             <div className="grid grid-cols-4 gap-1.5">
@@ -295,7 +295,7 @@ export default function Upload() {
                      data-testid={`photo-demo-${i}`}>
                   <ProtectedImage src={p.url} alt={p.label} className="w-full h-full object-cover" />
                   <div className="absolute bottom-0 left-0 right-0 text-center font-mono text-[8px] py-1 px-1"
-                       style={{ background: "rgba(14,26,13,0.75)", color: "var(--roam-sand)" }}>
+                       style={{ background: "rgba(var(--roam-forest-rgb),0.75)", color: "var(--roam-sand)" }}>
                     {p.label}
                   </div>
                 </div>
@@ -304,7 +304,7 @@ export default function Upload() {
 
             {demoSelected && (
               <button className="w-full mt-3 py-3 rounded-2xl font-mono text-xs tracking-wider uppercase font-medium transition-all disabled:opacity-40"
-                      style={{ background: "var(--roam-moss)", border: "1px solid rgba(200,230,74,0.3)", color: "var(--roam-electric)" }}
+                      style={{ background: "var(--roam-moss)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)", color: "var(--roam-electric)" }}
                       onClick={runDemoAnalysis}
                       disabled={demoAnalysing}
                       data-testid="button-analyse">
@@ -314,14 +314,14 @@ export default function Upload() {
 
             {demoAnalysing && (
               <div className="mt-3 p-4 rounded-2xl flex items-center gap-3 animate-fade-up"
-                   style={{ background: "var(--roam-moss)", border: "1px solid rgba(242,237,227,0.07)" }}>
+                   style={{ background: "var(--roam-moss)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
                 <div className="flex gap-1.5">
                   {[0, 1, 2].map(i => (
                     <div key={i} className="w-[7px] h-[7px] rounded-full"
                          style={{ background: "var(--roam-electric)", animation: `bounce-dot 0.9s ${i * 0.15}s infinite` }} />
                   ))}
                 </div>
-                <span className="font-mono text-[11px]" style={{ color: "rgba(242,237,227,0.38)" }}>
+                <span className="font-mono text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
                   Detecting people · checking authenticity · tagging adventures…
                 </span>
               </div>
@@ -329,9 +329,9 @@ export default function Upload() {
 
             {demoResult && demoSelected && (
               <div className="mt-3 rounded-[22px] overflow-hidden animate-fade-up mb-5"
-                   style={{ background: "var(--roam-moss)", border: "1px solid rgba(242,237,227,0.13)" }}>
+                   style={{ background: "var(--roam-moss)", border: "1px solid rgba(var(--roam-cream-rgb),0.13)" }}>
                 <div className="px-4 py-3 flex items-center gap-2.5"
-                     style={{ background: "rgba(200,230,74,0.07)", borderBottom: "1px solid rgba(242,237,227,0.07)" }}>
+                     style={{ background: "rgba(var(--roam-electric-rgb),0.07)", borderBottom: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
                   <span className="font-mono text-[9px] font-medium tracking-[1px] uppercase py-0.5 px-2 rounded-lg"
                         style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}>AI Verdict</span>
                   <span className="font-mono text-[11px]" style={{ color: "var(--roam-sand)" }}>
@@ -341,9 +341,9 @@ export default function Upload() {
                 <div className="p-4">
                   <div className="rounded-xl p-3 mb-3.5 flex items-start gap-2.5 text-xs leading-relaxed"
                        style={{
-                         background: demoSelected.verdict === "approved" ? "rgba(200,230,74,0.08)" : "rgba(245,158,11,0.08)",
-                         border: `1px solid ${demoSelected.verdict === "approved" ? "rgba(200,230,74,0.25)" : "rgba(245,158,11,0.25)"}`,
-                         color: "rgba(242,237,227,0.8)",
+                         background: demoSelected.verdict === "approved" ? "rgba(var(--roam-electric-rgb),0.08)" : "rgba(245,158,11,0.08)",
+                         border: `1px solid ${demoSelected.verdict === "approved" ? "rgba(var(--roam-electric-rgb),0.25)" : "rgba(245,158,11,0.25)"}`,
+                         color: "rgba(var(--roam-cream-rgb),0.8)",
                        }}
                        data-testid="text-verdict">
                     {demoSelected.verdict === "approved"
@@ -363,7 +363,7 @@ export default function Upload() {
                       { label: "Adventure relevance", val: demoSelected.adventureScore },
                     ].map(m => (
                       <div key={m.label}>
-                        <div className="flex justify-between mb-1.5 font-mono text-[10px]" style={{ color: "rgba(242,237,227,0.38)" }}>
+                        <div className="flex justify-between mb-1.5 font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
                           <span>{m.label}</span>
                           <span className="font-medium" style={{ color: getMeterColor(m.val) }}>{m.val}%</span>
                         </div>
@@ -375,11 +375,11 @@ export default function Upload() {
                     ))}
                   </div>
 
-                  <div className="font-mono text-[9px] tracking-[1.2px] uppercase mb-2" style={{ color: "rgba(242,237,227,0.38)" }}>Auto-tagged as</div>
+                  <div className="font-mono text-[9px] tracking-[1.2px] uppercase mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>Auto-tagged as</div>
                   <div className="flex flex-wrap gap-1.5">
                     {demoSelected.tags.map(t => (
                       <span key={t} className="px-2.5 py-1 rounded-lg text-[10px] font-mono tracking-wider"
-                            style={{ background: "rgba(125,184,212,0.1)", border: "1px solid rgba(125,184,212,0.3)", color: "var(--roam-sky)" }}>
+                            style={{ background: "rgba(var(--roam-sky-rgb),0.1)", border: "1px solid rgba(var(--roam-sky-rgb),0.3)", color: "var(--roam-sky)" }}>
                         {t}
                       </span>
                     ))}

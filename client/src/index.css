@@ -74,15 +74,110 @@
   --destructive-border: hsl(var(--destructive));
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 
+  /* Forest Dark (default) */
   --roam-forest: #0e1a0d;
   --roam-moss: #172116;
   --roam-surface: #1e2d1c;
   --roam-electric: #c8e64a;
+  --roam-electric-fg: #0e1a0d;
   --roam-ember: #e8621a;
   --roam-sky: #7db8d4;
   --roam-cream: #f2ede3;
   --roam-sand: #c9bfa8;
   --roam-violet: #a78bfa;
+  /* RGB component vars for rgba() usage */
+  --roam-forest-rgb: 14,26,13;
+  --roam-moss-rgb: 23,33,22;
+  --roam-surface-rgb: 30,45,28;
+  --roam-electric-rgb: 200,230,74;
+  --roam-ember-rgb: 232,98,26;
+  --roam-sky-rgb: 125,184,212;
+  --roam-cream-rgb: 242,237,227;
+  --roam-violet-rgb: 167,139,250;
+}
+
+/* ── Daylight ── */
+[data-theme="daylight"] {
+  --roam-forest: #f0ebe0;
+  --roam-moss: #e5dfd3;
+  --roam-surface: #d8d2c6;
+  --roam-electric: #2d7d1f;
+  --roam-electric-fg: #f0ebe0;
+  --roam-ember: #c04f0e;
+  --roam-sky: #2e7d9e;
+  --roam-cream: #1a2012;
+  --roam-sand: #4a3e30;
+  --roam-violet: #6d4fd4;
+  --roam-forest-rgb: 240,235,224;
+  --roam-moss-rgb: 229,223,211;
+  --roam-surface-rgb: 216,210,198;
+  --roam-electric-rgb: 45,125,31;
+  --roam-ember-rgb: 192,79,14;
+  --roam-sky-rgb: 46,125,158;
+  --roam-cream-rgb: 26,32,18;
+  --roam-violet-rgb: 109,79,212;
+  --background: 40 28% 92%;
+  --foreground: 110 25% 10%;
+  --border: 40 12% 78%;
+  --card: 40 24% 88%;
+  --muted: 40 18% 82%;
+  --muted-foreground: 110 12% 35%;
+}
+
+/* ── Ocean Deep ── */
+[data-theme="ocean"] {
+  --roam-forest: #080f1e;
+  --roam-moss: #0d1830;
+  --roam-surface: #132040;
+  --roam-electric: #38bdf8;
+  --roam-electric-fg: #080f1e;
+  --roam-ember: #f97316;
+  --roam-sky: #7dd3fc;
+  --roam-cream: #e0f2fe;
+  --roam-sand: #94b8cc;
+  --roam-violet: #c084fc;
+  --roam-forest-rgb: 8,15,30;
+  --roam-moss-rgb: 13,24,48;
+  --roam-surface-rgb: 19,32,64;
+  --roam-electric-rgb: 56,189,248;
+  --roam-ember-rgb: 249,115,22;
+  --roam-sky-rgb: 125,211,252;
+  --roam-cream-rgb: 224,242,254;
+  --roam-violet-rgb: 192,132,252;
+  --background: 220 68% 8%;
+  --foreground: 200 88% 95%;
+  --border: 220 32% 22%;
+  --card: 220 60% 12%;
+  --muted: 220 40% 18%;
+  --muted-foreground: 200 40% 62%;
+}
+
+/* ── Ember Night ── */
+[data-theme="ember"] {
+  --roam-forest: #140703;
+  --roam-moss: #200e06;
+  --roam-surface: #2c1509;
+  --roam-electric: #e8621a;
+  --roam-electric-fg: #140703;
+  --roam-ember: #c8e64a;
+  --roam-sky: #7db8d4;
+  --roam-cream: #f5e8d8;
+  --roam-sand: #b8a090;
+  --roam-violet: #f0abfc;
+  --roam-forest-rgb: 20,7,3;
+  --roam-moss-rgb: 32,14,6;
+  --roam-surface-rgb: 44,21,9;
+  --roam-electric-rgb: 232,98,26;
+  --roam-ember-rgb: 200,230,74;
+  --roam-sky-rgb: 125,184,212;
+  --roam-cream-rgb: 245,232,216;
+  --roam-violet-rgb: 240,171,252;
+  --background: 18 72% 6%;
+  --foreground: 30 60% 92%;
+  --border: 18 32% 18%;
+  --card: 18 65% 9%;
+  --muted: 18 40% 14%;
+  --muted-foreground: 30 28% 58%;
 }
 
 @layer base {

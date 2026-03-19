@@ -240,18 +240,18 @@ export default function Discover() {
         <div className="max-w-lg mx-auto pb-8">
           <div key={cardKey} className="animate-fade-up">
             <div className="mx-3.5 mt-4 rounded-[28px] overflow-hidden"
-                 style={{ background: "var(--roam-moss)", border: "1px solid rgba(242,237,227,0.07)", boxShadow: "0 8px 32px rgba(0,0,0,0.45)" }}>
+                 style={{ background: "var(--roam-moss)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)", boxShadow: "0 8px 32px rgba(0,0,0,0.45)" }}>
               <div className="relative h-[380px] overflow-hidden" style={{ userSelect: "none" }}
                    onContextMenu={e => e.preventDefault()}>
                 <img src={displayHero} alt={displayName}
                      className="w-full h-full object-cover transition-transform duration-[6s] ease-out hover:scale-[1.04]"
                      draggable={false} style={{ pointerEvents: "none" }} />
-                <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(14,26,13,0.97) 0%, rgba(14,26,13,0.45) 55%, transparent 100%)", pointerEvents: "none" }} />
+                <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(var(--roam-forest-rgb),0.97) 0%, rgba(var(--roam-forest-rgb),0.45) 55%, transparent 100%)", pointerEvents: "none" }} />
 
                 <div className="absolute top-3.5 left-3.5 right-3.5 flex items-start justify-between gap-2">
                   {selectedBucket ? (
                     <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl backdrop-blur-md"
-                         style={{ background: "rgba(14,26,13,0.7)", border: "1px solid rgba(125,184,212,0.35)" }}>
+                         style={{ background: "rgba(var(--roam-forest-rgb),0.7)", border: "1px solid rgba(var(--roam-sky-rgb),0.35)" }}>
                       <MapPin size={10} style={{ color: "var(--roam-sky)" }} />
                       <span className="font-mono text-[9px] tracking-wider uppercase" style={{ color: "var(--roam-sky)" }}>
                         also wants {selectedBucket.name}
@@ -259,7 +259,7 @@ export default function Discover() {
                     </div>
                   ) : displayVibeWord ? (
                     <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl backdrop-blur-md"
-                         style={{ background: "rgba(14,26,13,0.6)", border: "1px solid rgba(200,230,74,0.2)" }}>
+                         style={{ background: "rgba(var(--roam-forest-rgb),0.6)", border: "1px solid rgba(var(--roam-electric-rgb),0.2)" }}>
                       <span className="font-mono text-[9px] tracking-widest uppercase" style={{ color: "var(--roam-electric)" }}>
                         {displayVibeWord}
                       </span>
@@ -267,7 +267,7 @@ export default function Discover() {
                   ) : <div />}
 
                   <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl backdrop-blur-md"
-                       style={{ background: "rgba(14,26,13,0.6)", border: `1px solid rgba(${honesty.tier === "verified-adventure" ? "200,230,74" : "125,184,212"},0.25)` }}
+                       style={{ background: "rgba(var(--roam-forest-rgb),0.6)", border: `1px solid rgba(${honesty.tier === "verified-adventure" ? "200,230,74" : "125,184,212"},0.25)` }}
                        data-testid="badge-honesty">
                     <span style={{ color: honesty.color, fontSize: "10px" }}>{honesty.symbol}</span>
                     <span className="font-mono text-[8px] tracking-wider" style={{ color: honesty.tier === "verified-adventure" ? "var(--roam-electric)" : "var(--roam-sky)" }}>
@@ -278,12 +278,12 @@ export default function Discover() {
 
                 {displayAlmostMet && (
                   <div className="absolute top-14 left-3.5 flex items-center gap-2 px-3 py-2 rounded-xl"
-                       style={{ background: "rgba(167,139,250,0.18)", border: "1px solid rgba(167,139,250,0.45)", backdropFilter: "blur(8px)" }}
+                       style={{ background: "rgba(var(--roam-violet-rgb),0.18)", border: "1px solid rgba(var(--roam-violet-rgb),0.45)", backdropFilter: "blur(8px)" }}
                        data-testid="badge-almost-met">
                     <span style={{ fontSize: "12px" }}>👻</span>
                     <div>
-                      <div className="font-mono text-[9px] tracking-widest uppercase" style={{ color: "rgba(167,139,250,0.9)" }}>Almost Met</div>
-                      <div className="font-mono text-[8px]" style={{ color: "rgba(242,237,227,0.55)" }}>
+                      <div className="font-mono text-[9px] tracking-widest uppercase" style={{ color: "rgba(var(--roam-violet-rgb),0.9)" }}>Almost Met</div>
+                      <div className="font-mono text-[8px]" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
                         {displayAlmostMet.location} · {displayAlmostMet.dateHint}
                       </div>
                     </div>
@@ -299,16 +299,16 @@ export default function Discover() {
                     <span className="font-serif text-[22px] font-light" style={{ color: "var(--roam-sand)" }}>{displayAge}</span>
                   </div>
                   <span className="inline-block font-mono text-[10px] tracking-widest uppercase px-2.5 py-1 rounded-full mb-3"
-                        style={{ background: "rgba(200,230,74,0.12)", border: "1px solid rgba(200,230,74,0.35)", color: "var(--roam-electric)" }}
+                        style={{ background: "rgba(var(--roam-electric-rgb),0.12)", border: "1px solid rgba(var(--roam-electric-rgb),0.35)", color: "var(--roam-electric)" }}
                         data-testid="text-card-ethnicity">
                     {displayEthnicity}
                   </span>
-                  <p className="text-[13px] italic leading-snug mb-3" style={{ color: "rgba(242,237,227,0.7)" }}>"{displayTagline}"</p>
+                  <p className="text-[13px] italic leading-snug mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.7)" }}>"{displayTagline}"</p>
                   {displayDna.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {displayDna.map(t => (
                         <span key={t} className="font-mono text-[9px] tracking-wider px-2 py-0.5 rounded-lg"
-                              style={{ background: "rgba(14,26,13,0.7)", border: "1px solid rgba(200,230,74,0.25)", color: "var(--roam-electric)" }}>
+                              style={{ background: "rgba(var(--roam-forest-rgb),0.7)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)", color: "var(--roam-electric)" }}>
                           {t}
                         </span>
                       ))}
@@ -322,13 +322,13 @@ export default function Discover() {
                   {passExpanded ? (
                     <>
                       <button className="flex-none h-12 px-3 rounded-2xl flex items-center justify-center gap-1.5 font-mono text-[10px] tracking-wider transition-all"
-                              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(242,237,227,0.5)" }}
+                              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(var(--roam-cream-rgb),0.5)" }}
                               onClick={advanceCard}
                               data-testid="button-pass-silent">
                         <X size={14} /> Pass
                       </button>
                       <button className="flex-none h-12 px-3 rounded-2xl flex items-center justify-center gap-1.5 font-mono text-[10px] tracking-wider transition-all animate-fade-up"
-                              style={{ background: "rgba(125,184,212,0.1)", border: "1px solid rgba(125,184,212,0.3)", color: "var(--roam-sky)" }}
+                              style={{ background: "rgba(var(--roam-sky-rgb),0.1)", border: "1px solid rgba(var(--roam-sky-rgb),0.3)", color: "var(--roam-sky)" }}
                               onClick={handleGracefulExit}
                               data-testid="button-not-my-adventure">
                         🤙 Not my adventure
@@ -336,7 +336,7 @@ export default function Discover() {
                     </>
                   ) : (
                     <button className="flex-none w-12 h-12 rounded-2xl flex items-center justify-center transition-all"
-                            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(242,237,227,0.5)" }}
+                            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(var(--roam-cream-rgb),0.5)" }}
                             onClick={handlePass}
                             data-testid="button-pass">
                       <X size={18} />
@@ -344,9 +344,9 @@ export default function Discover() {
                   )}
                   <button className="flex-1 py-3.5 rounded-2xl font-mono text-[12px] tracking-wider uppercase font-medium transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50"
                           style={{
-                            background: alreadyRoamed ? "rgba(200,230,74,0.2)" : "var(--roam-electric)",
+                            background: alreadyRoamed ? "rgba(var(--roam-electric-rgb),0.2)" : "var(--roam-electric)",
                             color: alreadyRoamed ? "var(--roam-electric)" : "var(--roam-forest)",
-                            border: alreadyRoamed ? "1px solid rgba(200,230,74,0.4)" : "none",
+                            border: alreadyRoamed ? "1px solid rgba(var(--roam-electric-rgb),0.4)" : "none",
                           }}
                           onClick={handleRoam}
                           disabled={roamMutation.isPending || alreadyRoamed}
@@ -362,7 +362,7 @@ export default function Discover() {
                 </div>
                 {passExpanded && (
                   <p className="font-mono text-[9px] tracking-wider text-center mt-2 animate-fade-up"
-                     style={{ color: "rgba(242,237,227,0.25)" }}>
+                     style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}>
                     silent pass or send a kind wave — no text needed
                   </p>
                 )}
@@ -372,12 +372,12 @@ export default function Discover() {
 
           <div className="mt-5 px-3.5 animate-fade-up-1">
             <div className="flex items-center justify-between mb-3">
-              <div className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(242,237,227,0.35)" }}>
+              <div className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
                 Bucket list matches near you
               </div>
               {savedBucketList.length > 0 && (
                 <span className="font-mono text-[9px] px-2 py-0.5 rounded-lg"
-                      style={{ background: "rgba(200,230,74,0.1)", border: "1px solid rgba(200,230,74,0.25)", color: "var(--roam-electric)" }}>
+                      style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)", color: "var(--roam-electric)" }}>
                   {savedBucketList.length} pinned
                 </span>
               )}
@@ -390,31 +390,31 @@ export default function Discover() {
                   <div key={i}
                        className="flex-shrink-0 w-[120px] rounded-2xl overflow-hidden relative cursor-pointer transition-all"
                        style={{
-                         border: isSelected ? "2px solid var(--roam-electric)" : pinned ? "2px solid rgba(125,184,212,0.5)" : "1px solid rgba(242,237,227,0.07)",
+                         border: isSelected ? "2px solid var(--roam-electric)" : pinned ? "2px solid rgba(var(--roam-sky-rgb),0.5)" : "1px solid rgba(var(--roam-cream-rgb),0.07)",
                          transform: isSelected ? "scale(1.03)" : "scale(1)",
                        }}
                        onClick={() => handleBucketClick(b)}
                        data-testid={`bucket-${b.name.replace(/\s+/g, "-")}`}>
                     <img src={b.url} alt={b.name} className="w-[120px] h-[120px] object-cover" loading="lazy" />
                     <div className="absolute inset-0 flex flex-col justify-end p-2"
-                         style={{ background: "linear-gradient(to top, rgba(14,26,13,0.9) 0%, transparent 55%)" }}>
+                         style={{ background: "linear-gradient(to top, rgba(var(--roam-forest-rgb),0.9) 0%, transparent 55%)" }}>
                       <div className="text-[11px] font-semibold leading-tight">{b.name}</div>
                       <div className="font-mono text-[9px] mt-0.5" style={{ color: "var(--roam-sky)" }}>{b.want}</div>
                     </div>
                     <div className="absolute top-1.5 right-1.5 font-mono text-[8px] font-medium px-1.5 py-0.5 rounded-lg"
-                         style={{ background: isSelected ? "var(--roam-electric)" : "rgba(200,230,74,0.8)", color: "var(--roam-forest)" }}>
+                         style={{ background: isSelected ? "var(--roam-electric)" : "rgba(var(--roam-electric-rgb),0.8)", color: "var(--roam-forest)" }}>
                       {b.count}x
                     </div>
                     <button className="absolute bottom-1.5 right-1.5 w-6 h-6 rounded-lg flex items-center justify-center transition-all"
                             style={{
-                              background: pinned ? "rgba(125,184,212,0.25)" : "rgba(14,26,13,0.7)",
-                              border: pinned ? "1px solid rgba(125,184,212,0.5)" : "1px solid rgba(242,237,227,0.2)",
+                              background: pinned ? "rgba(var(--roam-sky-rgb),0.25)" : "rgba(var(--roam-forest-rgb),0.7)",
+                              border: pinned ? "1px solid rgba(var(--roam-sky-rgb),0.5)" : "1px solid rgba(var(--roam-cream-rgb),0.2)",
                             }}
                             onClick={e => handlePinToggle(e, b)}
                             data-testid={`pin-${b.name.replace(/\s+/g, "-")}`}>
                       {pinned
                         ? <BookmarkCheck size={11} style={{ color: "var(--roam-sky)" }} />
-                        : <Bookmark size={11} style={{ color: "rgba(242,237,227,0.6)" }} />}
+                        : <Bookmark size={11} style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }} />}
                     </button>
                   </div>
                 );
@@ -422,7 +422,7 @@ export default function Discover() {
             </div>
             {selectedBucket && (
               <p className="font-mono text-[9px] tracking-wider mt-2 text-center animate-fade-up"
-                 style={{ color: "rgba(242,237,227,0.3)" }}>
+                 style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
                 tap again to clear · tap another destination to switch
               </p>
             )}

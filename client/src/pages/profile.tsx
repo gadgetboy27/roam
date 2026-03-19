@@ -29,7 +29,7 @@ const ALL_DNA_TAGS = [
 
 const inputStyle: React.CSSProperties = {
   background: "var(--roam-moss)",
-  border: "1px solid rgba(242,237,227,0.14)",
+  border: "1px solid rgba(var(--roam-cream-rgb),0.14)",
   color: "var(--roam-cream)",
 };
 
@@ -39,12 +39,12 @@ function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () 
     <div className="fixed inset-0 z-50 flex flex-col justify-end" data-testid="sheet-overlay">
       <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.6)" }} onClick={onClose} />
       <div className="relative rounded-t-[28px] max-h-[90vh] overflow-y-auto"
-           style={{ background: "var(--roam-surface)", border: "1px solid rgba(242,237,227,0.1)" }}>
+           style={{ background: "var(--roam-surface)", border: "1px solid rgba(var(--roam-cream-rgb),0.1)" }}>
         <div className="sticky top-0 z-10 flex items-center justify-between px-5 pt-5 pb-4"
-             style={{ background: "var(--roam-surface)", borderBottom: "1px solid rgba(242,237,227,0.07)" }}>
+             style={{ background: "var(--roam-surface)", borderBottom: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
           <h2 className="font-serif text-xl font-black">{title}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ background: "rgba(242,237,227,0.07)" }} data-testid="button-close-sheet">
+                  style={{ background: "rgba(var(--roam-cream-rgb),0.07)" }} data-testid="button-close-sheet">
             <X size={16} />
           </button>
         </div>
@@ -146,17 +146,17 @@ export default function Profile() {
                  className="w-full h-full object-cover"
                  draggable={false}
                  style={{ pointerEvents: "none" }} />
-            <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(14,26,13,0.95) 0%, rgba(14,26,13,0.3) 50%, transparent 100%)", pointerEvents: "none" }} />
+            <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(var(--roam-forest-rgb),0.95) 0%, rgba(var(--roam-forest-rgb),0.3) 50%, transparent 100%)", pointerEvents: "none" }} />
 
             <div className="absolute top-3 right-3 flex gap-2">
               <button className="w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-lg transition-all hover:scale-105"
-                      style={{ background: "rgba(14,26,13,0.6)", border: "1px solid rgba(242,237,227,0.15)" }}
+                      style={{ background: "rgba(var(--roam-forest-rgb),0.6)", border: "1px solid rgba(var(--roam-cream-rgb),0.15)" }}
                       onClick={openEdit}
                       data-testid="button-edit-profile">
                 <Edit3 size={14} />
               </button>
               <button className="w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-lg transition-all hover:scale-105"
-                      style={{ background: "rgba(14,26,13,0.6)", border: "1px solid rgba(242,237,227,0.15)" }}
+                      style={{ background: "rgba(var(--roam-forest-rgb),0.6)", border: "1px solid rgba(var(--roam-cream-rgb),0.15)" }}
                       onClick={() => setSettingsOpen(true)}
                       data-testid="button-settings">
                 <Settings size={14} />
@@ -165,7 +165,7 @@ export default function Profile() {
 
             <div className="absolute bottom-4 left-5">
               <h1 className="font-serif text-3xl font-black" data-testid="text-profile-name">{profileData.name}, {profileData.age}</h1>
-              <p className="text-[13px] italic mt-1" style={{ color: "rgba(242,237,227,0.65)" }}>
+              <p className="text-[13px] italic mt-1" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
                 "{profileData.tagline}"
               </p>
               <div className="flex items-center gap-1.5 mt-2">
@@ -178,23 +178,23 @@ export default function Profile() {
           <div className="px-4 pt-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <span className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(242,237,227,0.35)" }}>
+                <span className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
                   Your tier
                 </span>
                 <span className="font-mono text-[9px] tracking-wider uppercase py-0.5 px-2 rounded-lg"
-                      style={{ background: "rgba(200,230,74,0.15)", color: "var(--roam-electric)" }}>
+                      style={{ background: "rgba(var(--roam-electric-rgb),0.15)", color: "var(--roam-electric)" }}>
                   Adventurer
                 </span>
               </div>
               <div className="flex items-center gap-3 font-mono text-[11px]">
                 <div className="text-center">
                   <div className="font-semibold" style={{ color: "var(--roam-electric)" }}>3</div>
-                  <div className="text-[9px]" style={{ color: "rgba(242,237,227,0.35)" }}>matches</div>
+                  <div className="text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>matches</div>
                 </div>
-                <div className="w-px h-6" style={{ background: "rgba(242,237,227,0.1)" }} />
+                <div className="w-px h-6" style={{ background: "rgba(var(--roam-cream-rgb),0.1)" }} />
                 <div className="text-center">
                   <div className="font-semibold" style={{ color: "var(--roam-electric)" }}>6</div>
-                  <div className="text-[9px]" style={{ color: "rgba(242,237,227,0.35)" }}>photos</div>
+                  <div className="text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>photos</div>
                 </div>
               </div>
             </div>
@@ -205,13 +205,13 @@ export default function Profile() {
               return (
                 <div className="flex items-center gap-2 mb-5">
                   <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
-                       style={{ background: "rgba(200,230,74,0.08)", border: "1px solid rgba(200,230,74,0.2)" }}
+                       style={{ background: "rgba(var(--roam-electric-rgb),0.08)", border: "1px solid rgba(var(--roam-electric-rgb),0.2)" }}
                        data-testid="badge-vibe-word">
-                    <span className="font-mono text-[9px] tracking-widest uppercase" style={{ color: "rgba(242,237,227,0.4)" }}>Vibe</span>
+                    <span className="font-mono text-[9px] tracking-widest uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Vibe</span>
                     <span className="font-mono text-[10px] tracking-wider" style={{ color: "var(--roam-electric)" }}>{vibeWord}</span>
                   </div>
                   <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
-                       style={{ background: "rgba(200,230,74,0.08)", border: "1px solid rgba(200,230,74,0.2)" }}
+                       style={{ background: "rgba(var(--roam-electric-rgb),0.08)", border: "1px solid rgba(var(--roam-electric-rgb),0.2)" }}
                        data-testid="badge-honesty-profile">
                     <span style={{ color: honesty.color, fontSize: "11px" }}>{honesty.symbol}</span>
                     <span className="font-mono text-[10px] tracking-wider" style={{ color: "var(--roam-electric)" }}>{honesty.label}</span>
@@ -222,11 +222,11 @@ export default function Profile() {
 
             <div className="mb-5">
               <div className="flex items-center justify-between mb-3">
-                <div className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(242,237,227,0.35)" }}>
+                <div className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
                   Adventure DNA
                 </div>
                 <button className="flex items-center gap-1 font-mono text-[9px] tracking-wider uppercase py-1 px-2.5 rounded-lg transition-all"
-                        style={{ background: "rgba(200,230,74,0.1)", color: "var(--roam-electric)", border: "1px solid rgba(200,230,74,0.25)" }}
+                        style={{ background: "rgba(var(--roam-electric-rgb),0.1)", color: "var(--roam-electric)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)" }}
                         onClick={openEdit}
                         data-testid="button-edit-dna">
                   <Plus size={10} /> Edit
@@ -235,7 +235,7 @@ export default function Profile() {
               <div className="flex flex-wrap gap-1.5" data-testid="dna-tags">
                 {profileData.dna.map(t => (
                   <span key={t} className="px-2.5 py-1 rounded-xl text-[11px] font-mono tracking-wider"
-                        style={{ background: "rgba(200,230,74,0.1)", border: "1px solid rgba(200,230,74,0.3)", color: "var(--roam-electric)" }}>
+                        style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)", color: "var(--roam-electric)" }}>
                     {t}
                   </span>
                 ))}
@@ -243,7 +243,7 @@ export default function Profile() {
             </div>
 
             <div className="mb-5">
-              <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(242,237,227,0.35)" }}>
+              <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
                 Your photos
               </div>
               <div className="grid grid-cols-3 gap-1.5">
@@ -256,7 +256,7 @@ export default function Profile() {
                       <div className="flex flex-wrap gap-1">
                         {p.tags.slice(0, 2).map(t => (
                           <span key={t} className="font-mono text-[7px] tracking-wider px-1.5 py-0.5 rounded-md"
-                                style={{ background: "rgba(14,26,13,0.85)", border: "1px solid rgba(200,230,74,0.25)", color: "var(--roam-electric)" }}>
+                                style={{ background: "rgba(var(--roam-forest-rgb),0.85)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)", color: "var(--roam-electric)" }}>
                             {t}
                           </span>
                         ))}
@@ -268,12 +268,12 @@ export default function Profile() {
             </div>
 
             <div className="rounded-2xl p-4"
-                 style={{ background: "rgba(200,230,74,0.05)", border: "1px solid rgba(200,230,74,0.12)" }}>
+                 style={{ background: "rgba(var(--roam-electric-rgb),0.05)", border: "1px solid rgba(var(--roam-electric-rgb),0.12)" }}>
               <div className="flex items-center gap-2 mb-2">
                 <Star size={14} style={{ color: "var(--roam-electric)" }} />
                 <span className="font-mono text-[10px] tracking-wider uppercase" style={{ color: "var(--roam-electric)" }}>Profile tip</span>
               </div>
-              <p className="text-xs leading-relaxed" style={{ color: "rgba(242,237,227,0.5)" }}>
+              <p className="text-xs leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
                 Photos with you in them get 3x more matches. Add more adventure shots where you're visible — the AI
                 prioritizes photos that show the real you in real places.
               </p>
@@ -285,18 +285,18 @@ export default function Profile() {
       <Sheet open={editOpen} onClose={() => setEditOpen(false)} title="Edit profile">
         <div className="space-y-4">
           <div>
-            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-2" style={{ color: "rgba(242,237,227,0.38)" }}>
+            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
               Profile photo
             </label>
             <div className="flex items-center gap-3">
-              <div className="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0" style={{ border: "2px solid rgba(200,230,74,0.3)" }}>
+              <div className="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0" style={{ border: "2px solid rgba(var(--roam-electric-rgb),0.3)" }}>
                 <img src={editForm.avatarUrl || FALLBACK_HERO} alt="Avatar preview"
                      className="w-full h-full object-cover" />
               </div>
               <input ref={avatarInputRef} type="file" accept="image/*" className="hidden"
                      onChange={handleAvatarChange} data-testid="input-avatar-file" />
               <button className="flex items-center gap-2 py-2 px-4 rounded-xl text-[12px] font-mono tracking-wider"
-                      style={{ background: "rgba(242,237,227,0.06)", border: "1px solid rgba(242,237,227,0.15)", color: "rgba(242,237,227,0.7)" }}
+                      style={{ background: "rgba(var(--roam-cream-rgb),0.06)", border: "1px solid rgba(var(--roam-cream-rgb),0.15)", color: "rgba(var(--roam-cream-rgb),0.7)" }}
                       onClick={() => avatarInputRef.current?.click()}
                       disabled={uploadingAvatar}
                       data-testid="button-upload-avatar">
@@ -308,7 +308,7 @@ export default function Profile() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(242,237,227,0.38)" }}>
+              <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
                 Name
               </label>
               <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={inputStyle}
@@ -317,7 +317,7 @@ export default function Profile() {
                      data-testid="input-edit-name" />
             </div>
             <div>
-              <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(242,237,227,0.38)" }}>
+              <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
                 Age
               </label>
               <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none"
@@ -328,7 +328,7 @@ export default function Profile() {
           </div>
 
           <div>
-            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(242,237,227,0.38)" }}>
+            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
               Tagline
             </label>
             <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={inputStyle}
@@ -336,13 +336,13 @@ export default function Profile() {
                    placeholder="e.g. Chasing summits and night markets"
                    onChange={e => setEditForm(f => ({ ...f, tagline: e.target.value }))}
                    data-testid="input-edit-tagline" />
-            <p className="text-[10px] font-mono mt-1 text-right" style={{ color: "rgba(242,237,227,0.3)" }}>
+            <p className="text-[10px] font-mono mt-1 text-right" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
               {60 - editForm.tagline.length} left
             </p>
           </div>
 
           <div>
-            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(242,237,227,0.38)" }}>
+            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
               Base location
             </label>
             <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={inputStyle}
@@ -353,10 +353,10 @@ export default function Profile() {
           </div>
 
           <div>
-            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-2" style={{ color: "rgba(242,237,227,0.38)" }}>
+            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
               Adventure DNA — tap to select your activities
             </label>
-            <p className="text-[11px] mb-3" style={{ color: "rgba(242,237,227,0.3)" }}>
+            <p className="text-[11px] mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
               These are also auto-detected from your photos. Your manual picks always show first.
             </p>
             <div className="flex flex-wrap gap-1.5" data-testid="dna-selector">
@@ -366,9 +366,9 @@ export default function Profile() {
                   <button key={tag}
                           className="px-2.5 py-1 rounded-xl text-[11px] font-mono tracking-wider transition-all"
                           style={{
-                            background: active ? "rgba(200,230,74,0.15)" : "rgba(242,237,227,0.04)",
-                            border: active ? "1px solid rgba(200,230,74,0.45)" : "1px solid rgba(242,237,227,0.1)",
-                            color: active ? "var(--roam-electric)" : "rgba(242,237,227,0.45)",
+                            background: active ? "rgba(var(--roam-electric-rgb),0.15)" : "rgba(var(--roam-cream-rgb),0.04)",
+                            border: active ? "1px solid rgba(var(--roam-electric-rgb),0.45)" : "1px solid rgba(var(--roam-cream-rgb),0.1)",
+                            color: active ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.45)",
                           }}
                           onClick={() => toggleDnaTag(tag)}
                           data-testid={`dna-tag-${tag.replace(/[\s/]+/g, "-")}`}>
@@ -405,7 +405,7 @@ export default function Profile() {
 
       <Sheet open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Settings">
         <div className="space-y-2">
-          <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(242,237,227,0.35)" }}>
+          <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
             Notifications
           </div>
 
@@ -415,13 +415,13 @@ export default function Profile() {
             { key: "bucketList" as const, label: "Bucket list alerts", desc: "When matches share a destination you've pinned" },
           ].map(item => (
             <div key={item.key} className="flex items-center justify-between p-4 rounded-2xl"
-                 style={{ background: "var(--roam-moss)", border: "1px solid rgba(242,237,227,0.07)" }}>
+                 style={{ background: "var(--roam-moss)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
               <div>
                 <div className="text-sm font-medium">{item.label}</div>
-                <div className="text-[11px] mt-0.5" style={{ color: "rgba(242,237,227,0.4)" }}>{item.desc}</div>
+                <div className="text-[11px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>{item.desc}</div>
               </div>
               <button className="w-11 h-6 rounded-full relative transition-all flex-shrink-0"
-                      style={{ background: notifications[item.key] ? "var(--roam-electric)" : "rgba(242,237,227,0.12)" }}
+                      style={{ background: notifications[item.key] ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.12)" }}
                       onClick={() => setNotifications(n => ({ ...n, [item.key]: !n[item.key] }))}
                       data-testid={`toggle-notif-${item.key}`}>
                 <div className="w-4 h-4 rounded-full absolute top-1 transition-all"
@@ -431,7 +431,7 @@ export default function Profile() {
           ))}
 
           <div className="pt-4">
-            <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(242,237,227,0.35)" }}>
+            <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
               Account
             </div>
             <div className="space-y-2">
@@ -441,27 +441,27 @@ export default function Profile() {
                 { icon: Bell, label: "Email preferences", desc: "Adventure inspiration & updates" },
               ].map((item, i) => (
                 <button key={i} className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all"
-                        style={{ background: "var(--roam-moss)", border: "1px solid rgba(242,237,227,0.07)" }}
+                        style={{ background: "var(--roam-moss)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}
                         data-testid={`settings-item-${i}`}>
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                       style={{ background: "rgba(242,237,227,0.06)" }}>
-                    <item.icon size={15} style={{ color: "rgba(242,237,227,0.5)" }} />
+                       style={{ background: "rgba(var(--roam-cream-rgb),0.06)" }}>
+                    <item.icon size={15} style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium">{item.label}</div>
-                    <div className="text-[11px]" style={{ color: "rgba(242,237,227,0.4)" }}>{item.desc}</div>
+                    <div className="text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>{item.desc}</div>
                   </div>
-                  <ChevronRight size={15} style={{ color: "rgba(242,237,227,0.25)" }} />
+                  <ChevronRight size={15} style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }} />
                 </button>
               ))}
             </div>
           </div>
 
           <div className="pt-2 pb-1">
-            <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-2 pt-2" style={{ color: "rgba(242,237,227,0.35)", borderTop: "1px solid rgba(242,237,227,0.07)" }}>
+            <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-2 pt-2" style={{ color: "rgba(var(--roam-cream-rgb),0.35)", borderTop: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
               Signed in as
             </div>
-            <div className="font-mono text-[11px] mb-3" style={{ color: "rgba(242,237,227,0.5)" }}>
+            <div className="font-mono text-[11px] mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
               {user?.email}
             </div>
           </div>

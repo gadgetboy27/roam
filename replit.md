@@ -47,13 +47,17 @@ ROAM is an adventure-matching dating app where users post real travel/adventure 
 
 ## Design System
 
-**Theme**: Forest-dark (DO NOT CHANGE)
-- `roam-forest`: #0e1a0d (primary bg)
-- `roam-electric`: #c8e64a (lime-green accent)
-- `roam-ember`: #e8621a (orange CTA)
-- `roam-sky`: #7db8d4 (blue info)
-- `roam-cream`: #f2ede3 (text)
-- `roam-sand`: #bfb8a8 (muted text)
+**Theming**: 4 switchable palettes via `data-theme` on `<html>`. Stored in localStorage as `roam-theme`.
+- `forest-dark` (default): dark green bg, lime-green accent
+- `daylight`: cream/beige bg, dark forest-green accent
+- `ocean`: deep navy bg, sky-blue accent
+- `ember`: dark volcanic bg, orange accent
+
+**CSS Variables** — all rgba() in pages use these RGB component vars:
+- `--roam-forest-rgb` / `--roam-moss-rgb` / `--roam-surface-rgb`
+- `--roam-electric-rgb` / `--roam-ember-rgb` / `--roam-sky-rgb`
+- `--roam-cream-rgb` / `--roam-violet-rgb`
+- `--roam-electric-fg` (text colour on top of electric-coloured buttons)
 
 **Fonts**: Playfair Display (serif, headings), DM Mono (mono, labels/tags), Outfit (sans, body)
 
