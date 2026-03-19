@@ -134,20 +134,7 @@ export default function Upload() {
             </p>
           </div>
 
-          <div className="mx-3.5 mt-4 rounded-2xl overflow-hidden animate-fade-up-1"
-               style={{ border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
-            {RULES.map((r, i) => (
-              <div key={i} className="flex items-center gap-3 p-3"
-                   style={{ background: "rgba(255,255,255,0.02)", borderBottom: i < RULES.length - 1 ? "1px solid rgba(var(--roam-cream-rgb),0.05)" : "none" }}>
-                <r.icon size={14} style={{ color: r.color, flexShrink: 0 }} />
-                <span className="text-xs" style={{ color: r.color === "var(--roam-electric)" ? "rgba(var(--roam-cream-rgb),0.6)" : "rgba(232,98,26,0.85)" }}>
-                  {r.text}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <div className="px-3.5 mt-5 animate-fade-up-2">
+          <div className="px-3.5 mt-5 animate-fade-up-1">
             <div
               className="rounded-2xl transition-all"
               style={{
@@ -277,11 +264,11 @@ export default function Upload() {
             )}
           </div>
 
-          <div className="px-3.5 mt-8">
-            <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+          <div className="px-3.5 mt-8 animate-fade-up-2">
+            <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
               See how AI scoring works
             </div>
-            <p className="text-xs mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
+            <p className="text-xs mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
               Tap a sample photo to see what the AI checks
             </p>
             <div className="grid grid-cols-4 gap-1.5">
@@ -387,6 +374,27 @@ export default function Upload() {
                 </div>
               </div>
             )}
+          </div>
+
+          <div className="mx-3.5 mt-8 rounded-2xl overflow-hidden animate-fade-up"
+               style={{ border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
+            <div className="px-3.5 pt-4 pb-2">
+              <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                Photo directives
+              </div>
+              <p className="text-xs mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
+                What gets approved, filtered, or rejected
+              </p>
+            </div>
+            {RULES.map((r, i) => (
+              <div key={i} className="flex items-center gap-3 px-3.5 py-3"
+                   style={{ borderTop: "1px solid rgba(var(--roam-cream-rgb),0.05)" }}>
+                <r.icon size={14} style={{ color: r.color, flexShrink: 0 }} />
+                <span className="text-xs" style={{ color: r.color === "var(--roam-electric)" ? "rgba(var(--roam-cream-rgb),0.65)" : "rgba(232,98,26,0.85)" }}>
+                  {r.text}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
