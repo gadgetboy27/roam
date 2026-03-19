@@ -23,14 +23,22 @@ interface ThemeCtx {
 
 const ThemeContext = createContext<ThemeCtx>({ theme: "forest-dark", setTheme: () => {} });
 
+function safeGetStorage(key: string): string | null {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+
+function safeSetStorage(key: string, val: string): void {
+  try { localStorage.setItem(key, val); } catch { /* sandboxed iframe */ }
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<ThemeId>(() => {
-    return (localStorage.getItem("roam-theme") as ThemeId) || "forest-dark";
+    return (safeGetStorage("roam-theme") as ThemeId) || "forest-dark";
   });
 
   const setTheme = (t: ThemeId) => {
     setThemeState(t);
-    localStorage.setItem("roam-theme", t);
+    safeSetStorage("roam-theme", t);
     document.documentElement.setAttribute("data-theme", t);
   };
 
