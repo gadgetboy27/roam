@@ -150,13 +150,13 @@ export default function Profile() {
 
             <div className="absolute top-3 right-3 flex gap-2">
               <button className="w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-lg transition-all hover:scale-105"
-                      style={{ background: "rgba(var(--roam-forest-rgb),0.6)", border: "1px solid rgba(var(--roam-cream-rgb),0.15)" }}
+                      style={{ background: "rgba(0,0,0,0.45)", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.88)" }}
                       onClick={openEdit}
                       data-testid="button-edit-profile">
                 <Edit3 size={14} />
               </button>
               <button className="w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-lg transition-all hover:scale-105"
-                      style={{ background: "rgba(var(--roam-forest-rgb),0.6)", border: "1px solid rgba(var(--roam-cream-rgb),0.15)" }}
+                      style={{ background: "rgba(0,0,0,0.45)", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.88)" }}
                       onClick={() => setSettingsOpen(true)}
                       data-testid="button-settings">
                 <Settings size={14} />
@@ -164,8 +164,8 @@ export default function Profile() {
             </div>
 
             <div className="absolute bottom-4 left-5">
-              <h1 className="font-serif text-3xl font-black" data-testid="text-profile-name">{profileData.name}, {profileData.age}</h1>
-              <p className="text-[13px] italic mt-1" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
+              <h1 className="font-serif text-3xl font-black" style={{ color: "rgba(255,255,255,0.96)" }} data-testid="text-profile-name">{profileData.name}, {profileData.age}</h1>
+              <p className="text-[13px] italic mt-1" style={{ color: "rgba(255,255,255,0.65)" }}>
                 "{profileData.tagline}"
               </p>
               <div className="flex items-center gap-1.5 mt-2">
@@ -178,7 +178,7 @@ export default function Profile() {
           <div className="px-4 pt-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <span className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+                <span className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
                   Your tier
                 </span>
                 <span className="font-mono text-[9px] tracking-wider uppercase py-0.5 px-2 rounded-lg"
@@ -189,12 +189,12 @@ export default function Profile() {
               <div className="flex items-center gap-3 font-mono text-[11px]">
                 <div className="text-center">
                   <div className="font-semibold" style={{ color: "var(--roam-electric)" }}>3</div>
-                  <div className="text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>matches</div>
+                  <div className="text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>matches</div>
                 </div>
-                <div className="w-px h-6" style={{ background: "rgba(var(--roam-cream-rgb),0.1)" }} />
+                <div className="w-px h-6" style={{ background: "rgba(var(--roam-cream-rgb),0.12)" }} />
                 <div className="text-center">
                   <div className="font-semibold" style={{ color: "var(--roam-electric)" }}>6</div>
-                  <div className="text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>photos</div>
+                  <div className="text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>photos</div>
                 </div>
               </div>
             </div>

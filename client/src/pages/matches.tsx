@@ -266,7 +266,7 @@ export default function Matches() {
               {bucketList.length > 0 && (
                 <div className="px-3.5 mb-4 animate-fade-up">
                   <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-2.5 flex items-center gap-1.5"
-                       style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+                       style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
                     <BookmarkCheck size={11} style={{ color: "var(--roam-sky)" }} />
                     Your pinned destinations
                   </div>
@@ -351,7 +351,7 @@ export default function Matches() {
               {waitingMatches.length > 0 && (
                 <div className="px-3.5 mt-5 animate-fade-up">
                   <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-2.5 flex items-center gap-1.5"
-                       style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+                       style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
                     <Hourglass size={10} />
                     Waiting to roam back ({waitingMatches.length})
                   </div>
@@ -364,7 +364,7 @@ export default function Matches() {
                           <Compass size={16} style={{ color: "rgba(var(--roam-electric-rgb),0.5)" }} />
                         </div>
                         <span className="font-mono text-[8px] tracking-wider text-center leading-tight"
-                              style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+                              style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
                           Waiting…
                         </span>
                       </div>
