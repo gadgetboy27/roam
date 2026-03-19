@@ -246,7 +246,7 @@ export default function Discover() {
                 <img src={displayHero} alt={displayName}
                      className="w-full h-full object-cover transition-transform duration-[6s] ease-out hover:scale-[1.04]"
                      draggable={false} style={{ pointerEvents: "none" }} />
-                <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(var(--roam-forest-rgb),0.97) 0%, rgba(var(--roam-forest-rgb),0.45) 55%, transparent 100%)", pointerEvents: "none" }} />
+                <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.38) 55%, transparent 100%)", pointerEvents: "none" }} />
 
                 <div className="absolute top-3.5 left-3.5 right-3.5 flex items-start justify-between gap-2">
                   {selectedBucket ? (
@@ -397,7 +397,7 @@ export default function Discover() {
                        data-testid={`bucket-${b.name.replace(/\s+/g, "-")}`}>
                     <img src={b.url} alt={b.name} className="w-[120px] h-[120px] object-cover" loading="lazy" />
                     <div className="absolute inset-0 flex flex-col justify-end p-2"
-                         style={{ background: "linear-gradient(to top, rgba(var(--roam-forest-rgb),0.9) 0%, transparent 55%)" }}>
+                         style={{ background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 55%)" }}>
                       <div className="text-[11px] font-semibold leading-tight">{b.name}</div>
                       <div className="font-mono text-[9px] mt-0.5" style={{ color: "var(--roam-sky)" }}>{b.want}</div>
                     </div>

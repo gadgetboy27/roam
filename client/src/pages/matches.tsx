@@ -281,7 +281,7 @@ export default function Matches() {
                             </div>
                         }
                         <div className="absolute inset-0 flex items-end p-1.5"
-                             style={{ background: "linear-gradient(to top, rgba(var(--roam-forest-rgb),0.88) 0%, transparent 55%)" }}>
+                             style={{ background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 55%)" }}>
                           <span className="font-mono text-[8px] tracking-wider leading-tight" style={{ color: "var(--roam-sky)" }}>
                             {b.destinationName}
                           </span>

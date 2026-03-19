@@ -146,7 +146,7 @@ export default function Profile() {
                  className="w-full h-full object-cover"
                  draggable={false}
                  style={{ pointerEvents: "none" }} />
-            <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(var(--roam-forest-rgb),0.95) 0%, rgba(var(--roam-forest-rgb),0.3) 50%, transparent 100%)", pointerEvents: "none" }} />
+            <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.28) 50%, transparent 100%)", pointerEvents: "none" }} />
 
             <div className="absolute top-3 right-3 flex gap-2">
               <button className="w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-lg transition-all hover:scale-105"
