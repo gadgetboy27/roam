@@ -18,13 +18,30 @@ const PROFILE_PHOTOS = [
 ];
 
 const ALL_DNA_TAGS = [
-  "rock climbing", "alpine hiking", "surfing", "kayaking", "scuba diving",
-  "trail running", "paragliding", "mountain biking", "canyoning", "via ferrata",
-  "extreme sports", "skiing", "snowboarding", "skydiving", "bungee jumping",
-  "horse riding", "boating / fishing", "walking", "running", "cycling",
-  "night markets", "urban roaming", "food & wine trails", "pub games",
-  "sports matches", "couch surfing", "photography", "backpacking",
-  "forest trails", "coastal walks", "yoga / wellness",
+  // water
+  "surfing", "kayaking", "scuba diving", "free diving", "kitesurfing",
+  "stand up paddle", "boating / fishing", "coastal walks", "wild swimming",
+  // mountain / vertical
+  "rock climbing", "alpine hiking", "bouldering", "canyoning", "via ferrata",
+  "mountain biking", "skiing", "snowboarding", "paragliding", "skydiving",
+  "bungee jumping",
+  // trail / land
+  "trail running", "forest trails", "backpacking", "camping & bushcraft",
+  "walking", "running", "cycling", "horse riding", "slacklining",
+  // urban / social
+  "skateboarding", "urban roaming", "night markets", "food & wine trails",
+  "pub games", "sports matches", "couch surfing",
+  // fitness / gym
+  "gym / fitness", "crossfit", "yoga / wellness", "martial arts",
+  "dance / movement", "swimming",
+  // team sports
+  "football / soccer", "basketball", "volleyball", "tennis",
+  "rugby", "cricket", "team sports",
+  // indoor / creative
+  "geocaching", "chess", "board games", "escape rooms", "photography",
+  "cooking / food", "music", "art & galleries", "astronomy",
+  // extreme
+  "extreme sports", "caving", "foraging", "wildlife watching",
 ];
 
 const inputStyle: React.CSSProperties = {
