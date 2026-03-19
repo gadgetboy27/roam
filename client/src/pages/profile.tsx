@@ -20,28 +20,28 @@ const PROFILE_PHOTOS = [
 const ALL_DNA_TAGS = [
   // water
   "surfing", "kayaking", "scuba diving", "free diving", "kitesurfing",
-  "stand up paddle", "boating / fishing", "coastal walks", "wild swimming",
-  // mountain / vertical
+  "stand up paddle", "boating / fishing", "wild swimming", "coastal walks",
+  // mountain & vertical
   "rock climbing", "alpine hiking", "bouldering", "canyoning", "via ferrata",
-  "mountain biking", "skiing", "snowboarding", "paragliding", "skydiving",
-  "bungee jumping",
-  // trail / land
+  "mountain biking", "skiing", "snowboarding", "paragliding",
+  // trail & land
   "trail running", "forest trails", "backpacking", "camping & bushcraft",
-  "walking", "running", "cycling", "horse riding", "slacklining",
-  // urban / social
+  "cycling", "horse riding", "slacklining",
+  // extreme
+  "skydiving", "bungee jumping", "extreme sports", "caving",
+  // urban & social
   "skateboarding", "urban roaming", "night markets", "food & wine trails",
-  "pub games", "sports matches", "couch surfing",
-  // fitness / gym
+  "pub games", "couch surfing",
+  // fitness
   "gym / fitness", "crossfit", "yoga / wellness", "martial arts",
   "dance / movement", "swimming",
-  // team sports
-  "football / soccer", "basketball", "volleyball", "tennis",
-  "rugby", "cricket", "team sports",
-  // indoor / creative
+  // sports (grouped)
+  "team sports", "field sports", "racquet sports",
+  // indoor & creative
   "geocaching", "chess", "board games", "escape rooms", "photography",
   "cooking / food", "music", "art & galleries", "astronomy",
-  // extreme
-  "extreme sports", "caving", "foraging", "wildlife watching",
+  // nature
+  "foraging", "wildlife watching",
 ];
 
 const inputStyle: React.CSSProperties = {
