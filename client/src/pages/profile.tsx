@@ -79,6 +79,8 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [showYearCard, setShowYearCard] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const calcAge = (dob: string | null) => {
@@ -295,6 +297,22 @@ export default function Profile() {
                 prioritizes photos that show the real you in real places.
               </p>
             </div>
+
+            <button
+              className="w-full flex items-center gap-3.5 p-4 rounded-2xl mt-4 text-left transition-all hover:scale-[1.01]"
+              style={{ background: "linear-gradient(135deg, rgba(var(--roam-electric-rgb),0.08), rgba(var(--roam-sky-rgb),0.06))", border: "1px solid rgba(var(--roam-electric-rgb),0.2)" }}
+              onClick={() => setShowYearCard(true)}
+              data-testid="button-year-in-adventure">
+              <span style={{ fontSize: "26px" }}>🌍</span>
+              <div className="flex-1">
+                <div className="font-semibold text-[14px] mb-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.9)" }}>Your 2025 in Adventure</div>
+                <div className="font-mono text-[10px] tracking-wider" style={{ color: "var(--roam-electric)" }}>47 adventures · 12 locations · 3 matches</div>
+              </div>
+              <div className="font-mono text-[10px] font-medium px-3 py-1.5 rounded-xl flex-shrink-0"
+                   style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}>
+                View &amp; Share
+              </div>
+            </button>
           </div>
         </div>
       </div>
@@ -496,6 +514,115 @@ export default function Profile() {
           </div>
         </div>
       </Sheet>
+
+      {showYearCard && (
+        <div className="fixed inset-0 z-[60] overflow-y-auto" style={{ background: "var(--roam-forest)" }} data-testid="overlay-year-in-adventure">
+          <div className="flex justify-end p-4 pt-5">
+            <button className="w-9 h-9 rounded-full flex items-center justify-center transition-all"
+                    style={{ background: "rgba(var(--roam-cream-rgb),0.07)", border: "1px solid rgba(var(--roam-cream-rgb),0.13)" }}
+                    onClick={() => setShowYearCard(false)}
+                    data-testid="button-close-year">
+              <X size={16} style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }} />
+            </button>
+          </div>
+
+          <div className="mx-3.5 mb-8 rounded-[24px] overflow-hidden"
+               style={{ background: "linear-gradient(160deg, var(--roam-moss) 0%, var(--roam-forest) 100%)", border: "1px solid rgba(var(--roam-electric-rgb),0.15)", boxShadow: "0 16px 48px rgba(0,0,0,0.55)" }}>
+
+            <div className="p-6 pb-5" style={{ background: "linear-gradient(135deg, rgba(var(--roam-electric-rgb),0.07), rgba(var(--roam-sky-rgb),0.04))", borderBottom: "1px solid rgba(var(--roam-electric-rgb),0.1)" }}>
+              <div className="font-mono text-[10px] tracking-[2px] uppercase mb-1.5" style={{ color: "var(--roam-electric)" }}>🌍 Your 2025 in adventure</div>
+              <div className="font-serif text-[30px] font-black leading-[1.05] mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.95)" }}>
+                What a <span style={{ color: "var(--roam-electric)", fontStyle: "italic" }}>year</span><br />on the road.
+              </div>
+              <div className="font-mono text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
+                {profileData.name.toLowerCase().replace(/\s/g, "")} on roam.
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-[2px]" style={{ gridTemplateRows: "145px 145px", gridTemplateColumns: "1fr 1fr" }}>
+              {PROFILE_PHOTOS.slice(0, 3).map((p, i) => (
+                <div key={i} className={`relative overflow-hidden ${i === 0 ? "row-span-2" : ""}`} style={{ background: "var(--roam-moss)" }}>
+                  <img src={p.url} alt={p.tags[0]} className="w-full h-full object-cover" loading="lazy" />
+                  <div className="absolute bottom-2 left-2">
+                    <span className="font-mono text-[8px] tracking-wider px-2 py-0.5 rounded-md"
+                          style={{ background: "rgba(0,0,0,0.72)", border: "1px solid rgba(var(--roam-electric-rgb),0.2)", color: "var(--roam-electric)" }}>
+                      📍 {p.tags[0]}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-2" style={{ gap: "1px", background: "rgba(var(--roam-cream-rgb),0.04)", marginTop: "2px" }}>
+              {[
+                { val: "47", label: "Adventures posted" },
+                { val: "12", label: "Locations tagged" },
+                { val: "3",  label: "Matches made" },
+                { val: "1",  label: "Almost met" },
+              ].map((s, i) => (
+                <div key={i} className="p-4" style={{ background: "var(--roam-moss)" }}>
+                  <div className="font-serif text-[28px] font-black leading-none mb-1" style={{ color: "var(--roam-electric)" }}>{s.val}</div>
+                  <div className="font-mono text-[9px] tracking-[0.8px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-3.5 p-5" style={{ borderTop: "1px solid rgba(var(--roam-cream-rgb),0.06)" }}>
+              <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0" style={{ border: "2px solid rgba(var(--roam-electric-rgb),0.3)" }}>
+                <img src="https://images.unsplash.com/photo-1551632811-561732d1e306?w=96&q=80&fit=crop" alt="Top match" className="w-full h-full object-cover" />
+              </div>
+              <div className="flex-1">
+                <div className="font-mono text-[9px] tracking-[0.8px] uppercase mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>Top match of the year</div>
+                <div className="text-[15px] font-semibold mb-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.92)" }}>Mia</div>
+                <div className="text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.42)" }}>78% adventure overlap · Franz Josef almost-met</div>
+              </div>
+              <div className="font-serif text-[26px] font-black flex-shrink-0" style={{ color: "var(--roam-electric)" }}>78%</div>
+            </div>
+
+            <div className="flex items-start gap-3 p-5" style={{ background: "rgba(var(--roam-ember-rgb),0.06)", borderTop: "1px solid rgba(var(--roam-ember-rgb),0.14)" }}>
+              <span style={{ fontSize: "20px", flexShrink: 0, marginTop: "1px" }}>⚡</span>
+              <p className="text-[12px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.68)" }}>
+                <span style={{ color: "var(--roam-ember)", fontWeight: 600 }}>Almost met.</span>{" "}
+                You and Mia were both at Milford Sound in November — 3 days apart.
+              </p>
+            </div>
+
+            <div className="p-5" style={{ borderTop: "1px solid rgba(var(--roam-cream-rgb),0.06)" }}>
+              <div className="font-mono text-[9px] tracking-[0.8px] uppercase mb-2.5" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>Places you adventured</div>
+              <div className="flex flex-wrap gap-1.5">
+                {["Milford Sound", "Raglan", "Franz Josef", "Abel Tasman", "Tongariro", "Coromandel", "Bay of Islands", "Fiordland"].map(p => (
+                  <span key={p} className="font-mono text-[10px] px-2.5 py-1 rounded-xl"
+                        style={{ background: "rgba(var(--roam-sky-rgb),0.08)", border: "1px solid rgba(var(--roam-sky-rgb),0.22)", color: "var(--roam-sky)" }}>
+                    📍 {p}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-5" style={{ borderTop: "1px solid rgba(var(--roam-cream-rgb),0.06)" }}>
+              <div className="font-serif text-[20px] font-black tracking-tight" style={{ color: "rgba(var(--roam-cream-rgb),0.92)" }}>
+                roam<span style={{ color: "var(--roam-electric)" }}>.</span>
+              </div>
+              <button
+                className="flex items-center gap-2 font-mono text-[10px] font-medium tracking-wider px-4 py-2.5 rounded-xl transition-all hover:scale-105"
+                style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
+                onClick={async () => {
+                  const text = `My 2025 in Adventure on roam. ⛰️\n47 adventures · 12 locations · 3 matches\nTop match: Mia (78% overlap)\nAlmost met at Milford Sound 👻\n\nroam.app`;
+                  if (typeof navigator !== "undefined" && navigator.share) {
+                    try { await navigator.share({ title: "My 2025 in Adventure", text }); } catch {}
+                  } else {
+                    navigator.clipboard?.writeText(text);
+                    setShareCopied(true);
+                    setTimeout(() => setShareCopied(false), 2000);
+                  }
+                }}
+                data-testid="button-share-year">
+                {shareCopied ? "✓ Copied!" : "📤 Share my year"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
