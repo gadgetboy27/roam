@@ -124,7 +124,7 @@ export default function Upload() {
       <div className="topo-bg" />
       <div className="relative z-10">
         <AppNav />
-        <div className="max-w-lg mx-auto pb-12">
+        <div className="max-w-lg mx-auto pb-32">
           <div className="px-4.5 pt-6 animate-fade-up">
             <h1 className="font-serif text-[28px] font-black leading-[1.1]">
               Your <span className="italic" style={{ color: "var(--roam-electric)" }}>adventure</span><br />story

@@ -1,0 +1,45 @@
+ROAM — Full UI Review
+
+1. Navigation Bar
+Current: Discover · Upload · Matches in the top tab bar, plus Discover / Matches / ＋ / Places / Profile in the bottom nav. That's two navigation systems running simultaneously which is a serious UX problem.
+The research verdict: Navigation icons in the lower part of the screen suggest where to swipe and what to do — bottom tab bars work on muscle memory. NoGood There should normally be no more than three options. Your guiding question should be: is this feature easy, fun and engaging? Visibrain
+What to do: Kill the top tab bar entirely. Everything lives in the bottom nav. Five items is actually one too many — the sweet spot is four. Merge Upload into Profile (you manage your own content from your profile, not a separate tab). The result:
+IconTabWhat it does🧭DiscoverMatch cards + stories rail⚡MatchesMutual matches + messages＋PostCentre action — photo or 20s clip👤ProfileYour photos, edit, settings, Year in Adventure
+Places / Bucket List slides into the Discover tab as a horizontal scroll section — it's already there. No need for its own tab at MVP.
+
+2. Colour Palette
+Current: Forest dark #0E1A0D, electric green #C8E64A, ember orange #E8621A, sky blue #7DB8D4.
+Is it unique? Yes — and the research backs it. If you offer robust match-building algorithms to help people develop meaningful connections, green is a strong choice. Visibrain A more mature audience prefers darker, more advanced CanvasBusinessModel colours. ROAM's palette is genuinely distinctive — no major dating or adventure app uses this combination. Tinder is coral/red, Bumble is yellow, Hinge is dark red, AllTrails is green but light. The deep forest dark with electric green is ownable.
+What to refine: The ember orange #E8621A is slightly fighting the electric green for attention — both are high-energy accent colours. Ember should be reserved strictly for: video badges, Almost Met alerts, and rejection/warning states. Electric green owns everything positive: matches, confirmations, CTAs, active states. Sky blue stays as the secondary informational colour for tags that aren't yours. That hierarchy isn't quite consistent in the current build — sometimes ember appears where green should lead.
+
+3. Hero Image — Screen Real Estate
+Current: Hero sits at 340px in a ~900px total scroll height — roughly 38% of the screen.
+The problem: On a standard iPhone 14 (844px viewport), after the nav bar (~60px) and stories rail (~80px), the card starts at ~140px from top. The hero image then runs to ~480px. That leaves 364px of screen below the fold before you even see the card body. Users see the hero but don't know there's more — there's no visual invitation to scroll.
+What the market does: Tinder gives the photo ~70% of the visible screen. Hinge gives it ~65%. Bumble ~60%. ROAM is at roughly 45% of visible screen which feels timid for a photography-first app.
+Fix: Push the hero to at least 460px, ideally 500px. Move the stories rail above the nav bar, or make it part of the hero layer — not a separate section that eats vertical space before the card even appears. The card should feel like it's almost full screen when you first land on Discover.
+
+4. The Card Body — DNA Tags + Overlap Bar
+Honest take: You went back and forth on this and the truth is — it depends on who you ask. The research says Hinge focuses on relationships via in-depth profiles — the more personal touch is a clear differentiator. Community The overlap bar is ROAM's differentiator, the thing that makes it not-Tinder. Keep it. But the DNA tag section above it is doing the same job twice. Green tags = shared, blue = unique — that's already communicated by the overlap bar percentage.
+Recommendation: Drop the DNA tag row entirely from the card body. Let the overlap bar stand alone. It's cleaner, the percentage tells the story, and the tags already appear on the image itself. If you want to surface shared tags, show them only after a match is made — as the opener prompt in the message thread. That's actually more valuable.
+
+5. Button Positioning — Pass & Roam Together
+Current: Two full-width text buttons stacked at the bottom of the card body, deep in the scroll. You have to scroll past the hero, strip, auth badge, overlap bar, video CTA, and almost met card to reach them.
+The problem: Navigation icons in the lower part of the screen suggest where to swipe — use popular mechanics to prompt users to navigate. Strava The core action in any matching app should be reachable without scrolling. On Tinder and Hinge the action buttons are always visible.
+Fix — two options:
+Option A (minimal change): Stick the Pass/Roam buttons to the bottom of the card as a fixed footer that's always visible when the card is in view, regardless of scroll position within it.
+Option B (better): Go full swipe gesture. Left swipe = pass, right swipe = express interest, up swipe = super roam (saves to a shortlist). The text buttons remain as fallback for accessibility but the gesture is the primary interaction. This is muscle memory — users make a billion swipes on Tinder every day, why reinvent the wheel? Strava ROAM's cards are already built for this.
+
+6. The Stories Rail
+Position is fine — above the card, below the nav, users understand this pattern cold from Instagram. The seen/unseen ring state is correct. The ▶ dot on video stories is good.
+One issue: The "You" add-story slot and the first person's story ring are nearly the same size and visual weight. Users scan left-to-right — the first story they see should be the most compelling (highest match %, most recent post). Currently it's just chronological. Sort by: unseen first, then by overlap score descending.
+
+7. The Almost Met Card
+Currently appears in two places — as a small chip on the hero image AND as a full card panel in the card body. That's the same information twice. Eliminate redundant navigational components on the screen — show either chats or matches, not both. NoGood Same principle applies to content.
+Fix: Keep only the hero chip. Remove the full panel from the card body. If the user wants detail, the chip expands on tap — one line: "You were both at Milford Sound in January. 3 days apart." That's enough. The mystery is the hook.
+
+8. The Match Moment
+Currently missing entirely. When you tap "Roam Together" the app just navigates to the matches tab. That's flat. Bumble's large "BOOM!" screen that appears when a user is matched makes each match feel unique. Visibrain Design the matching experience creatively — make each match feel special. Substack
+ROAM needs a match celebration moment — full screen, the two hero photos side by side, the shared tags listed, the Almost Met callout if relevant, and a single CTA: "Start the adventure." This is the emotional peak of the whole product. It's currently a non-event.
+
+Summary — Priority Order
+PriorityChangeWhy🔴 CriticalKill top tab bar, consolidate to 4-item bottom navTwo nav systems confuses users🔴 CriticalHero image to 500px, stories rail thinner or overlaidPhotography is the product — give it room🔴 CriticalPass/Roam buttons always visible — sticky or swipe gestureCore action buried below fold🟡 ImportantRemove DNA tag row — overlap bar carries the messageDuplication🟡 ImportantAlmost Met in one place only — chip on imageDuplication🟡 ImportantAdd match celebration screenBiggest emotional moment is a non-event🟢 NiceSort stories by unseen + overlap scoreHigher quality first impression🟢 NiceTighten ember orange to warning/video onlyColour hierarchy needs discipline

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { useLocation } from "wouter";
 import AppNav from "@/components/app-nav";
-import { MapPin, Bookmark, BookmarkCheck, Heart, X } from "lucide-react";
+import { MapPin, Bookmark, BookmarkCheck, Heart, X, Star } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -140,6 +141,13 @@ export default function Discover() {
   const [passExpanded, setPassExpanded] = useState(false);
   const [authExpanded, setAuthExpanded] = useState(false);
   const [pioneerTipOpen, setPioneerTipOpen] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [matchCelebration, setMatchCelebration] = useState<{
+    name: string; hero: string; sharedTags: string[]; almostMet: typeof DEMO_PROFILES[0]["almostMet"];
+  } | null>(null);
+  const dragStartX = useRef<number | null>(null);
+  const pendingMatchRef = useRef<typeof matchCelebration>(null);
+  const [, navigate] = useLocation();
 
   const profile = DEMO_PROFILES[profileIdx % DEMO_PROFILES.length];
 
@@ -180,17 +188,13 @@ export default function Discover() {
     },
     onSuccess: (data: any, targetId: string) => {
       setRoamedIds(s => new Set([...s, targetId]));
-      if (data?.isNewMatch) {
-        showToast("🎉 It's a match! You can now message each other");
+      if (data?.isNewMatch && pendingMatchRef.current) {
+        setMatchCelebration(pendingMatchRef.current);
+        pendingMatchRef.current = null;
       } else {
         showToast("✓ Adventure request sent!");
+        setTimeout(advanceCard, 700);
       }
-      setTimeout(() => {
-        setAnimKey(k => k + 1);
-        setProfileIdx(i => i + 1);
-        setSelectedBucket(null);
-        setPassExpanded(false);
-      }, data?.isNewMatch ? 1800 : 700);
     },
   });
 
@@ -224,8 +228,28 @@ export default function Discover() {
   const handleRoam = () => {
     if (!user) return;
     const targetId = selectedBucket ? `bucket-${selectedBucket.name}` : profile.id;
+    pendingMatchRef.current = {
+      name: displayName,
+      hero: displayHero,
+      sharedTags: displayDna.slice(0, 4),
+      almostMet: displayAlmostMet,
+    };
     roamMutation.mutate(targetId);
     setPassExpanded(false);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    dragStartX.current = e.touches[0].clientX;
+  };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (dragStartX.current === null) return;
+    setDragOffset(e.touches[0].clientX - dragStartX.current);
+  };
+  const handleTouchEnd = () => {
+    if (dragOffset > 80) handleRoam();
+    else if (dragOffset < -80) advanceCard();
+    setDragOffset(0);
+    dragStartX.current = null;
   };
 
   const handleBucketClick = (b: typeof BUCKET_LIST[0]) => {
@@ -292,16 +316,38 @@ export default function Discover() {
       )}
       <div className="relative z-10">
         <AppNav />
-        <div className="max-w-lg mx-auto pb-8">
+        <div className="max-w-lg mx-auto pb-36">
           <div key={cardKey} className="animate-fade-up">
             <div className="mx-3.5 mt-4 rounded-[28px] overflow-hidden"
-                 style={{ background: "var(--roam-moss)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)", boxShadow: "0 8px 32px rgba(0,0,0,0.45)" }}>
-              <div className="relative h-[380px] overflow-hidden" style={{ userSelect: "none" }}
+                 style={{ background: "var(--roam-moss)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)", boxShadow: "0 8px 32px rgba(0,0,0,0.45)" }}
+                 onTouchStart={handleTouchStart}
+                 onTouchMove={handleTouchMove}
+                 onTouchEnd={handleTouchEnd}>
+              <div className="relative h-[500px] overflow-hidden" style={{ userSelect: "none" }}
                    onContextMenu={e => e.preventDefault()}>
                 <img src={displayHero} alt={displayName}
                      className="w-full h-full object-cover transition-transform duration-[6s] ease-out hover:scale-[1.04]"
                      draggable={false} style={{ pointerEvents: "none" }} />
                 <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.38) 55%, transparent 100%)", pointerEvents: "none" }} />
+
+                {dragOffset > 20 && (
+                  <div className="absolute inset-0 flex items-center justify-end pr-8 pointer-events-none"
+                       style={{ background: `rgba(var(--roam-electric-rgb),${Math.min(0.32, dragOffset / 300)})` }}>
+                    <div className="font-serif text-[42px] font-black tracking-tight rotate-12"
+                         style={{ color: "var(--roam-electric)", opacity: Math.min(1, dragOffset / 80), textShadow: "0 2px 20px rgba(0,0,0,0.8)" }}>
+                      ROAM ✦
+                    </div>
+                  </div>
+                )}
+                {dragOffset < -20 && (
+                  <div className="absolute inset-0 flex items-center justify-start pl-8 pointer-events-none"
+                       style={{ background: `rgba(var(--roam-ember-rgb),${Math.min(0.32, Math.abs(dragOffset) / 300)})` }}>
+                    <div className="font-serif text-[42px] font-black tracking-tight -rotate-12"
+                         style={{ color: "var(--roam-ember)", opacity: Math.min(1, Math.abs(dragOffset) / 80), textShadow: "0 2px 20px rgba(0,0,0,0.8)" }}>
+                      PASS
+                    </div>
+                  </div>
+                )}
 
                 <div className="absolute top-3.5 left-3.5 right-3.5 flex items-start justify-between gap-2">
                   {selectedBucket ? (
@@ -406,101 +452,44 @@ export default function Discover() {
                 </div>
               </div>
 
-              <div className="p-4 pt-3.5">
-                {displayAuthBreakdown && (
-                  <div className="mb-3">
-                    <button
-                      className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl transition-all text-left"
-                      style={{ background: "rgba(var(--roam-electric-rgb),0.04)", border: "1px solid rgba(var(--roam-electric-rgb),0.1)" }}
-                      onClick={() => setAuthExpanded(e => !e)}
-                      data-testid="button-auth-expand">
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg" style={{ background: authTierBg, border: `1px solid ${authTierBorder}` }}>
-                        <span className="font-mono text-[8px] tracking-wider" style={{ color: authTierColor }}>
-                          {honesty.symbol} {honesty.label}
-                        </span>
-                      </div>
-                      <span className="font-mono text-[9px] ml-auto" style={{ color: "rgba(var(--roam-cream-rgb),0.32)" }}>AI score</span>
-                      <div className="w-8 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(var(--roam-cream-rgb),0.07)" }}>
-                        <div className="h-full rounded-full" style={{ width: `${avgAuthScore}%`, background: authTierColor }} />
-                      </div>
-                      <span className="font-mono text-[9px] font-medium" style={{ color: authTierColor }}>{avgAuthScore}%</span>
-                      <span className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.28)" }}>{authExpanded ? "▲" : "▼"}</span>
-                    </button>
-                    {authExpanded && (
-                      <div className="mt-1 px-3 py-3 rounded-xl" style={{ background: "rgba(var(--roam-electric-rgb),0.03)", border: "1px solid rgba(var(--roam-electric-rgb),0.08)" }}
-                           data-testid="panel-auth-breakdown">
-                        <div className="font-mono text-[8px] tracking-[1.2px] uppercase mb-2.5" style={{ color: "var(--roam-electric)" }}>
-                          AI photo analysis
-                        </div>
-                        <div className="space-y-2">
-                          {displayAuthBreakdown.map((row, i) => (
-                            <div key={i} className="flex items-center gap-2">
-                              <span className="font-mono text-[10px] flex-shrink-0" style={{ width: "110px", color: "rgba(var(--roam-cream-rgb),0.42)" }}>{row.label}</span>
-                              <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "rgba(var(--roam-cream-rgb),0.07)" }}>
-                                <div className="h-full rounded-full transition-all" style={{
-                                  width: `${row.score}%`,
-                                  background: row.tier === "good" ? "var(--roam-electric)" : row.tier === "mid" ? "var(--roam-sky)" : "var(--roam-ember)",
-                                }} />
-                              </div>
-                              <span className="font-mono text-[10px] w-7 text-right flex-shrink-0" style={{
-                                color: row.tier === "good" ? "var(--roam-electric)" : row.tier === "mid" ? "var(--roam-sky)" : "var(--roam-ember)",
-                              }}>{row.score}%</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-                <div className="flex gap-2.5">
-                  {passExpanded ? (
-                    <>
-                      <button className="flex-none h-12 px-3 rounded-2xl flex items-center justify-center gap-1.5 font-mono text-[10px] tracking-wider transition-all"
-                              style={{ background: "rgba(var(--roam-cream-rgb),0.08)", border: "1px solid rgba(var(--roam-cream-rgb),0.18)", color: "rgba(var(--roam-cream-rgb),0.5)" }}
-                              onClick={advanceCard}
-                              data-testid="button-pass-silent">
-                        <X size={14} /> Pass
-                      </button>
-                      <button className="flex-none h-12 px-3 rounded-2xl flex items-center justify-center gap-1.5 font-mono text-[10px] tracking-wider transition-all animate-fade-up"
-                              style={{ background: "rgba(var(--roam-sky-rgb),0.1)", border: "1px solid rgba(var(--roam-sky-rgb),0.3)", color: "var(--roam-sky)" }}
-                              onClick={handleGracefulExit}
-                              data-testid="button-not-my-adventure">
-                        🤙 Not my adventure
-                      </button>
-                    </>
-                  ) : (
-                    <button className="flex-none w-12 h-12 rounded-2xl flex items-center justify-center transition-all"
-                            style={{ background: "rgba(var(--roam-cream-rgb),0.08)", border: "1px solid rgba(var(--roam-cream-rgb),0.18)", color: "rgba(var(--roam-cream-rgb),0.5)" }}
-                            onClick={handlePass}
-                            data-testid="button-pass">
-                      <X size={18} />
-                    </button>
-                  )}
-                  <button className="flex-1 py-3.5 rounded-2xl font-mono text-[12px] tracking-wider uppercase font-medium transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50"
-                          style={{
-                            background: alreadyRoamed ? "rgba(var(--roam-electric-rgb),0.2)" : "var(--roam-electric)",
-                            color: alreadyRoamed ? "var(--roam-electric)" : "var(--roam-forest)",
-                            border: alreadyRoamed ? "1px solid rgba(var(--roam-electric-rgb),0.4)" : "none",
-                          }}
-                          onClick={handleRoam}
-                          disabled={roamMutation.isPending || alreadyRoamed}
-                          data-testid="button-roam">
-                    {alreadyRoamed ? (
-                      <><Heart size={14} fill="currentColor" /> Requested!</>
-                    ) : roamMutation.isPending ? (
-                      "Sending…"
-                    ) : (
-                      <>Roam Together</>
-                    )}
+              {displayAuthBreakdown && (
+                <div className="px-3.5 pt-3 pb-3">
+                  <button
+                    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl transition-all text-left"
+                    style={{ background: "rgba(var(--roam-electric-rgb),0.04)", border: "1px solid rgba(var(--roam-electric-rgb),0.1)" }}
+                    onClick={() => setAuthExpanded(e => !e)}
+                    data-testid="button-auth-expand">
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg" style={{ background: authTierBg, border: `1px solid ${authTierBorder}` }}>
+                      <span className="font-mono text-[8px] tracking-wider" style={{ color: authTierColor }}>
+                        {honesty.symbol} {honesty.label}
+                      </span>
+                    </div>
+                    <span className="font-mono text-[9px] ml-auto" style={{ color: "rgba(var(--roam-cream-rgb),0.32)" }}>AI score</span>
+                    <div className="w-8 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(var(--roam-cream-rgb),0.07)" }}>
+                      <div className="h-full rounded-full" style={{ width: `${avgAuthScore}%`, background: authTierColor }} />
+                    </div>
+                    <span className="font-mono text-[9px] font-medium" style={{ color: authTierColor }}>{avgAuthScore}%</span>
+                    <span className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.28)" }}>{authExpanded ? "▲" : "▼"}</span>
                   </button>
+                  {authExpanded && (
+                    <div className="mt-1.5 px-3 py-3 rounded-xl" style={{ background: "rgba(var(--roam-electric-rgb),0.03)", border: "1px solid rgba(var(--roam-electric-rgb),0.08)" }}
+                         data-testid="panel-auth-breakdown">
+                      <div className="font-mono text-[8px] tracking-[1.2px] uppercase mb-2.5" style={{ color: "var(--roam-electric)" }}>AI photo analysis</div>
+                      <div className="space-y-2">
+                        {displayAuthBreakdown.map((row, i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <span className="font-mono text-[10px] flex-shrink-0" style={{ width: "110px", color: "rgba(var(--roam-cream-rgb),0.42)" }}>{row.label}</span>
+                            <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "rgba(var(--roam-cream-rgb),0.07)" }}>
+                              <div className="h-full rounded-full transition-all" style={{ width: `${row.score}%`, background: row.tier === "good" ? "var(--roam-electric)" : row.tier === "mid" ? "var(--roam-sky)" : "var(--roam-ember)" }} />
+                            </div>
+                            <span className="font-mono text-[10px] w-7 text-right flex-shrink-0" style={{ color: row.tier === "good" ? "var(--roam-electric)" : row.tier === "mid" ? "var(--roam-sky)" : "var(--roam-ember)" }}>{row.score}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                {passExpanded && (
-                  <p className="font-mono text-[9px] tracking-wider text-center mt-2 animate-fade-up"
-                     style={{ color: "rgba(var(--roam-cream-rgb),0.42)" }}>
-                    silent pass or send a kind wave — no text needed
-                  </p>
-                )}
-              </div>
+              )}
             </div>
           </div>
 
@@ -563,6 +552,126 @@ export default function Discover() {
           </div>
         </div>
       </div>
+
+      <div className="fixed z-50 left-0 right-0 backdrop-blur-xl"
+           style={{ bottom: "65px", background: `rgba(var(--roam-forest-rgb),0.96)`, borderTop: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}
+           data-testid="action-bar">
+        <div className="max-w-lg mx-auto px-4 py-2.5 flex items-center gap-3">
+          {passExpanded ? (
+            <>
+              <button className="flex-none h-11 px-3 rounded-2xl flex items-center justify-center gap-1.5 font-mono text-[10px] tracking-wider transition-all"
+                      style={{ background: "rgba(var(--roam-cream-rgb),0.08)", border: "1px solid rgba(var(--roam-cream-rgb),0.18)", color: "rgba(var(--roam-cream-rgb),0.55)" }}
+                      onClick={advanceCard}
+                      data-testid="button-pass-silent">
+                <X size={13} /> Pass
+              </button>
+              <button className="flex-1 h-11 rounded-2xl flex items-center justify-center gap-1.5 font-mono text-[10px] tracking-wider transition-all animate-fade-up"
+                      style={{ background: "rgba(var(--roam-sky-rgb),0.1)", border: "1px solid rgba(var(--roam-sky-rgb),0.3)", color: "var(--roam-sky)" }}
+                      onClick={handleGracefulExit}
+                      data-testid="button-not-my-adventure">
+                🤙 Not my adventure
+              </button>
+            </>
+          ) : (
+            <button className="flex-none w-11 h-11 rounded-2xl flex items-center justify-center transition-all"
+                    style={{ background: "rgba(var(--roam-cream-rgb),0.07)", border: "1px solid rgba(var(--roam-cream-rgb),0.14)", color: "rgba(var(--roam-cream-rgb),0.38)" }}
+                    onClick={handlePass}
+                    data-testid="button-pass">
+              <X size={17} />
+            </button>
+          )}
+          <button className="flex-1 py-3 rounded-2xl font-mono text-[11px] tracking-wider uppercase font-medium transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50"
+                  style={{
+                    background: alreadyRoamed ? "rgba(var(--roam-electric-rgb),0.2)" : "var(--roam-electric)",
+                    color: alreadyRoamed ? "var(--roam-electric)" : "var(--roam-forest)",
+                    border: alreadyRoamed ? "1px solid rgba(var(--roam-electric-rgb),0.4)" : "none",
+                  }}
+                  onClick={handleRoam}
+                  disabled={roamMutation.isPending || alreadyRoamed}
+                  data-testid="button-roam">
+            {alreadyRoamed ? (
+              <><Heart size={13} fill="currentColor" /> Requested!</>
+            ) : roamMutation.isPending ? "Sending…" : "Roam Together"}
+          </button>
+          <button className="flex-none w-11 h-11 rounded-2xl flex items-center justify-center transition-all"
+                  style={{ background: "rgba(var(--roam-sky-rgb),0.08)", border: "1px solid rgba(var(--roam-sky-rgb),0.2)", color: "var(--roam-sky)" }}
+                  onClick={() => showToast("⭐ Saved to shortlist!")}
+                  data-testid="button-super-roam">
+            <Star size={16} />
+          </button>
+        </div>
+        {passExpanded && (
+          <p className="font-mono text-[9px] tracking-wider text-center pb-2 -mt-1"
+             style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+            silent pass or send a kind wave — no text needed
+          </p>
+        )}
+      </div>
+
+      {matchCelebration && (
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center"
+             style={{ background: "rgba(var(--roam-forest-rgb),0.97)", backdropFilter: "blur(24px)" }}
+             data-testid="match-celebration">
+          <div className="w-full max-w-sm px-6 flex flex-col items-center gap-0 animate-fade-up">
+            <div className="font-mono text-[10px] tracking-[3px] uppercase mb-3" style={{ color: "var(--roam-electric)" }}>
+              ✦ adventure unlocked ✦
+            </div>
+            <div className="font-serif text-[40px] font-black tracking-tight leading-none mb-1" style={{ color: "var(--roam-cream)" }}>
+              It's a match!
+            </div>
+            <div className="font-mono text-[11px] mb-8" style={{ color: `rgba(var(--roam-cream-rgb),0.45)` }}>
+              You and {matchCelebration.name} both want to roam
+            </div>
+
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-28 h-36 rounded-2xl overflow-hidden border-2"
+                   style={{ borderColor: "rgba(var(--roam-electric-rgb),0.4)" }}>
+                <div className="w-full h-full flex items-center justify-center font-serif text-2xl"
+                     style={{ background: "rgba(var(--roam-electric-rgb),0.1)", color: "rgba(var(--roam-cream-rgb),0.3)" }}>you</div>
+              </div>
+              <div className="font-serif text-3xl" style={{ color: "var(--roam-electric)" }}>✦</div>
+              <div className="w-28 h-36 rounded-2xl overflow-hidden border-2"
+                   style={{ borderColor: "rgba(var(--roam-electric-rgb),0.4)" }}>
+                <img src={matchCelebration.hero} alt={matchCelebration.name} className="w-full h-full object-cover" />
+              </div>
+            </div>
+
+            {matchCelebration.sharedTags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 justify-center mb-6">
+                {matchCelebration.sharedTags.map(tag => (
+                  <span key={tag} className="font-mono text-[9px] tracking-wider px-2.5 py-1 rounded-lg uppercase"
+                        style={{ background: "rgba(var(--roam-electric-rgb),0.12)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)", color: "var(--roam-electric)" }}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {matchCelebration.almostMet && (
+              <div className="w-full mb-6 px-4 py-3 rounded-xl text-center"
+                   style={{ background: "rgba(var(--roam-violet-rgb),0.1)", border: "1px solid rgba(var(--roam-violet-rgb),0.3)" }}>
+                <div className="font-mono text-[9px] tracking-wider uppercase mb-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>👻 almost met</div>
+                <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.7)" }}>
+                  You were both near {matchCelebration.almostMet.location} {matchCelebration.almostMet.dateHint}
+                </div>
+              </div>
+            )}
+
+            <button className="w-full py-4 rounded-2xl font-mono text-[12px] tracking-wider uppercase font-medium mb-3"
+                    style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
+                    onClick={() => { setMatchCelebration(null); navigate("/matches"); }}
+                    data-testid="button-start-adventure">
+              Start the adventure →
+            </button>
+            <button className="font-mono text-[10px] tracking-wider"
+                    style={{ color: `rgba(var(--roam-cream-rgb),0.35)` }}
+                    onClick={() => { setMatchCelebration(null); advanceCard(); }}
+                    data-testid="button-keep-exploring">
+              keep exploring
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

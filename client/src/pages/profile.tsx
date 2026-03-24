@@ -157,7 +157,7 @@ export default function Profile() {
       <div className="topo-bg" />
       <div className="relative z-10">
         <AppNav />
-        <div className="max-w-lg mx-auto pb-10">
+        <div className="max-w-lg mx-auto pb-32">
           <div className="relative h-56 overflow-hidden" style={{ userSelect: "none" }}
                onContextMenu={e => e.preventDefault()}>
             <img src={profileData.avatarUrl || FALLBACK_HERO}

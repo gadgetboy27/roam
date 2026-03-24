@@ -1,12 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation, Link } from "wouter";
-import { Compass, Camera, MessageCircle, User, Palette, Check } from "lucide-react";
+import { Compass, MessageCircle, Plus, User, Palette, Check } from "lucide-react";
 import { useConnectionStatus } from "@/lib/useConnectionStatus";
 import { useTheme, THEMES } from "@/lib/theme";
 
-const NAV_ITEMS = [
+const BOTTOM_ITEMS = [
   { path: "/discover", label: "discover", icon: Compass },
-  { path: "/upload",   label: "upload",   icon: Camera },
   { path: "/matches",  label: "matches",  icon: MessageCircle },
   { path: "/profile",  label: "profile",  icon: User },
 ];
@@ -34,54 +33,35 @@ export default function AppNav() {
   }, []);
 
   return (
-    <nav className="sticky top-0 z-50 backdrop-blur-xl"
-         style={{
-           background: `rgba(var(--roam-forest-rgb),0.94)`,
-           borderBottom: `1px solid rgba(var(--roam-cream-rgb),0.07)`,
-         }}>
-      <div className="max-w-lg mx-auto px-4 py-3.5 flex items-center gap-2">
-        <Link href="/">
-          <div className="cursor-pointer flex items-start gap-1.5 flex-shrink-0">
-            <div>
-              <span className="font-serif text-[24px] font-black tracking-tight leading-none" style={{ color: "var(--roam-cream)" }}>roam</span>
-              <span style={{ color: "var(--roam-electric)" }} className="font-serif text-[24px] font-black">.</span>
-              <div className="font-mono text-[8px] tracking-[2px] uppercase" style={{ color: `rgba(var(--roam-cream-rgb),0.35)` }}>
-                adventure matching
+    <>
+      <nav className="sticky top-0 z-50 backdrop-blur-xl"
+           style={{
+             background: `rgba(var(--roam-forest-rgb),0.94)`,
+             borderBottom: `1px solid rgba(var(--roam-cream-rgb),0.07)`,
+           }}>
+        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
+          <Link href="/">
+            <div className="cursor-pointer flex items-start gap-1.5 flex-shrink-0">
+              <div>
+                <span className="font-serif text-[22px] font-black tracking-tight leading-none" style={{ color: "var(--roam-cream)" }}>roam</span>
+                <span style={{ color: "var(--roam-electric)" }} className="font-serif text-[22px] font-black">.</span>
+                <div className="font-mono text-[8px] tracking-[2px] uppercase" style={{ color: `rgba(var(--roam-cream-rgb),0.32)` }}>
+                  adventure matching
+                </div>
+              </div>
+              <div className="flex items-center gap-1 mt-0.5" title={dotTitle}>
+                <div className="w-1.5 h-1.5 rounded-full transition-colors"
+                     style={{ background: dotColor, boxShadow: status === "online" ? `0 0 4px ${dotColor}` : "none" }} />
+                {status !== "online" && (
+                  <span className="font-mono text-[8px] tracking-wider" style={{ color: dotColor }}>
+                    {status === "offline" ? "offline" : "…"}
+                  </span>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-1 mt-1" title={dotTitle}>
-              <div className="w-1.5 h-1.5 rounded-full transition-colors"
-                   style={{ background: dotColor, boxShadow: status === "online" ? `0 0 4px ${dotColor}` : "none" }} />
-              {status !== "online" && (
-                <span className="font-mono text-[8px] tracking-wider" style={{ color: dotColor }}>
-                  {status === "offline" ? "offline" : "…"}
-                </span>
-              )}
-            </div>
-          </div>
-        </Link>
+          </Link>
 
-        <div className="flex items-center gap-1 ml-auto" data-testid="nav-tabs">
-          {NAV_ITEMS.map(item => {
-            const active = location === item.path;
-            return (
-              <Link key={item.path} href={item.path}>
-                <button className="py-1.5 px-2.5 rounded-full text-[11px] font-mono tracking-wider uppercase flex items-center gap-1.5 transition-all"
-                        style={{
-                          background: active ? "var(--roam-electric)" : "transparent",
-                          color: active ? "var(--roam-electric-fg)" : `rgba(var(--roam-cream-rgb),0.38)`,
-                          fontWeight: active ? 500 : 400,
-                        }}
-                        data-testid={`nav-${item.label}`}>
-                  <item.icon size={13} />
-                  <span className="hidden sm:inline">{item.label}</span>
-                </button>
-              </Link>
-            );
-          })}
-
-          {/* Theme switcher */}
-          <div className="relative ml-0.5" ref={paletteRef}>
+          <div className="relative" ref={paletteRef}>
             <button className="w-8 h-8 rounded-full flex items-center justify-center transition-all"
                     style={{
                       background: paletteOpen ? `rgba(var(--roam-electric-rgb),0.15)` : "transparent",
@@ -91,7 +71,7 @@ export default function AppNav() {
                     onClick={() => setPaletteOpen(o => !o)}
                     aria-label="Switch colour palette"
                     data-testid="button-theme-switcher">
-              <Palette size={13} />
+              <Palette size={14} />
             </button>
 
             {paletteOpen && (
@@ -133,7 +113,58 @@ export default function AppNav() {
             )}
           </div>
         </div>
+      </nav>
+
+      <div className="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-xl"
+           style={{
+             background: `rgba(var(--roam-forest-rgb),0.96)`,
+             borderTop: `1px solid rgba(var(--roam-cream-rgb),0.08)`,
+           }}
+           data-testid="bottom-nav">
+        <div className="max-w-lg mx-auto flex items-center justify-around px-4 pt-2 pb-[env(safe-area-inset-bottom,8px)]" style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom))" }}>
+          {BOTTOM_ITEMS.slice(0, 2).map(item => {
+            const active = location === item.path;
+            return (
+              <Link key={item.path} href={item.path}>
+                <button className="flex flex-col items-center gap-1 py-1 px-4 rounded-2xl transition-all"
+                        style={{ color: active ? "var(--roam-electric)" : `rgba(var(--roam-cream-rgb),0.35)` }}
+                        data-testid={`nav-${item.label}`}>
+                  <item.icon size={22} strokeWidth={active ? 2.2 : 1.7} />
+                  <span className="font-mono text-[9px] tracking-wider uppercase">{item.label}</span>
+                </button>
+              </Link>
+            );
+          })}
+
+          <Link href="/upload">
+            <button className="flex flex-col items-center -mt-5 transition-all hover:scale-105"
+                    data-testid="nav-post">
+              <div className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
+                   style={{
+                     background: "var(--roam-electric)",
+                     boxShadow: "0 4px 20px rgba(var(--roam-electric-rgb),0.45)",
+                   }}>
+                <Plus size={26} style={{ color: "var(--roam-electric-fg)" }} strokeWidth={2.5} />
+              </div>
+              <span className="font-mono text-[9px] tracking-wider uppercase mt-1" style={{ color: `rgba(var(--roam-cream-rgb),0.35)` }}>post</span>
+            </button>
+          </Link>
+
+          {BOTTOM_ITEMS.slice(2).map(item => {
+            const active = location === item.path;
+            return (
+              <Link key={item.path} href={item.path}>
+                <button className="flex flex-col items-center gap-1 py-1 px-4 rounded-2xl transition-all"
+                        style={{ color: active ? "var(--roam-electric)" : `rgba(var(--roam-cream-rgb),0.35)` }}
+                        data-testid={`nav-${item.label}`}>
+                  <item.icon size={22} strokeWidth={active ? 2.2 : 1.7} />
+                  <span className="font-mono text-[9px] tracking-wider uppercase">{item.label}</span>
+                </button>
+              </Link>
+            );
+          })}
+        </div>
       </div>
-    </nav>
+    </>
   );
 }
