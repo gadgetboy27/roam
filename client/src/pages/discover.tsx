@@ -68,11 +68,13 @@ export default function Discover() {
   const [pioneerTipOpen, setPioneerTipOpen] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
   const [dragOffsetY, setDragOffsetY] = useState(0);
+  const [exitDir, setExitDir] = useState<"up" | "left" | "right" | null>(null);
   const [matchCelebration, setMatchCelebration] = useState<{
     name: string; hero: string; sharedTags: string[]; almostMet: typeof DEMO_PROFILES[0]["almostMet"];
   } | null>(null);
   const dragStartX = useRef<number | null>(null);
   const dragStartY = useRef<number | null>(null);
+  const isMouseDown = useRef(false);
   const pendingMatchRef = useRef<typeof matchCelebration>(null);
   const [, navigate] = useLocation();
 
@@ -97,7 +99,6 @@ export default function Discover() {
         pendingMatchRef.current = null;
       } else {
         showToast("✓ Adventure request sent!");
-        setTimeout(advanceCard, 700);
       }
     },
   });
@@ -124,28 +125,78 @@ export default function Discover() {
     roamMutation.mutate(profile.id);
   };
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    dragStartX.current = e.touches[0].clientX;
-    dragStartY.current = e.touches[0].clientY;
-  };
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (dragStartX.current === null) return;
-    setDragOffset(e.touches[0].clientX - dragStartX.current);
-    if (dragStartY.current !== null) setDragOffsetY(e.touches[0].clientY - dragStartY.current);
-  };
-  const handleTouchEnd = () => {
-    const absX = Math.abs(dragOffset);
-    const absY = Math.abs(dragOffsetY);
-    if (absY > absX && dragOffsetY < -80) {
-      advanceCard();
-    } else if (absX > absY) {
-      if (dragOffset > 80) handleRoam();
-      else if (dragOffset < -80) advanceCard();
-    }
+  const resetDrag = () => {
     setDragOffset(0);
     setDragOffsetY(0);
     dragStartX.current = null;
     dragStartY.current = null;
+  };
+
+  const triggerExit = (dir: "up" | "left" | "right", action: "advance" | "roam") => {
+    setExitDir(dir);
+    setDragOffset(0);
+    setDragOffsetY(0);
+    dragStartX.current = null;
+    dragStartY.current = null;
+    if (action === "roam") handleRoam();
+    setTimeout(() => {
+      if (action === "advance") advanceCard();
+      else advanceCard();
+      setExitDir(null);
+    }, 320);
+  };
+
+  const evaluateGesture = () => {
+    const absX = Math.abs(dragOffset);
+    const absY = Math.abs(dragOffsetY);
+    if (absY > absX && dragOffsetY < -80) {
+      triggerExit("up", "advance");
+    } else if (absX > absY) {
+      if (dragOffset > 80) triggerExit("right", "roam");
+      else if (dragOffset < -80) triggerExit("left", "advance");
+      else resetDrag();
+    } else {
+      resetDrag();
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (exitDir) return;
+    dragStartX.current = e.touches[0].clientX;
+    dragStartY.current = e.touches[0].clientY;
+  };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (exitDir || dragStartX.current === null) return;
+    setDragOffset(e.touches[0].clientX - dragStartX.current);
+    if (dragStartY.current !== null) setDragOffsetY(e.touches[0].clientY - dragStartY.current);
+  };
+  const handleTouchEnd = () => {
+    if (exitDir) return;
+    evaluateGesture();
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (exitDir) return;
+    isMouseDown.current = true;
+    dragStartX.current = e.clientX;
+    dragStartY.current = e.clientY;
+  };
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (exitDir || !isMouseDown.current || dragStartX.current === null) return;
+    setDragOffset(e.clientX - dragStartX.current);
+    if (dragStartY.current !== null) setDragOffsetY(e.clientY - dragStartY.current);
+  };
+  const handleMouseUp = () => {
+    if (!isMouseDown.current) return;
+    isMouseDown.current = false;
+    if (exitDir) return;
+    evaluateGesture();
+  };
+  const handleMouseLeave = () => {
+    if (isMouseDown.current) {
+      isMouseDown.current = false;
+      if (!exitDir) evaluateGesture();
+    }
   };
 
   return (
@@ -162,11 +213,32 @@ export default function Discover() {
       )}
 
       <div key={cardKey}
-           className="absolute inset-0 animate-fade-up"
-           style={{ userSelect: "none", zIndex: 10 }}
+           className="absolute inset-0"
+           style={{
+             userSelect: "none",
+             zIndex: 10,
+             cursor: isMouseDown.current ? "grabbing" : "grab",
+             transform: exitDir === "up"
+               ? "translateY(-115vh)"
+               : exitDir === "left"
+                 ? "translateX(-115vw) rotate(-12deg)"
+                 : exitDir === "right"
+                   ? "translateX(115vw) rotate(12deg)"
+                   : `translate(${dragOffset * 0.55}px, ${Math.min(0, dragOffsetY * 0.45)}px) rotate(${dragOffset * 0.018}deg)`,
+             transition: exitDir
+               ? "transform 0.32s cubic-bezier(0.4,0,0.2,1)"
+               : dragOffset === 0 && dragOffsetY === 0
+                 ? "transform 0.28s cubic-bezier(0.34,1.56,0.64,1)"
+                 : "none",
+             animation: !exitDir ? "fadeUp 0.35s ease-out both" : undefined,
+           }}
            onTouchStart={handleTouchStart}
            onTouchMove={handleTouchMove}
            onTouchEnd={handleTouchEnd}
+           onMouseDown={handleMouseDown}
+           onMouseMove={handleMouseMove}
+           onMouseUp={handleMouseUp}
+           onMouseLeave={handleMouseLeave}
            onContextMenu={e => e.preventDefault()}>
 
         <img src={profile.hero} alt={profile.name}
