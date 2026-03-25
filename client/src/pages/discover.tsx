@@ -5,10 +5,8 @@ import { MapPin, Bookmark, BookmarkCheck, Heart, X, Star } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { computeVibeWord, getHonestyDisplay } from "@/lib/fingerprint";
 import type { HonestyTier } from "@/lib/fingerprint";
 
-type AuthRow = { label: string; score: number; tier: "good" | "mid" | "low" };
 type PioneerBadge = { place: string; location: string; tagCount: number } | null;
 
 const DEMO_PROFILES = [
@@ -23,12 +21,7 @@ const DEMO_PROFILES = [
     honestyTier: "verified-adventure" as HonestyTier,
     almostMet: null,
     pioneerBadge: { place: "Franz Josef Glacier", location: "West Coast, NZ", tagCount: 47 } as PioneerBadge,
-    authBreakdown: [
-      { label: "Person in shot", score: 96, tier: "good" },
-      { label: "Real locations", score: 98, tier: "good" },
-      { label: "Authenticity", score: 91, tier: "good" },
-      { label: "No manipulation", score: 89, tier: "good" },
-    ] as AuthRow[],
+    hasNewMatch: true,
   },
   {
     id: "demo-p2",
@@ -41,12 +34,7 @@ const DEMO_PROFILES = [
     honestyTier: "verified-adventure" as HonestyTier,
     almostMet: null,
     pioneerBadge: { place: "Raglan Left", location: "Waikato, NZ", tagCount: 83 } as PioneerBadge,
-    authBreakdown: [
-      { label: "Person in shot", score: 82, tier: "good" },
-      { label: "Real locations", score: 94, tier: "good" },
-      { label: "Authenticity", score: 90, tier: "good" },
-      { label: "No manipulation", score: 86, tier: "good" },
-    ] as AuthRow[],
+    hasNewMatch: false,
   },
   {
     id: "demo-p3",
@@ -59,12 +47,7 @@ const DEMO_PROFILES = [
     honestyTier: "mostly-verified" as HonestyTier,
     almostMet: null,
     pioneerBadge: null as PioneerBadge,
-    authBreakdown: [
-      { label: "Person in shot", score: 58, tier: "mid" },
-      { label: "Real locations", score: 88, tier: "good" },
-      { label: "Authenticity", score: 79, tier: "good" },
-      { label: "No manipulation", score: 62, tier: "mid" },
-    ] as AuthRow[],
+    hasNewMatch: false,
   },
   {
     id: "demo-p4",
@@ -77,12 +60,7 @@ const DEMO_PROFILES = [
     honestyTier: "verified-adventure" as HonestyTier,
     almostMet: { location: "Faroe Islands", dateHint: "2024 — you were both there" },
     pioneerBadge: { place: "Milford Track", location: "Fiordland, NZ", tagCount: 31 } as PioneerBadge,
-    authBreakdown: [
-      { label: "Person in shot", score: 91, tier: "good" },
-      { label: "Real locations", score: 95, tier: "good" },
-      { label: "Authenticity", score: 88, tier: "good" },
-      { label: "No manipulation", score: 92, tier: "good" },
-    ] as AuthRow[],
+    hasNewMatch: true,
   },
 ];
 
@@ -139,13 +117,14 @@ export default function Discover() {
   const [roamedIds, setRoamedIds] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<string | null>(null);
   const [passExpanded, setPassExpanded] = useState(false);
-  const [authExpanded, setAuthExpanded] = useState(false);
   const [pioneerTipOpen, setPioneerTipOpen] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
+  const [dragOffsetY, setDragOffsetY] = useState(0);
   const [matchCelebration, setMatchCelebration] = useState<{
     name: string; hero: string; sharedTags: string[]; almostMet: typeof DEMO_PROFILES[0]["almostMet"];
   } | null>(null);
   const dragStartX = useRef<number | null>(null);
+  const dragStartY = useRef<number | null>(null);
   const pendingMatchRef = useRef<typeof matchCelebration>(null);
   const [, navigate] = useLocation();
 
@@ -240,16 +219,26 @@ export default function Discover() {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     dragStartX.current = e.touches[0].clientX;
+    dragStartY.current = e.touches[0].clientY;
   };
   const handleTouchMove = (e: React.TouchEvent) => {
     if (dragStartX.current === null) return;
     setDragOffset(e.touches[0].clientX - dragStartX.current);
+    if (dragStartY.current !== null) setDragOffsetY(e.touches[0].clientY - dragStartY.current);
   };
   const handleTouchEnd = () => {
-    if (dragOffset > 80) handleRoam();
-    else if (dragOffset < -80) advanceCard();
+    const absX = Math.abs(dragOffset);
+    const absY = Math.abs(dragOffsetY);
+    if (absY > absX && dragOffsetY < -80) {
+      advanceCard();
+    } else if (absX > absY) {
+      if (dragOffset > 80) handleRoam();
+      else if (dragOffset < -80) advanceCard();
+    }
     setDragOffset(0);
+    setDragOffsetY(0);
     dragStartX.current = null;
+    dragStartY.current = null;
   };
 
   const handleBucketClick = (b: typeof BUCKET_LIST[0]) => {
@@ -283,27 +272,9 @@ export default function Discover() {
   const currentTargetId = selectedBucket ? `bucket-${selectedBucket.name}` : profile.id;
   const alreadyRoamed = roamedIds.has(currentTargetId);
 
-  const honesty = getHonestyDisplay(displayHonestyTier);
   const displayPioneerBadge = selectedBucket ? null : profile.pioneerBadge;
-  const displayAuthBreakdown = selectedBucket ? null : profile.authBreakdown;
-  const avgAuthScore = displayAuthBreakdown
-    ? Math.round(displayAuthBreakdown.reduce((a, b) => a + b.score, 0) / displayAuthBreakdown.length)
-    : 0;
-  const authTierColor = displayHonestyTier === "verified-adventure"
-    ? "var(--roam-electric)"
-    : displayHonestyTier === "mostly-verified"
-    ? "var(--roam-sky)"
-    : "var(--roam-ember)";
-  const authTierBg = displayHonestyTier === "verified-adventure"
-    ? "rgba(var(--roam-electric-rgb),0.1)"
-    : displayHonestyTier === "mostly-verified"
-    ? "rgba(var(--roam-sky-rgb),0.1)"
-    : "rgba(var(--roam-ember-rgb),0.1)";
-  const authTierBorder = displayHonestyTier === "verified-adventure"
-    ? "rgba(var(--roam-electric-rgb),0.32)"
-    : displayHonestyTier === "mostly-verified"
-    ? "rgba(var(--roam-sky-rgb),0.3)"
-    : "rgba(var(--roam-ember-rgb),0.3)";
+  const displayHasNewMatch = selectedBucket ? false : profile.hasNewMatch;
+  const isVerifiedUser = displayHonestyTier === "verified-adventure";
 
   return (
     <div className="min-h-screen relative" data-testid="page-discover">
@@ -349,7 +320,16 @@ export default function Discover() {
                   </div>
                 )}
 
-                <div className="absolute top-3.5 left-3.5 right-3.5 flex items-start justify-between gap-2">
+                {dragOffsetY < -20 && Math.abs(dragOffsetY) > Math.abs(dragOffset) && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-start pt-10 pointer-events-none"
+                       style={{ background: `rgba(0,0,0,${Math.min(0.3, Math.abs(dragOffsetY) / 320)})` }}>
+                    <div style={{ opacity: Math.min(1, Math.abs(dragOffsetY) / 80), transform: `translateY(${Math.min(0, dragOffsetY * 0.15)}px)` }}>
+                      <div className="font-mono text-[11px] tracking-[2px] uppercase text-center" style={{ color: "rgba(255,255,255,0.7)" }}>▲ next</div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="absolute top-3.5 left-3.5 flex flex-col items-start gap-1.5" style={{ maxWidth: "70%" }}>
                   {selectedBucket ? (
                     <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl backdrop-blur-md"
                          style={{ background: "rgba(0,0,0,0.45)", border: "1px solid rgba(255,255,255,0.25)" }}>
@@ -358,69 +338,90 @@ export default function Discover() {
                         also wants {selectedBucket.name}
                       </span>
                     </div>
-                  ) : displayVibeWord ? (
-                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl backdrop-blur-md"
+                  ) : displayVibeWord && (
+                    <div className="px-2.5 py-1.5 rounded-xl backdrop-blur-md"
                          style={{ background: "rgba(0,0,0,0.45)", border: "1px solid rgba(255,255,255,0.18)" }}>
                       <span className="font-mono text-[9px] tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.88)" }}>
                         {displayVibeWord}
                       </span>
                     </div>
-                  ) : <div />}
+                  )}
 
-                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl backdrop-blur-md"
-                       style={{ background: "rgba(0,0,0,0.45)", border: `1px solid rgba(255,255,255,0.22)` }}
-                       data-testid="badge-honesty">
-                    <span style={{ color: honesty.color, fontSize: "10px" }}>{honesty.symbol}</span>
-                    <span className="font-mono text-[8px] tracking-wider" style={{ color: "rgba(255,255,255,0.82)" }}>
-                      {honesty.label}
-                    </span>
-                  </div>
-                </div>
+                  {displayDna.slice(0, 3).map(tag => (
+                    <div key={tag} className="px-2.5 py-1 rounded-xl backdrop-blur-md"
+                         style={{ background: "rgba(0,0,0,0.45)", border: "1px solid rgba(255,255,255,0.14)" }}>
+                      <span className="font-mono text-[9px] tracking-wider" style={{ color: "rgba(255,255,255,0.78)" }}>{tag}</span>
+                    </div>
+                  ))}
 
-                {displayAlmostMet && (
-                  <div className="absolute top-14 left-3.5 flex items-center gap-2 px-3 py-2 rounded-xl"
-                       style={{ background: "rgba(var(--roam-violet-rgb),0.18)", border: "1px solid rgba(var(--roam-violet-rgb),0.45)", backdropFilter: "blur(8px)" }}
-                       data-testid="badge-almost-met">
-                    <span style={{ fontSize: "12px" }}>👻</span>
-                    <div>
-                      <div className="font-mono text-[9px] tracking-widest uppercase" style={{ color: "rgba(var(--roam-violet-rgb),0.9)" }}>Almost Met</div>
-                      <div className="font-mono text-[8px]" style={{ color: "rgba(255,255,255,0.55)" }}>
-                        {displayAlmostMet.location} · {displayAlmostMet.dateHint}
+                  {displayPioneerBadge && (
+                    <div className="relative">
+                      <button
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl backdrop-blur-md transition-all"
+                        style={{ background: "rgba(0,0,0,0.55)", border: "1px solid rgba(var(--roam-electric-rgb),0.5)" }}
+                        onClick={() => setPioneerTipOpen(o => !o)}
+                        data-testid="badge-pioneer">
+                        <span style={{ fontSize: "12px" }}>🏔️</span>
+                        <div>
+                          <div className="font-mono text-[7px] tracking-[1px] uppercase leading-none mb-0.5" style={{ color: "var(--roam-electric)" }}>Regional Pioneer</div>
+                          <div className="font-semibold text-[10px] leading-none" style={{ color: "rgba(255,255,255,0.92)" }}>{displayPioneerBadge.place}</div>
+                        </div>
+                      </button>
+                      {pioneerTipOpen && (
+                        <div className="absolute top-full mt-2 left-0 w-52 rounded-2xl p-3.5 shadow-2xl z-10"
+                             style={{ background: "var(--roam-moss)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)" }}
+                             data-testid="tooltip-pioneer">
+                          <div className="font-mono text-[8px] tracking-[1px] uppercase mb-1.5" style={{ color: "var(--roam-electric)" }}>🏔️ Regional Pioneer</div>
+                          <div className="text-[13px] font-semibold mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.95)" }}>{displayPioneerBadge.place}</div>
+                          <div className="text-[11px] leading-relaxed mb-2.5" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                            First to consistently tag this location — most posts from any single adventurer here.
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "var(--roam-electric)" }} />
+                            <span className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                              {displayPioneerBadge.tagCount} posts · {displayPioneerBadge.location}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {displayAlmostMet && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl backdrop-blur-md"
+                         style={{ background: "rgba(var(--roam-violet-rgb),0.18)", border: "1px solid rgba(var(--roam-violet-rgb),0.45)" }}
+                         data-testid="badge-almost-met">
+                      <span style={{ fontSize: "11px" }}>👻</span>
+                      <div>
+                        <div className="font-mono text-[7px] tracking-widest uppercase leading-none mb-0.5" style={{ color: "rgba(var(--roam-violet-rgb),0.9)" }}>Almost Met</div>
+                        <div className="font-mono text-[8px] leading-none" style={{ color: "rgba(255,255,255,0.6)" }}>{displayAlmostMet.location}</div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {displayPioneerBadge && (
-                  <div className="absolute" style={{ bottom: "130px", right: "14px", zIndex: 5 }}>
+                  {displayHasNewMatch && (
                     <button
-                      className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl backdrop-blur-md transition-all"
-                      style={{ background: "rgba(0,0,0,0.55)", border: "1px solid rgba(var(--roam-electric-rgb),0.55)" }}
-                      onClick={() => setPioneerTipOpen(o => !o)}
-                      data-testid="badge-pioneer">
-                      <span style={{ fontSize: "14px" }}>🏔️</span>
-                      <div>
-                        <div className="font-mono text-[7px] tracking-[1px] uppercase leading-none mb-0.5" style={{ color: "var(--roam-electric)" }}>Regional Pioneer</div>
-                        <div className="font-semibold text-[11px] leading-none" style={{ color: "rgba(255,255,255,0.92)" }}>{displayPioneerBadge.place}</div>
-                      </div>
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl backdrop-blur-md transition-all"
+                      style={{ background: "rgba(var(--roam-electric-rgb),0.22)", border: "1px solid rgba(var(--roam-electric-rgb),0.6)", animation: "pulse 2s infinite" }}
+                      onClick={() => navigate("/matches")}
+                      data-testid="badge-new-match">
+                      <span style={{ fontSize: "10px" }}>✦</span>
+                      <span className="font-mono text-[9px] tracking-wider" style={{ color: "var(--roam-electric)" }}>new match!</span>
                     </button>
-                    {pioneerTipOpen && (
-                      <div className="absolute bottom-full mb-2 right-0 w-52 rounded-2xl p-3.5 shadow-2xl"
-                           style={{ background: "var(--roam-moss)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)" }}
-                           data-testid="tooltip-pioneer">
-                        <div className="font-mono text-[8px] tracking-[1px] uppercase mb-1.5" style={{ color: "var(--roam-electric)" }}>🏔️ Regional Pioneer</div>
-                        <div className="text-[13px] font-semibold mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.95)" }}>{displayPioneerBadge.place}</div>
-                        <div className="text-[11px] leading-relaxed mb-2.5" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
-                          First to consistently tag this location — most posts from any single adventurer here.
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "var(--roam-electric)" }} />
-                          <span className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
-                            {displayPioneerBadge.tagCount} verified posts · {displayPioneerBadge.location}
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                  )}
+                </div>
+
+                {isVerifiedUser && (
+                  <div className="absolute top-3.5 right-3.5">
+                    <button
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl backdrop-blur-md"
+                      style={{ background: "rgba(0,0,0,0.45)", border: "1px solid rgba(var(--roam-electric-rgb),0.45)" }}
+                      onClick={() => navigate("/profile")}
+                      data-testid="badge-verified"
+                      title="Verified user — tap to learn more">
+                      <span className="font-mono text-[10px] font-bold" style={{ color: "var(--roam-electric)" }}>✓</span>
+                      <span className="font-mono text-[8px] tracking-wider" style={{ color: "rgba(255,255,255,0.82)" }}>verified</span>
+                    </button>
                   </div>
                 )}
 
@@ -438,58 +439,10 @@ export default function Discover() {
                         data-testid="text-card-ethnicity">
                     {displayEthnicity}
                   </span>
-                  <p className="text-[13px] italic leading-snug mb-3" style={{ color: "rgba(255,255,255,0.68)" }}>"{displayTagline}"</p>
-                  {displayDna.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {displayDna.map(t => (
-                        <span key={t} className="font-mono text-[9px] tracking-wider px-2 py-0.5 rounded-lg"
-                              style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)" }}>
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <p className="text-[13px] italic leading-snug" style={{ color: "rgba(255,255,255,0.68)" }}>"{displayTagline}"</p>
                 </div>
               </div>
 
-              {displayAuthBreakdown && (
-                <div className="px-3.5 pt-3 pb-3">
-                  <button
-                    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl transition-all text-left"
-                    style={{ background: "rgba(var(--roam-electric-rgb),0.04)", border: "1px solid rgba(var(--roam-electric-rgb),0.1)" }}
-                    onClick={() => setAuthExpanded(e => !e)}
-                    data-testid="button-auth-expand">
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg" style={{ background: authTierBg, border: `1px solid ${authTierBorder}` }}>
-                      <span className="font-mono text-[8px] tracking-wider" style={{ color: authTierColor }}>
-                        {honesty.symbol} {honesty.label}
-                      </span>
-                    </div>
-                    <span className="font-mono text-[9px] ml-auto" style={{ color: "rgba(var(--roam-cream-rgb),0.32)" }}>AI score</span>
-                    <div className="w-8 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(var(--roam-cream-rgb),0.07)" }}>
-                      <div className="h-full rounded-full" style={{ width: `${avgAuthScore}%`, background: authTierColor }} />
-                    </div>
-                    <span className="font-mono text-[9px] font-medium" style={{ color: authTierColor }}>{avgAuthScore}%</span>
-                    <span className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.28)" }}>{authExpanded ? "▲" : "▼"}</span>
-                  </button>
-                  {authExpanded && (
-                    <div className="mt-1.5 px-3 py-3 rounded-xl" style={{ background: "rgba(var(--roam-electric-rgb),0.03)", border: "1px solid rgba(var(--roam-electric-rgb),0.08)" }}
-                         data-testid="panel-auth-breakdown">
-                      <div className="font-mono text-[8px] tracking-[1.2px] uppercase mb-2.5" style={{ color: "var(--roam-electric)" }}>AI photo analysis</div>
-                      <div className="space-y-2">
-                        {displayAuthBreakdown.map((row, i) => (
-                          <div key={i} className="flex items-center gap-2">
-                            <span className="font-mono text-[10px] flex-shrink-0" style={{ width: "110px", color: "rgba(var(--roam-cream-rgb),0.42)" }}>{row.label}</span>
-                            <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "rgba(var(--roam-cream-rgb),0.07)" }}>
-                              <div className="h-full rounded-full transition-all" style={{ width: `${row.score}%`, background: row.tier === "good" ? "var(--roam-electric)" : row.tier === "mid" ? "var(--roam-sky)" : "var(--roam-ember)" }} />
-                            </div>
-                            <span className="font-mono text-[10px] w-7 text-right flex-shrink-0" style={{ color: row.tier === "good" ? "var(--roam-electric)" : row.tier === "mid" ? "var(--roam-sky)" : "var(--roam-ember)" }}>{row.score}%</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
 

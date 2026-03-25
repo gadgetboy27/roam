@@ -4,7 +4,7 @@ import AppNav from "@/components/app-nav";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
 import { MapPin, Camera, Edit3, Settings, Star, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2 } from "lucide-react";
-import { computeVibeWord, getHonestyDisplay } from "@/lib/fingerprint";
+import { computeVibeWord } from "@/lib/fingerprint";
 
 const FALLBACK_HERO = "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&q=80&fit=crop";
 
@@ -220,7 +220,6 @@ export default function Profile() {
 
             {(() => {
               const vibeWord = computeVibeWord(profileData.dna);
-              const honesty = getHonestyDisplay("verified-adventure");
               return (
                 <div className="flex items-center gap-2 mb-5">
                   <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
@@ -230,14 +229,34 @@ export default function Profile() {
                     <span className="font-mono text-[10px] tracking-wider" style={{ color: "var(--roam-electric)" }}>{vibeWord}</span>
                   </div>
                   <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
-                       style={{ background: "rgba(var(--roam-electric-rgb),0.08)", border: "1px solid rgba(var(--roam-electric-rgb),0.2)" }}
-                       data-testid="badge-honesty-profile">
-                    <span style={{ color: honesty.color, fontSize: "11px" }}>{honesty.symbol}</span>
-                    <span className="font-mono text-[10px] tracking-wider" style={{ color: "var(--roam-electric)" }}>{honesty.label}</span>
+                       style={{ background: "rgba(var(--roam-electric-rgb),0.08)", border: "1px solid rgba(var(--roam-electric-rgb),0.35)" }}
+                       data-testid="badge-verified-user">
+                    <span className="font-mono text-[11px] font-bold" style={{ color: "var(--roam-electric)" }}>✓</span>
+                    <span className="font-mono text-[10px] tracking-wider" style={{ color: "var(--roam-electric)" }}>Verified User</span>
                   </div>
                 </div>
               );
             })()}
+
+            <div className="mb-5 px-4 py-3 rounded-2xl"
+                 style={{ background: "rgba(var(--roam-electric-rgb),0.05)", border: "1px solid rgba(var(--roam-electric-rgb),0.18)" }}
+                 id="verified"
+                 data-testid="section-verified-user">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                     style={{ background: "rgba(var(--roam-electric-rgb),0.15)", border: "1px solid rgba(var(--roam-electric-rgb),0.35)" }}>
+                  <span className="font-mono text-[14px] font-bold" style={{ color: "var(--roam-electric)" }}>✓</span>
+                </div>
+                <div>
+                  <div className="font-mono text-[10px] tracking-wider font-semibold mb-1" style={{ color: "var(--roam-electric)" }}>
+                    Verified User
+                  </div>
+                  <div className="font-mono text-[10px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                    Your identity has been verified — not your adventures. The ✓ means you're a real person on roam., not that we're judging where you've been.
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <div className="mb-5">
               <div className="flex items-center justify-between mb-3">
