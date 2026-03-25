@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import AppNav from "@/components/app-nav";
 import { useAuth } from "@/lib/auth";
@@ -81,7 +81,37 @@ export default function Profile() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showYearCard, setShowYearCard] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState("");
+  const [verifySubmitted, setVerifySubmitted] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("verified") === "1") {
+      setVerifySubmitted(true);
+      window.history.replaceState({}, "", "/profile");
+    }
+  }, []);
+
+  const handleStartVerification = async () => {
+    if (!user) return;
+    setVerifying(true);
+    setVerifyError("");
+    try {
+      const res = await apiRequest("POST", "/api/verify/start");
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setVerifyError("Could not start verification. Please try again.");
+      }
+    } catch (err: any) {
+      setVerifyError(err?.message || "Something went wrong. Please try again.");
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const calcAge = (dob: string | null) => {
     if (!dob) return "—";
@@ -238,24 +268,112 @@ export default function Profile() {
               );
             })()}
 
-            <div className="mb-5 px-4 py-3 rounded-2xl"
-                 style={{ background: "rgba(var(--roam-electric-rgb),0.05)", border: "1px solid rgba(var(--roam-electric-rgb),0.18)" }}
+            <div className="mb-5 rounded-2xl overflow-hidden"
                  id="verified"
-                 data-testid="section-verified-user">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                     style={{ background: "rgba(var(--roam-electric-rgb),0.15)", border: "1px solid rgba(var(--roam-electric-rgb),0.35)" }}>
-                  <span className="font-mono text-[14px] font-bold" style={{ color: "var(--roam-electric)" }}>✓</span>
-                </div>
-                <div>
-                  <div className="font-mono text-[10px] tracking-wider font-semibold mb-1" style={{ color: "var(--roam-electric)" }}>
-                    Verified User
+                 data-testid="section-verified-user"
+                 style={{ border: user?.identityVerified ? "1px solid rgba(var(--roam-electric-rgb),0.35)" : "1px solid rgba(var(--roam-cream-rgb),0.1)" }}>
+
+              {user?.identityVerified ? (
+                <div className="px-4 py-4 flex items-start gap-3"
+                     style={{ background: "rgba(var(--roam-electric-rgb),0.06)" }}>
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                       style={{ background: "rgba(var(--roam-electric-rgb),0.18)", border: "1px solid rgba(var(--roam-electric-rgb),0.45)" }}>
+                    <span className="font-mono text-[16px] font-bold" style={{ color: "var(--roam-electric)" }}>✓</span>
                   </div>
-                  <div className="font-mono text-[10px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
-                    Your identity has been verified — not your adventures. The ✓ means you're a real person on roam., not that we're judging where you've been.
+                  <div className="flex-1">
+                    <div className="font-mono text-[11px] tracking-wider font-semibold mb-1" style={{ color: "var(--roam-electric)" }}>
+                      Identity Verified
+                    </div>
+                    <div className="font-mono text-[10px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
+                      Government-issued ID + selfie confirmed. The ✓ means you're a real person — not a judgement of your adventures.
+                    </div>
+                    {user.identityVerifiedAt && (
+                      <div className="font-mono text-[9px] mt-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
+                        Verified {new Date(user.identityVerifiedAt).toLocaleDateString("en-NZ", { day: "numeric", month: "long", year: "numeric" })}
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
+              ) : user?.identityVerificationId && !user?.identityVerified ? (
+                <div className="px-4 py-4 flex items-start gap-3"
+                     style={{ background: "rgba(var(--roam-cream-rgb),0.03)" }}>
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 animate-spin"
+                       style={{ border: "2px solid rgba(var(--roam-electric-rgb),0.2)", borderTopColor: "var(--roam-electric)" }}>
+                  </div>
+                  <div>
+                    <div className="font-mono text-[11px] tracking-wider font-semibold mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.7)" }}>
+                      Verification in progress
+                    </div>
+                    <div className="font-mono text-[10px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                      We're confirming your identity. This usually takes less than a minute.
+                    </div>
+                  </div>
+                </div>
+              ) : verifySubmitted ? (
+                <div className="px-4 py-4 flex items-start gap-3"
+                     style={{ background: "rgba(var(--roam-electric-rgb),0.04)" }}>
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                       style={{ background: "rgba(var(--roam-electric-rgb),0.12)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)" }}>
+                    <span style={{ fontSize: "16px" }}>⏳</span>
+                  </div>
+                  <div>
+                    <div className="font-mono text-[11px] tracking-wider font-semibold mb-1" style={{ color: "var(--roam-electric)" }}>
+                      Verification submitted
+                    </div>
+                    <div className="font-mono text-[10px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                      Your documents are being reviewed. You'll get your ✓ badge shortly — usually under a minute.
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ background: "rgba(var(--roam-cream-rgb),0.02)" }}>
+                  <div className="px-4 pt-4 pb-3 flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                         style={{ background: "rgba(var(--roam-cream-rgb),0.06)", border: "1px solid rgba(var(--roam-cream-rgb),0.12)" }}>
+                      <Shield size={16} style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-mono text-[11px] tracking-wider font-semibold mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.7)" }}>
+                        Verify your identity
+                      </div>
+                      <div className="font-mono text-[10px] leading-relaxed mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.42)" }}>
+                        Takes 2 minutes. Upload a government ID + selfie. Your documents go directly to Stripe's secure servers — we never see or store them.
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 mb-3">
+                        {["Driver's licence", "Passport", "Selfie liveness check"].map(item => (
+                          <span key={item} className="font-mono text-[8px] tracking-wider px-2 py-0.5 rounded-lg"
+                                style={{ background: "rgba(var(--roam-cream-rgb),0.06)", border: "1px solid rgba(var(--roam-cream-rgb),0.1)", color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                      {verifyError && (
+                        <div className="font-mono text-[10px] mb-2" style={{ color: "var(--roam-ember)" }}>
+                          {verifyError}
+                        </div>
+                      )}
+                      <button
+                        className="flex items-center gap-2 font-mono text-[10px] tracking-wider uppercase font-semibold px-4 py-2.5 rounded-xl transition-all"
+                        style={{ background: "var(--roam-electric)", color: "var(--roam-forest)", opacity: verifying ? 0.7 : 1 }}
+                        onClick={handleStartVerification}
+                        disabled={verifying}
+                        data-testid="button-start-verification">
+                        {verifying ? (
+                          <><Loader2 size={11} className="animate-spin" /> Starting…</>
+                        ) : (
+                          <><Shield size={11} /> Get Verified</>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="px-4 py-2.5 flex items-center gap-2"
+                       style={{ borderTop: "1px solid rgba(var(--roam-cream-rgb),0.06)", background: "rgba(var(--roam-cream-rgb),0.02)" }}>
+                    <span className="font-mono text-[8px]" style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}>
+                      Powered by Stripe Identity · Documents never stored on roam. servers
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="mb-5">

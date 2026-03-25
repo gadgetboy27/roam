@@ -21,6 +21,9 @@ export const users = pgTable("users", {
   photoLicenseAgreed: boolean("photo_license_agreed").default(false),
   adventureTags: text("adventure_tags").array(),
   avatarUrl: text("avatar_url"),
+  identityVerified: boolean("identity_verified").default(false),
+  identityVerificationId: text("identity_verification_id"),
+  identityVerifiedAt: timestamp("identity_verified_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

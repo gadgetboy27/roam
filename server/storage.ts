@@ -28,6 +28,8 @@ export interface IStorage {
   createBucketItem(item: InsertBucketList): Promise<BucketListItem>;
   getBucketListByUser(userId: string): Promise<BucketListItem[]>;
   deleteBucketItem(id: string): Promise<void>;
+
+  updateUserVerification(userId: string, verificationId: string, verified: boolean): Promise<User | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -113,6 +115,19 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBucketItem(id: string): Promise<void> {
     await db.delete(bucketList).where(eq(bucketList.id, id));
+  }
+
+  async updateUserVerification(userId: string, verificationId: string, verified: boolean): Promise<User | undefined> {
+    const [updated] = await db
+      .update(users)
+      .set({
+        identityVerified: verified,
+        identityVerificationId: verificationId,
+        identityVerifiedAt: verified ? new Date() : undefined,
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
   }
 }
 

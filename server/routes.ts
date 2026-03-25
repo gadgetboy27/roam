@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { signupSchema } from "@shared/schema";
 import { hashPassword, comparePassword } from "./auth";
 import { buildFingerprint, computeOverlap, detectAlmostMet, computeHonestyTier } from "./fingerprint";
+import { getUncachableStripeClient } from "./stripeClient";
 import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
@@ -338,6 +339,77 @@ export async function registerRoutes(
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
+  });
+
+  app.post("/api/verify/start", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+    try {
+      const stripe = await getUncachableStripeClient();
+      const domain = process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
+      const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
+
+      const session = await stripe.identity.verificationSessions.create({
+        type: "document",
+        options: {
+          document: {
+            require_matching_selfie: true,
+          },
+        },
+        return_url: `${baseUrl}/profile?verified=1`,
+        metadata: { userId },
+      });
+
+      await storage.updateUserVerification(userId, session.id, false);
+
+      return res.json({ url: session.url, sessionId: session.id });
+    } catch (err: any) {
+      console.error("Stripe Identity error:", err.message);
+      return res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/stripe/identity-webhook", async (req, res) => {
+    const sig = req.headers["stripe-signature"] as string;
+    const webhookSecret = process.env.STRIPE_IDENTITY_WEBHOOK_SECRET;
+
+    let event: any;
+    try {
+      const stripe = await getUncachableStripeClient();
+      if (webhookSecret && sig) {
+        event = stripe.webhooks.constructEvent(
+          req.rawBody as Buffer,
+          sig,
+          webhookSecret
+        );
+      } else {
+        event = req.body;
+        console.warn("[identity-webhook] No secret configured — skipping signature check (dev only)");
+      }
+    } catch (err: any) {
+      console.error("Webhook signature error:", err.message);
+      return res.status(400).json({ error: `Webhook Error: ${err.message}` });
+    }
+
+    if (event?.type === "identity.verification_session.verified") {
+      const session = event.data?.object;
+      const userId = session?.metadata?.userId;
+      if (userId) {
+        await storage.updateUserVerification(userId, session.id, true);
+        console.log(`[identity] User ${userId} verified successfully via Stripe Identity`);
+      }
+    }
+
+    if (event?.type === "identity.verification_session.requires_input") {
+      const session = event.data?.object;
+      const userId = session?.metadata?.userId;
+      if (userId) {
+        console.log(`[identity] User ${userId} verification requires input — last error: ${JSON.stringify(session?.last_error)}`);
+      }
+    }
+
+    return res.json({ received: true });
   });
 
   return httpServer;
