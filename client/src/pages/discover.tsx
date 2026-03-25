@@ -187,7 +187,6 @@ export default function Discover() {
     setProfileIdx(i => i + 1);
     setSelectedBucket(null);
     setPassExpanded(false);
-    setAuthExpanded(false);
     setPioneerTipOpen(false);
   };
 
