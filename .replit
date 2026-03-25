@@ -64,3 +64,6 @@ waitForPort = 5000
 
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[agent]
+integrations = ["stripe:1.0.0"]
