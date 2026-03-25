@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import AppNav from "@/components/app-nav";
-import { Send, ArrowLeft, WifiOff, Clock, MapPin, BookmarkCheck, Compass, Flame, MessageCircle, Hourglass } from "lucide-react";
+import { Send, ArrowLeft, WifiOff, Clock, MapPin, BookmarkCheck, Bookmark, Compass, Flame, MessageCircle, Hourglass } from "lucide-react";
 import { getSocket } from "@/lib/socket";
 import { useConnectionStatus } from "@/lib/useConnectionStatus";
 import { useAuth } from "@/lib/auth";
@@ -59,6 +59,39 @@ const DEMO_CONNECTIONS = [
     seed: [
       { id: "seed-s1", matchId: "match-3", senderId: "sam", content: "We should hit Abel Tasman together next summer!", createdAt: new Date(Date.now() - 86400000).toISOString() },
     ] as CachedMessage[],
+  },
+];
+
+const BUCKET_LIST = [
+  {
+    name: "Faroe Islands",
+    want: "3 matches want this",
+    url: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=300&q=80&fit=crop",
+    count: 3,
+  },
+  {
+    name: "Patagonia",
+    want: "7 matches want this",
+    url: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=300&q=80&fit=crop",
+    count: 7,
+  },
+  {
+    name: "Kyoto autumn",
+    want: "12 matches want this",
+    url: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=300&q=80&fit=crop",
+    count: 12,
+  },
+  {
+    name: "Iceland",
+    want: "5 matches want this",
+    url: "https://images.unsplash.com/photo-1476610182048-b716b8518aae?w=300&q=80&fit=crop",
+    count: 5,
+  },
+  {
+    name: "Lofoten",
+    want: "2 matches want this",
+    url: "https://images.unsplash.com/photo-1559628376-f3fe8b41e8e0?w=300&q=80&fit=crop",
+    count: 2,
   },
 ];
 
@@ -375,6 +408,43 @@ export default function Matches() {
                   </p>
                 </div>
               )}
+
+              <div className="px-3.5 mt-5 animate-fade-up">
+                <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-2.5 flex items-center gap-1.5"
+                     style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                  <Bookmark size={10} />
+                  Dream destinations
+                  {bucketList.length > 0 && (
+                    <span className="font-mono text-[9px] px-1.5 py-0.5 rounded-lg ml-1"
+                          style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.22)", color: "var(--roam-electric)" }}>
+                      {bucketList.length} pinned
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-2.5 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
+                  {BUCKET_LIST.map((b, i) => {
+                    const pinned = bucketList.some((bl: any) => bl.destinationName === b.name);
+                    return (
+                      <div key={i} className="flex-shrink-0 w-[110px] rounded-2xl overflow-hidden relative"
+                           style={{ border: pinned ? "2px solid rgba(var(--roam-electric-rgb),0.65)" : "1px solid rgba(var(--roam-cream-rgb),0.08)" }}
+                           data-testid={`bucket-${b.name.replace(/\s+/g, "-")}`}>
+                        <img src={b.url} alt={b.name} className="w-[110px] h-[110px] object-cover" loading="lazy" />
+                        <div className="absolute inset-0 pointer-events-none"
+                             style={{ background: "linear-gradient(to top, rgba(0,0,0,0.78) 0%, transparent 55%)" }} />
+                        <div className="absolute bottom-0 left-0 right-0 p-2">
+                          <div className="font-semibold text-[10px] text-white leading-tight">{b.name}</div>
+                          <div className="font-mono text-[8px] mt-0.5" style={{ color: "rgba(255,255,255,0.48)" }}>{b.want}</div>
+                        </div>
+                        {pinned && (
+                          <div className="absolute top-1.5 right-1.5">
+                            <BookmarkCheck size={12} style={{ color: "var(--roam-electric)" }} />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
               <div className="mx-3.5 mt-5 rounded-2xl p-4"
                    style={{ background: "rgba(var(--roam-electric-rgb),0.04)", border: "1px solid rgba(var(--roam-electric-rgb),0.1)" }}>

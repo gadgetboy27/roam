@@ -36,8 +36,8 @@ export default function AppNav() {
     <>
       <nav className="sticky top-0 z-50 backdrop-blur-xl"
            style={{
-             background: `rgba(var(--roam-forest-rgb),0.94)`,
-             borderBottom: `1px solid rgba(var(--roam-cream-rgb),0.07)`,
+             background: `rgba(var(--roam-forest-rgb),0.12)`,
+             borderBottom: `1px solid rgba(var(--roam-cream-rgb),0.06)`,
            }}>
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
           <Link href="/">
@@ -117,8 +117,8 @@ export default function AppNav() {
 
       <div className="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-xl"
            style={{
-             background: `rgba(var(--roam-forest-rgb),0.96)`,
-             borderTop: `1px solid rgba(var(--roam-cream-rgb),0.08)`,
+             background: `rgba(var(--roam-forest-rgb),0.14)`,
+             borderTop: `1px solid rgba(var(--roam-cream-rgb),0.1)`,
            }}
            data-testid="bottom-nav">
         <div className="max-w-lg mx-auto flex items-center justify-around px-4 pt-2 pb-[env(safe-area-inset-bottom,8px)]" style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom))" }}>
