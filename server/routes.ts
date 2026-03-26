@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { Server as SocketServer } from "socket.io";
 import { storage } from "./storage";
@@ -10,9 +10,27 @@ import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
 import session from "express-session";
-import MemoryStore from "memorystore";
+import connectPgSimple from "connect-pg-simple";
+import pg from "pg";
 
-const SessionStore = MemoryStore(session);
+const PgSessionStore = connectPgSimple(session);
+const isProd = process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1";
+
+const authAttempts = new Map<string, { count: number; resetAt: number }>();
+function rateLimit(req: Request, res: Response, next: NextFunction) {
+  const key = req.ip || "unknown";
+  const now = Date.now();
+  const rec = authAttempts.get(key);
+  if (rec && now < rec.resetAt) {
+    if (rec.count >= 10) {
+      return res.status(429).json({ message: "Too many attempts. Please try again in 15 minutes." });
+    }
+    rec.count++;
+  } else {
+    authAttempts.set(key, { count: 1, resetAt: now + 15 * 60 * 1000 });
+  }
+  next();
+}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -47,17 +65,29 @@ export async function registerRoutes(
     await mkdir(uploadsDir, { recursive: true });
   }
 
+  const sessionPool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+
+  app.set("trust proxy", 1);
   app.use(
     session({
-      secret: process.env.SESSION_SECRET || "roam-dev-secret-key",
+      secret: process.env.SESSION_SECRET!,
       resave: false,
       saveUninitialized: false,
-      cookie: { secure: false, maxAge: 30 * 24 * 60 * 60 * 1000 },
-      store: new SessionStore({ checkPeriod: 86400000 }),
+      cookie: {
+        secure: isProd,
+        httpOnly: true,
+        sameSite: isProd ? "strict" : "lax",
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+      },
+      store: new PgSessionStore({
+        pool: sessionPool,
+        tableName: "user_sessions",
+        createTableIfMissing: true,
+      }),
     })
   );
 
-  app.post("/api/auth/signup", async (req, res) => {
+  app.post("/api/auth/signup", rateLimit, async (req, res) => {
     try {
       const parsed = signupSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -93,7 +123,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/auth/login", async (req, res) => {
+  app.post("/api/auth/login", rateLimit, async (req, res) => {
     try {
       const { email, password } = req.body;
       if (!email || !password) {
@@ -138,7 +168,9 @@ export async function registerRoutes(
     });
   });
 
-  app.get("/api/users", async (_req, res) => {
+  app.get("/api/users", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
     const allUsers = await storage.getAllUsers();
     const safe = allUsers.map(({ password: _, ...u }) => u);
     res.json(safe);
