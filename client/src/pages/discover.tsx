@@ -286,6 +286,16 @@ export default function Discover() {
             </button>
           )}
 
+          {profile.hasNewMatch && (
+            <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl backdrop-blur-md"
+                    style={{ background: "rgba(0,0,0,0.55)", border: "1.5px solid rgba(var(--roam-electric-rgb),0.85)", animation: "pulse 2s infinite" }}
+                    onClick={() => navigate("/matches")}
+                    data-testid="badge-new-match">
+              <span style={{ fontSize: "10px", color: "var(--roam-electric)" }}>✦</span>
+              <span className="font-mono text-[9px] tracking-wider font-bold" style={{ color: "var(--roam-electric)" }}>new match!</span>
+            </button>
+          )}
+
           {profile.pioneerBadge && (
             <div className="relative">
               <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl backdrop-blur-md transition-all"
@@ -327,15 +337,6 @@ export default function Discover() {
             </div>
           )}
 
-          {profile.hasNewMatch && (
-            <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl backdrop-blur-md"
-                    style={{ background: "rgba(var(--roam-electric-rgb),0.2)", border: "1px solid rgba(var(--roam-electric-rgb),0.6)", animation: "pulse 2s infinite" }}
-                    onClick={() => navigate("/matches")}
-                    data-testid="badge-new-match">
-              <span style={{ fontSize: "10px" }}>✦</span>
-              <span className="font-mono text-[9px] tracking-wider" style={{ color: "var(--roam-electric)" }}>new match!</span>
-            </button>
-          )}
         </div>
 
         <div className="absolute left-0 right-0 px-5" style={{ bottom: "144px" }}>
