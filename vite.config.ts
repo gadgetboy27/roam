@@ -32,7 +32,7 @@ export default defineConfig({
     emptyOutDir: true,
   },
   optimizeDeps: {
-    include: ["socket.io-client"],
+    include: ["socket.io-client", "@supabase/supabase-js"],
   },
   server: {
     fs: {

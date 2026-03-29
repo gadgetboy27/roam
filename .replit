@@ -71,3 +71,9 @@ outputType = "webview"
 
 [agent]
 integrations = ["stripe:1.0.0"]
+
+[userenv]
+
+[userenv.shared]
+VITE_SUPABASE_URL = "https://znqbnldsalsfpraiplxz.supabase.co"
+VITE_SUPABASE_ANON_KEY = ""

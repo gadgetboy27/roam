@@ -1,139 +1,135 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import AppNav from "@/components/app-nav";
-import { Send, ArrowLeft, WifiOff, Clock, MapPin, BookmarkCheck, Bookmark, Compass, Flame, MessageCircle, Hourglass } from "lucide-react";
-import { getSocket } from "@/lib/socket";
+import {
+  Send, ArrowLeft, WifiOff, Clock, MapPin, BookmarkCheck,
+  Bookmark, Compass, Flame, MessageCircle, Hourglass, Zap
+} from "lucide-react";
 import { useConnectionStatus } from "@/lib/useConnectionStatus";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
+import {
+  supabase, fetchMessages, sendSupabaseMessage, markMessagesRead,
+  setTyping, subscribeToMessages, subscribeToTyping,
+  type SupabaseMessage,
+} from "@/lib/supabase";
 import {
   getCachedMessages, appendCachedMessage, cacheMessages,
   enqueuePending, loadPendingQueue, clearPendingQueue,
   type CachedMessage,
 } from "@/lib/messageCache";
 
-const MY_USER_ID = "demo-user";
-
 const DEMO_CONNECTIONS = [
   {
-    id: "match-1",
+    id: "match-demo-1",
     name: "Mia",
     nameAge: "Mia, 28",
-    shared: ["climbing", "alpine hiking", "night markets"],
+    shared: ["alpine hiking", "rock climbing", "night markets"],
     when: "Matched 2h ago",
     img: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=150&q=80&fit=crop",
-    autoReplies: [
-      "Hey! I noticed you hike too — what's your favourite trail in the South Island?",
-      "That sounds amazing! I've been meaning to do the Routeburn. Have you done it?",
-      "We should plan something! I'm free most weekends in March.",
-    ],
+    opener: "You've both tagged alpine routes — who had the bigger summit this year?",
     seed: [] as CachedMessage[],
   },
   {
-    id: "match-2",
+    id: "match-demo-2",
     name: "Kai",
     nameAge: "Kai, 31",
     shared: ["surfing", "night markets", "urban roaming"],
     when: "Matched yesterday",
     img: "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=150&q=80&fit=crop",
-    autoReplies: [
-      "Yeah Raglan is my favourite break in NZ! Do you surf?",
-      "Nice, we should hit it together sometime. I go most weekends when there's swell.",
-      "Check the forecast this Saturday — looking solid 👊",
-    ],
+    opener: "You've both ridden Raglan — did you catch the right-hander or go left?",
     seed: [
-      { id: "seed-k1", matchId: "match-2", senderId: "kai", content: "Hey! That surf shot at Raglan looks amazing", createdAt: new Date(Date.now() - 3600000).toISOString() },
+      { id: "seed-k1", matchId: "match-demo-2", senderId: "kai", content: "Hey! That surf shot at Raglan looks amazing", createdAt: new Date(Date.now() - 3600000).toISOString() },
     ] as CachedMessage[],
   },
   {
-    id: "match-3",
+    id: "match-demo-3",
     name: "Sam",
     nameAge: "Sam, 26",
     shared: ["backpacking", "kayaking", "forest trails"],
     when: "Matched 3 days ago",
     img: "https://images.unsplash.com/photo-1473773508845-188df298d2d1?w=150&q=80&fit=crop",
-    autoReplies: [
-      "Abel Tasman is on my list! Are you thinking the full track or just water taxi + hike?",
-      "Full track sounds epic. Maybe late Jan when the weather is perfect?",
-      "I'll start looking at booking the huts. Great chatting!",
-    ],
+    opener: "You're both planning Abel Tasman — full track or water taxi in?",
     seed: [
-      { id: "seed-s1", matchId: "match-3", senderId: "sam", content: "We should hit Abel Tasman together next summer!", createdAt: new Date(Date.now() - 86400000).toISOString() },
+      { id: "seed-s1", matchId: "match-demo-3", senderId: "sam", content: "We should hit Abel Tasman together next summer!", createdAt: new Date(Date.now() - 86400000).toISOString() },
     ] as CachedMessage[],
   },
 ];
 
 const BUCKET_LIST = [
-  {
-    name: "Faroe Islands",
-    want: "3 matches want this",
-    url: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=300&q=80&fit=crop",
-    count: 3,
-  },
-  {
-    name: "Patagonia",
-    want: "7 matches want this",
-    url: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=300&q=80&fit=crop",
-    count: 7,
-  },
-  {
-    name: "Kyoto autumn",
-    want: "12 matches want this",
-    url: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=300&q=80&fit=crop",
-    count: 12,
-  },
-  {
-    name: "Iceland",
-    want: "5 matches want this",
-    url: "https://images.unsplash.com/photo-1476610182048-b716b8518aae?w=300&q=80&fit=crop",
-    count: 5,
-  },
-  {
-    name: "Lofoten",
-    want: "2 matches want this",
-    url: "https://images.unsplash.com/photo-1559628376-f3fe8b41e8e0?w=300&q=80&fit=crop",
-    count: 2,
-  },
+  { name: "Faroe Islands", want: "3 matches want this", url: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=300&q=80&fit=crop", count: 3 },
+  { name: "Patagonia", want: "7 matches want this", url: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=300&q=80&fit=crop", count: 7 },
+  { name: "Kyoto autumn", want: "12 matches want this", url: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=300&q=80&fit=crop", count: 12 },
+  { name: "Iceland", want: "5 matches want this", url: "https://images.unsplash.com/photo-1476610182048-b716b8518aae?w=300&q=80&fit=crop", count: 5 },
+  { name: "Lofoten", want: "2 matches want this", url: "https://images.unsplash.com/photo-1559628376-f3fe8b41e8e0?w=300&q=80&fit=crop", count: 2 },
 ];
 
 function formatTime(d: Date | string) {
   return new Date(d).toLocaleTimeString("en-NZ", { hour: "numeric", minute: "2-digit" });
 }
 
-type MomentumState = "say-hi" | "your-turn" | "their-turn";
+function formatDay(d: Date | string) {
+  const date = new Date(d);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  if (date.toDateString() === today.toDateString()) return "Today";
+  if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+  return date.toLocaleDateString("en-NZ", { weekday: "long", day: "numeric", month: "short" });
+}
 
-function getMomentum(msgs: CachedMessage[]): MomentumState {
+type MomentumState = "say-hi" | "your-turn" | "their-turn";
+function getMomentum(msgs: CachedMessage[], myId: string): MomentumState {
   if (!msgs.length) return "say-hi";
   const last = msgs[msgs.length - 1];
-  if (last.senderId === MY_USER_ID) return "their-turn";
+  if (last.senderId === myId) return "their-turn";
   return "your-turn";
 }
 
 function MomentumBadge({ state, compact = false }: { state: MomentumState; compact?: boolean }) {
+  const sz = compact ? "text-[9px]" : "text-[10px]";
+  const icon = compact ? 9 : 11;
   if (state === "say-hi") return (
-    <div className={`flex items-center gap-1 font-mono tracking-wider ${compact ? "text-[9px]" : "text-[10px]"}`}
-         style={{ color: "var(--roam-electric)" }}>
-      <Compass size={compact ? 9 : 11} />
-      <span>Say hi →</span>
+    <div className={`flex items-center gap-1 font-mono tracking-wider ${sz}`} style={{ color: "var(--roam-electric)" }}>
+      <Compass size={icon} /><span>Say hi →</span>
     </div>
   );
   if (state === "your-turn") return (
-    <div className={`flex items-center gap-1 font-mono tracking-wider ${compact ? "text-[9px]" : "text-[10px]"}`}
-         style={{ color: "#f59e0b" }}>
-      <Flame size={compact ? 9 : 11} />
-      <span>Your turn →</span>
+    <div className={`flex items-center gap-1 font-mono tracking-wider ${sz}`} style={{ color: "#f59e0b" }}>
+      <Flame size={icon} /><span>Your turn →</span>
     </div>
   );
   return (
-    <div className={`flex items-center gap-1 font-mono tracking-wider ${compact ? "text-[9px]" : "text-[10px]"}`}
-         style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
-      <MessageCircle size={compact ? 9 : 11} />
-      <span>Their turn…</span>
+    <div className={`flex items-center gap-1 font-mono tracking-wider ${sz}`} style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+      <MessageCircle size={icon} /><span>Their turn…</span>
     </div>
   );
 }
 
+function sbToCache(msg: SupabaseMessage): CachedMessage {
+  return {
+    id: msg.id,
+    matchId: msg.match_id,
+    senderId: msg.sender_id,
+    content: msg.content,
+    createdAt: msg.created_at,
+  };
+}
+
+function groupByDay(msgs: CachedMessage[]) {
+  const groups: { day: string; messages: CachedMessage[] }[] = [];
+  msgs.forEach(msg => {
+    const day = formatDay(msg.createdAt);
+    const last = groups[groups.length - 1];
+    if (last && last.day === day) last.messages.push(msg);
+    else groups.push({ day, messages: [msg] });
+  });
+  return groups;
+}
+
 export default function Matches() {
   const { user } = useAuth();
+  const myId = user?.id ?? "demo-user";
+
   const { data: bucketList = [] } = useQuery<{ id: string; destinationName: string; imageUrl: string | null }[]>({
     queryKey: ["/api/bucket-list", user?.id],
     enabled: !!user,
@@ -153,15 +149,20 @@ export default function Matches() {
     return init;
   });
   const [inputVal, setInputVal] = useState("");
-  const [typing, setTyping] = useState(false);
-  const [replyIdx, setReplyIdx] = useState<Record<string, number>>({});
+  const [theirTyping, setTheirTyping] = useState(false);
+  const [typingTimeout, setTypingTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [openerUsed, setOpenerUsed] = useState<Record<string, boolean>>({});
+  const [sbReady, setSbReady] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const connectionStatus = useConnectionStatus();
   const isOnline = connectionStatus === "online";
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const selectedMatch = DEMO_CONNECTIONS.find(m => m.id === selectedId);
-  const messages = selectedId ? (conversations[selectedId] || []) : [];
+  const messages = selectedId ? (conversations[selectedId] ?? []) : [];
 
   const waitingMatches = dbMatches.filter((m: any) =>
     (m.status === "liked_a" && m.userAId === user?.id) ||
@@ -170,85 +171,127 @@ export default function Matches() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, typing]);
+  }, [messages, theirTyping]);
 
   useEffect(() => {
-    const socket = getSocket();
-    socket.on("new_message", (msg: CachedMessage & { tempId?: string }) => {
-      setConversations(prev => {
-        const existing = prev[msg.matchId] ?? [];
-        const deduped = existing.filter(m => m.id !== msg.tempId && m.id !== msg.id);
-        const updated = [...deduped, { ...msg }];
-        appendCachedMessage(msg.matchId, { ...msg });
-        return { ...prev, [msg.matchId]: updated };
-      });
-      setTyping(false);
-    });
-    return () => { socket.off("new_message"); };
-  }, []);
+    if (!selectedId) return;
+    setTheirTyping(false);
 
-  useEffect(() => {
-    if (selectedId) {
-      const socket = getSocket();
-      socket.emit("join_match", selectedId);
+    if (!sbReady) {
+      const cached = getCachedMessages(selectedId);
+      if (cached.length > 0) {
+        setConversations(prev => ({ ...prev, [selectedId]: cached }));
+      }
     }
+
+    fetchMessages(selectedId).then(rows => {
+      if (rows.length > 0) {
+        setSbReady(true);
+        const msgs = rows.map(sbToCache);
+        setConversations(prev => ({ ...prev, [selectedId]: msgs }));
+        cacheMessages(selectedId, msgs);
+        if (user) markMessagesRead(selectedId, myId);
+      }
+    });
+
+    const msgSub = subscribeToMessages(selectedId, (newMsg) => {
+      if (newMsg.sender_id === myId) return;
+      const cached = sbToCache(newMsg);
+      setConversations(prev => {
+        const existing = prev[selectedId] ?? [];
+        const updated = [...existing.filter(m => m.id !== newMsg.id), cached];
+        appendCachedMessage(selectedId, cached);
+        return { ...prev, [selectedId]: updated };
+      });
+      setTheirTyping(false);
+    });
+
+    const typSub = subscribeToTyping(selectedId, myId, (isTyping) => {
+      setTheirTyping(isTyping);
+      if (isTyping) {
+        if (typingTimeout) clearTimeout(typingTimeout);
+        const t = setTimeout(() => setTheirTyping(false), 4000);
+        setTypingTimeout(t);
+      }
+    });
+
+    channelRef.current = msgSub as any;
+    typingChannelRef.current = typSub as any;
+
+    const pending = loadPendingQueue().filter(m => m.matchId === selectedId);
+    if (pending.length > 0 && isOnline) {
+      pending.forEach(async msg => {
+        const sent = await sendSupabaseMessage(msg.matchId, msg.senderId, msg.content);
+        if (sent) {
+          setConversations(prev => {
+            const updated = (prev[selectedId] ?? []).map(m =>
+              m.id === msg.id ? { ...sbToCache(sent) } : m
+            );
+            return { ...prev, [selectedId]: updated };
+          });
+        }
+      });
+      clearPendingQueue();
+    }
+
+    return () => {
+      if (channelRef.current) supabase.removeChannel(channelRef.current as any);
+      if (typingChannelRef.current) supabase.removeChannel(typingChannelRef.current as any);
+      setTyping(selectedId, myId, false);
+    };
   }, [selectedId]);
 
-  useEffect(() => {
-    if (!isOnline) return;
-    const queue = loadPendingQueue();
-    if (queue.length === 0) return;
-    const socket = getSocket();
-    queue.forEach(msg => {
-      socket.emit("send_message", { matchId: msg.matchId, senderId: msg.senderId, content: msg.content, tempId: msg.id });
-    });
-    clearPendingQueue();
-  }, [isOnline]);
+  const handleTyping = (val: string) => {
+    setInputVal(val);
+    if (!selectedId || !user) return;
+    if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
+    setTyping(selectedId, myId, true);
+    typingDebounceRef.current = setTimeout(() => {
+      setTyping(selectedId!, myId, false);
+    }, 2500);
+  };
 
-  useEffect(() => {
-    if (selectedId) {
-      const msgs = conversations[selectedId] ?? [];
-      cacheMessages(selectedId, msgs);
-    }
-  }, [conversations, selectedId]);
-
-  const sendMessage = useCallback(() => {
-    if (!inputVal.trim() || !selectedId || !selectedMatch) return;
-    const tempId = `temp-${Date.now()}`;
-    const myMsg: CachedMessage = {
-      id: tempId, matchId: selectedId, senderId: MY_USER_ID,
-      content: inputVal.trim(), createdAt: new Date().toISOString(), pending: !isOnline,
-    };
-
-    setConversations(prev => ({ ...prev, [selectedId]: [...(prev[selectedId] || []), myMsg] }));
+  const sendMessage = useCallback(async (overrideContent?: string) => {
+    const content = (overrideContent ?? inputVal).trim();
+    if (!content || !selectedId) return;
     setInputVal("");
 
+    const tempId = `temp-${Date.now()}`;
+    const tempMsg: CachedMessage = {
+      id: tempId, matchId: selectedId, senderId: myId,
+      content, createdAt: new Date().toISOString(), pending: !isOnline,
+    };
+
+    setConversations(prev => ({ ...prev, [selectedId]: [...(prev[selectedId] ?? []), tempMsg] }));
+    setTyping(selectedId, myId, false);
+
     if (isOnline) {
-      const socket = getSocket();
-      socket.emit("send_message", { matchId: selectedId, senderId: MY_USER_ID, content: myMsg.content, tempId });
-      const idx = replyIdx[selectedId] ?? 0;
-      const reply = selectedMatch.autoReplies[idx % selectedMatch.autoReplies.length];
-      setTyping(true);
-      setTimeout(() => {
-        setTyping(false);
-        const theirMsg: CachedMessage = {
-          id: `auto-${Date.now()}`, matchId: selectedId, senderId: selectedMatch.id,
-          content: reply, createdAt: new Date().toISOString(),
-        };
-        setConversations(prev => ({ ...prev, [selectedId]: [...(prev[selectedId] || []), theirMsg] }));
-        appendCachedMessage(selectedId, theirMsg);
-        setReplyIdx(r => ({ ...r, [selectedId]: idx + 1 }));
-      }, 1200 + Math.random() * 700);
+      const sent = await sendSupabaseMessage(selectedId, myId, content);
+      if (sent) {
+        const real = sbToCache(sent);
+        setConversations(prev => {
+          const updated = (prev[selectedId] ?? []).map(m => m.id === tempId ? real : m);
+          cacheMessages(selectedId, updated);
+          return { ...prev, [selectedId]: updated };
+        });
+      }
     } else {
-      enqueuePending(myMsg);
-      appendCachedMessage(selectedId, myMsg);
+      enqueuePending(tempMsg);
+      appendCachedMessage(selectedId, tempMsg);
     }
-  }, [inputVal, selectedId, selectedMatch, isOnline, replyIdx]);
+  }, [inputVal, selectedId, myId, isOnline]);
+
+  const useOpener = () => {
+    if (!selectedMatch || !selectedId) return;
+    setOpenerUsed(prev => ({ ...prev, [selectedId]: true }));
+    sendMessage(selectedMatch.opener);
+  };
 
   const openChat = (id: string) => {
     setSelectedId(id);
+    setSbReady(false);
     setInputVal("");
-    setTimeout(() => inputRef.current?.focus(), 100);
+    setTimeout(() => inputRef.current?.focus(), 200);
   };
 
   const offlineBanner = () => {
@@ -256,19 +299,7 @@ export default function Matches() {
       <div className="mx-3.5 mb-3 rounded-xl px-3 py-2 flex items-center gap-2"
            style={{ background: "rgba(232,98,26,0.1)", border: "1px solid rgba(232,98,26,0.25)" }}>
         <WifiOff size={12} style={{ color: "var(--roam-ember)" }} />
-        <span className="font-mono text-[10px]" style={{ color: "rgba(232,98,26,0.85)" }}>
-          Offline — viewing cached messages
-        </span>
-      </div>
-    );
-    if (connectionStatus === "connecting") return (
-      <div className="mx-3.5 mb-3 rounded-xl px-3 py-2 flex items-center gap-2"
-           style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)" }}>
-        <div className="flex gap-0.5">
-          {[0,1,2].map(i => <div key={i} className="w-1 h-1 rounded-full"
-            style={{ background: "#f59e0b", animation: `bounce-dot 0.9s ${i*0.15}s infinite` }} />)}
-        </div>
-        <span className="font-mono text-[10px]" style={{ color: "rgba(245,158,11,0.85)" }}>Connecting…</span>
+        <span className="font-mono text-[10px]" style={{ color: "rgba(232,98,26,0.85)" }}>Offline — viewing cached messages</span>
       </div>
     );
     return null;
@@ -280,6 +311,7 @@ export default function Matches() {
       <div className="relative z-10">
         <AppNav />
         <div className="max-w-lg mx-auto pb-32">
+
           {!selectedId ? (
             <>
               <div className="px-4 pt-6 pb-4 animate-fade-up">
@@ -327,10 +359,10 @@ export default function Matches() {
 
               <div className="px-3.5 space-y-2" data-testid="connections-list">
                 {DEMO_CONNECTIONS.map((m, i) => {
-                  const msgs = conversations[m.id] || [];
+                  const msgs = conversations[m.id] ?? [];
                   const last = msgs[msgs.length - 1] ?? null;
                   const hasPending = msgs.some(msg => msg.pending);
-                  const momentum = getMomentum(msgs);
+                  const momentum = getMomentum(msgs, myId);
                   return (
                     <div key={m.id}
                          className="rounded-[22px] p-3.5 flex gap-3 items-center cursor-pointer transition-all animate-fade-up"
@@ -364,13 +396,11 @@ export default function Matches() {
                         </div>
                         {last ? (
                           <div className="text-[11px] truncate" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
-                            {last.senderId === MY_USER_ID && <span style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>You: </span>}
+                            {last.senderId === myId && <span style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>You: </span>}
                             {last.content}
                           </div>
                         ) : (
-                          <div className="text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
-                            {m.when}
-                          </div>
+                          <div className="text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>{m.when}</div>
                         )}
                       </div>
                       <div className="flex-shrink-0 text-right">
@@ -469,25 +499,41 @@ export default function Matches() {
                         data-testid="button-back-matches">
                   <ArrowLeft size={15} />
                 </button>
-                <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0">
-                  <img src={selectedMatch!.img} alt="" className="w-full h-full object-cover" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm">{selectedMatch!.nameAge}</div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full"
-                         style={{ background: isOnline ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.25)" }} />
-                    <div className="font-mono text-[9px]"
-                         style={{ color: isOnline ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.3)" }}>
-                      {isOnline
-                        ? selectedMatch!.shared.slice(0, 2).join(" · ")
-                        : "offline — cached view"}
+                {selectedMatch && (
+                  <>
+                    <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0">
+                      <img src={selectedMatch.img} alt="" className="w-full h-full object-cover" />
                     </div>
-                  </div>
-                </div>
-                <div className="flex-shrink-0">
-                  <MomentumBadge state={getMomentum(conversations[selectedId] || [])} compact />
-                </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-sm">{selectedMatch.nameAge}</div>
+                      <div className="flex items-center gap-1.5">
+                        {theirTyping ? (
+                          <div className="flex items-center gap-1">
+                            <div className="flex gap-0.5">
+                              {[0,1,2].map(i => (
+                                <div key={i} className="w-1 h-1 rounded-full"
+                                     style={{ background: "var(--roam-electric)", animation: `bounce-dot 0.9s ${i*0.15}s infinite` }} />
+                              ))}
+                            </div>
+                            <span className="font-mono text-[9px]" style={{ color: "var(--roam-electric)" }}>typing…</span>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="w-1.5 h-1.5 rounded-full"
+                                 style={{ background: isOnline ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.25)" }} />
+                            <div className="font-mono text-[9px]"
+                                 style={{ color: isOnline ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.3)" }}>
+                              {isOnline ? selectedMatch.shared.slice(0, 2).join(" · ") : "offline — cached view"}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-shrink-0">
+                      <MomentumBadge state={getMomentum(conversations[selectedId] ?? [], myId)} compact />
+                    </div>
+                  </>
+                )}
                 {!isOnline && <WifiOff size={14} style={{ color: "rgba(232,98,26,0.6)", flexShrink: 0 }} />}
               </div>
 
@@ -501,17 +547,17 @@ export default function Matches() {
                 </div>
               )}
 
-              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" style={{ scrollbarWidth: "none" }}>
-                {messages.length === 0 && (
-                  <div className="text-center py-12">
+              <div className="flex-1 overflow-y-auto px-4 py-4" style={{ scrollbarWidth: "none" }}>
+                {messages.length === 0 && selectedMatch && (
+                  <div className="text-center py-10">
                     <div className="w-16 h-16 rounded-2xl overflow-hidden mx-auto mb-4">
-                      <img src={selectedMatch!.img} alt="" className="w-full h-full object-cover" />
+                      <img src={selectedMatch.img} alt="" className="w-full h-full object-cover" />
                     </div>
                     <div className="font-serif text-base font-bold mb-1">
-                      You're connected with {selectedMatch!.name}!
+                      You're connected with {selectedMatch.name}!
                     </div>
                     <div className="flex flex-wrap justify-center gap-1 mb-3">
-                      {selectedMatch!.shared.map(t => (
+                      {selectedMatch.shared.map(t => (
                         <span key={t} className="font-mono text-[9px] tracking-wider px-2 py-0.5 rounded-md"
                               style={{ background: "rgba(var(--roam-electric-rgb),0.08)", border: "1px solid rgba(var(--roam-electric-rgb),0.2)", color: "var(--roam-electric)" }}>
                           {t}
@@ -524,38 +570,50 @@ export default function Matches() {
                   </div>
                 )}
 
-                {messages.map(msg => {
-                  const isMe = msg.senderId === MY_USER_ID;
-                  return (
-                    <div key={msg.id} className={`flex gap-2 ${isMe ? "justify-end" : "justify-start"}`}>
-                      {!isMe && (
-                        <div className="w-7 h-7 rounded-lg overflow-hidden flex-shrink-0 self-end">
-                          <img src={selectedMatch!.img} alt="" className="w-full h-full object-cover" />
-                        </div>
-                      )}
-                      <div className="max-w-[78%]">
-                        <div className={`px-3.5 py-2.5 text-[13px] leading-snug ${isMe ? "rounded-2xl rounded-br-md" : "rounded-2xl rounded-bl-md"}`}
-                             style={{
-                               background: isMe ? "var(--roam-electric)" : "var(--roam-surface)",
-                               color: isMe ? "var(--roam-forest)" : "var(--roam-cream)",
-                               opacity: msg.pending ? 0.6 : 1,
-                             }}>
-                          {msg.content}
-                        </div>
-                        <div className={`font-mono text-[9px] mt-1 flex items-center gap-1 ${isMe ? "justify-end" : "justify-start"}`}
-                             style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}>
-                          {formatTime(msg.createdAt)}
-                          {msg.pending && <Clock size={8} style={{ color: "#f59e0b" }} />}
-                        </div>
-                      </div>
+                {groupByDay(messages).map(group => (
+                  <div key={group.day}>
+                    <div className="text-center my-4">
+                      <span className="font-mono text-[9px] tracking-wider px-3 py-1 rounded-full"
+                            style={{ background: "rgba(var(--roam-cream-rgb),0.06)", color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+                        {group.day}
+                      </span>
                     </div>
-                  );
-                })}
+                    <div className="space-y-3">
+                      {group.messages.map(msg => {
+                        const isMe = msg.senderId === myId;
+                        return (
+                          <div key={msg.id} className={`flex gap-2 ${isMe ? "justify-end" : "justify-start"}`}>
+                            {!isMe && selectedMatch && (
+                              <div className="w-7 h-7 rounded-lg overflow-hidden flex-shrink-0 self-end">
+                                <img src={selectedMatch.img} alt="" className="w-full h-full object-cover" />
+                              </div>
+                            )}
+                            <div className="max-w-[78%]">
+                              <div className={`px-3.5 py-2.5 text-[13px] leading-snug ${isMe ? "rounded-2xl rounded-br-md" : "rounded-2xl rounded-bl-md"}`}
+                                   style={{
+                                     background: isMe ? "var(--roam-electric)" : "var(--roam-surface)",
+                                     color: isMe ? "var(--roam-forest)" : "var(--roam-cream)",
+                                     opacity: msg.pending ? 0.6 : 1,
+                                   }}>
+                                {msg.content}
+                              </div>
+                              <div className={`font-mono text-[9px] mt-1 flex items-center gap-1 ${isMe ? "justify-end" : "justify-start"}`}
+                                   style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}>
+                                {formatTime(msg.createdAt)}
+                                {msg.pending && <Clock size={8} style={{ color: "#f59e0b" }} />}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
 
-                {typing && (
-                  <div className="flex gap-2 justify-start">
+                {theirTyping && selectedMatch && (
+                  <div className="flex gap-2 justify-start mt-3">
                     <div className="w-7 h-7 rounded-lg overflow-hidden flex-shrink-0 self-end">
-                      <img src={selectedMatch!.img} alt="" className="w-full h-full object-cover" />
+                      <img src={selectedMatch.img} alt="" className="w-full h-full object-cover" />
                     </div>
                     <div className="px-4 py-3 rounded-2xl rounded-bl-md" style={{ background: "var(--roam-surface)" }}>
                       <div className="flex gap-1 items-center">
@@ -570,6 +628,26 @@ export default function Matches() {
                 <div ref={bottomRef} />
               </div>
 
+              {selectedMatch && !openerUsed[selectedId] && messages.length === 0 && (
+                <div className="px-3.5 pt-2 flex-shrink-0">
+                  <button
+                    className="w-full px-4 py-3 rounded-2xl text-left transition-all flex items-start gap-2.5"
+                    style={{ background: "rgba(var(--roam-electric-rgb),0.07)", border: "1px solid rgba(var(--roam-electric-rgb),0.28)" }}
+                    onClick={useOpener}
+                    data-testid="button-adventure-opener">
+                    <Zap size={13} style={{ color: "var(--roam-electric)", flexShrink: 0, marginTop: 2 }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-mono text-[8px] tracking-wider uppercase mb-1" style={{ color: "rgba(var(--roam-electric-rgb),0.65)" }}>
+                        Adventure opener · tap to send
+                      </div>
+                      <div className="text-[12px] leading-snug italic" style={{ color: "rgba(var(--roam-cream-rgb),0.75)" }}>
+                        "{selectedMatch.opener}"
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              )}
+
               <div className="px-3.5 py-3 flex-shrink-0"
                    style={{ borderTop: "1px solid rgba(var(--roam-cream-rgb),0.07)", background: "rgba(var(--roam-forest-rgb),0.85)", backdropFilter: "blur(12px)" }}>
                 <div className="flex gap-2">
@@ -578,7 +656,7 @@ export default function Matches() {
                          style={{ background: "var(--roam-surface)", border: "1px solid rgba(var(--roam-cream-rgb),0.1)", color: "var(--roam-cream)" }}
                          placeholder={isOnline ? "Say something adventurous..." : "Offline — queues and sends when back…"}
                          value={inputVal}
-                         onChange={e => setInputVal(e.target.value)}
+                         onChange={e => handleTyping(e.target.value)}
                          onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()}
                          data-testid="input-message" />
                   <button className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all flex-shrink-0"
@@ -586,7 +664,7 @@ export default function Matches() {
                             background: inputVal.trim() ? (isOnline ? "var(--roam-electric)" : "#f59e0b") : "rgba(var(--roam-cream-rgb),0.06)",
                             color: inputVal.trim() ? "var(--roam-forest)" : "rgba(var(--roam-cream-rgb),0.25)",
                           }}
-                          onClick={sendMessage}
+                          onClick={() => sendMessage()}
                           disabled={!inputVal.trim()}
                           data-testid="button-send">
                     {isOnline ? <Send size={16} /> : <Clock size={16} />}
