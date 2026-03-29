@@ -1,0 +1,47 @@
+Firebase Realtime DBGoogle-backed, dead simple, offline supportFree to 1GB, then pay-as-goEarly Tinder
+Honest verdict: For ROAM at MVP these are overkill and expensive at scale. Supabase Realtime does 90% of what you need for near-zero cost. Graduate to Stream or SendBird when you hit 10,000+ active users.
+
+Option 3 — Native device SMS (what you were hinting at)
+Technically possible via Twilio — you pay per message (~NZD $0.08/SMS) and messages land in the user's native Messages app. Zero app required.
+Why not to do this: Every major app deliberately avoids it. The moment users swap numbers the app loses them — no engagement data, no safety tools, no revenue. Bumble, Hinge and Tinder all actively prevent number-sharing in early conversations for exactly this reason. Keep them in the app.
+
+What the Big Apps Actually Built
+Tinder uses Node.js backend with MongoDB and Redis, WebSockets for real-time chat, and AWS hosting. Bumble uses Node.js, DynamoDB and Redis. Hinge uses Python/Django with PostgreSQL and AWS. NoGood All three built their own WebSocket infrastructure once they scaled past early tooling.
+WebSockets are the standard for real-time messaging and push notifications in dating apps — they keep a persistent connection open so messages arrive instantly without the app needing to poll. Substack
+
+What ROAM Should Copy — Feature by Feature
+From Bumble:
+
+Women message first — or in ROAM's case, the person with the higher adventure overlap gets the first message prompt. Frames it as meaningful, not arbitrary.
+24-hour expiry on unstarted conversations — creates urgency, reduces dead matches cluttering the inbox
+Push notifications when a match sends a message — this is the most critical re-engagement tool in any dating app Visibrain
+
+From Hinge:
+
+Conversation starters auto-generated from shared tags — "You've both been to Milford Sound. Who had the better weather?" — this is easy to build with Claude and removes the "hey" cold-open problem entirely
+Hinge's "Most Compatible" AI feature boosted second-date rates by 75% CanvasBusinessModel — ROAM's equivalent is surfacing the Almost Met detail as the opening message prompt
+
+From Tinder:
+
+Read receipts (subtle — a tiny tick, not aggressive)
+Message reactions — tap-hold to react with an emoji. Lowers the barrier for short acknowledgements without needing a reply
+
+From iMessage / WhatsApp (the UX standard):
+
+Bubble layout — your messages right-aligned in electric green, theirs left-aligned in dark surface colour
+Typing indicator — three dots, shows the person is active
+Time stamps grouped by day, not per message
+
+
+The ROAM-specific messaging feature nobody else has
+The Adventure Opener. When a match is made, Claude generates one auto-suggested opener based on the shared tags and Almost Met data. It appears as a tap-to-send chip above the keyboard:
+"You were both at Milford Sound in January — did you take the water taxi in or hike?"
+The user taps it, it sends. One tap. The awkward blank screen problem is solved. This is doable in a single Claude API call at match time and costs fractions of a cent per match. No other app does this with geographic specificity — it's uniquely ROAM.
+
+Build Order for Messaging
+
+Supabase Realtime — wire up the channel subscription, messages table, basic bubble UI. This is maybe 2 days of dev work using the code Supabase literally provides.
+Push notifications via Resend — email fallback when user is offline, then upgrade to Expo Push when you go native
+Adventure Opener — Claude API call at match time, one suggested message pre-populated
+Typing indicators + read receipts — Supabase Presence handles this natively, one extra subscription
+Message reactions — add after launch, nice-to-have
