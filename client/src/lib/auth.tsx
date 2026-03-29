@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
-import { apiRequest } from "./queryClient";
+import { supabase } from "./supabase";
 
 export interface AuthUser {
   id: string;
@@ -15,6 +15,9 @@ export interface AuthUser {
   photoLicenseAgreed: boolean;
   adventureTags: string[] | null;
   avatarUrl: string | null;
+  identityVerified?: boolean;
+  identityVerificationId?: string | null;
+  identityVerifiedAt?: string | null;
 }
 
 interface AuthCtx {
@@ -33,17 +36,33 @@ export function useAuth() {
   return ctx;
 }
 
+async function fetchProfile(token: string): Promise<AuthUser | null> {
+  try {
+    const res = await fetch("/api/auth/me", {
+      headers: { Authorization: `Bearer ${token}` },
+      credentials: "include",
+    });
+    if (res.ok) return await res.json();
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch("/api/auth/me", { credentials: "include" });
-      if (res.ok) {
-        setUser(await res.json());
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        const profile = await fetchProfile(session.access_token);
+        setUser(profile);
       } else {
-        setUser(null);
+        const res = await fetch("/api/auth/me", { credentials: "include" });
+        if (res.ok) setUser(await res.json());
+        else setUser(null);
       }
     } catch {
       setUser(null);
@@ -52,27 +71,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    refresh();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === "SIGNED_OUT") {
+          setUser(null);
+          setLoading(false);
+        } else if (session?.access_token) {
+          setLoading(true);
+          const profile = await fetchProfile(session.access_token);
+          setUser(profile);
+          setLoading(false);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, [refresh]);
 
   const login = async (email: string, password: string) => {
-    let res: Response;
-    try {
-      res = await apiRequest("POST", "/api/auth/login", { email, password });
-    } catch (err: any) {
-      const raw = err?.message || "";
-      const jsonStr = raw.replace(/^\d+:\s*/, "");
-      try {
-        const parsed = JSON.parse(jsonStr);
-        throw new Error(parsed.message || "Invalid email or password");
-      } catch (inner: any) {
-        if (inner?.message && inner.message !== jsonStr) throw inner;
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      if (error.message.toLowerCase().includes("invalid") || error.message.toLowerCase().includes("credentials")) {
         throw new Error("Invalid email or password");
       }
+      throw new Error(error.message);
     }
-    setUser(await res.json());
+    if (data.session?.access_token) {
+      const profile = await fetchProfile(data.session.access_token);
+      if (!profile) throw new Error("Account not found. Please sign up first.");
+      setUser(profile);
+    }
   };
 
   const logout = async () => {
+    await supabase.auth.signOut();
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     setUser(null);
   };

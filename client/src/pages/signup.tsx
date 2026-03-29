@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 import { ArrowLeft, Check, X, Camera, Compass } from "lucide-react";
 
 const TIERS = [
@@ -162,18 +162,38 @@ export default function Signup() {
     setSubmitting(true);
     setError("");
     try {
-      await apiRequest("POST", "/api/auth/signup", {
-        name: form.name,
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
-        dob: form.dob,
-        gender: form.gender,
-        ethnicity: form.ethnicity,
-        location: form.location,
-        tagline: form.tagline,
-        tier,
-        photoLicenseAgreed: tier === "contributor" && !!checked["photo_license"],
       });
+
+      if (signUpError) throw new Error(signUpError.message);
+
+      const token = signUpData.session?.access_token;
+      if (!token) throw new Error("Signup succeeded but no session returned — please check your email to confirm, then sign in.");
+
+      const res = await fetch("/api/auth/profile", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          name: form.name,
+          dob: form.dob,
+          gender: form.gender,
+          ethnicity: form.ethnicity,
+          location: form.location,
+          tagline: form.tagline,
+          tier,
+          photoLicenseAgreed: tier === "contributor" && !!checked["photo_license"],
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: "Profile creation failed" }));
+        throw new Error(err.message);
+      }
       await refresh();
       setStep(4);
     } catch (e: any) {

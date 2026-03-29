@@ -12,6 +12,7 @@ import path from "path";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import pg from "pg";
+import { supabaseAdmin } from "./supabaseAdmin";
 
 const PgSessionStore = connectPgSimple(session);
 const isProd = process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1";
@@ -30,6 +31,21 @@ function rateLimit(req: Request, res: Response, next: NextFunction) {
     authAttempts.set(key, { count: 1, resetAt: now + 15 * 60 * 1000 });
   }
   next();
+}
+
+async function authenticateRequest(req: Request): Promise<string | null> {
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.slice(7);
+    try {
+      const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+      if (!error && user?.email) {
+        const dbUser = await storage.getUserByEmail(user.email);
+        if (dbUser) return dbUser.id;
+      }
+    } catch { /* fall through to session */ }
+  }
+  return (req.session as any)?.userId || null;
 }
 
 export async function registerRoutes(
@@ -150,7 +166,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/auth/me", async (req, res) => {
-    const userId = (req.session as any)?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) {
       return res.status(401).json({ message: "Not authenticated" });
     }
@@ -162,6 +178,47 @@ export async function registerRoutes(
     res.json(safeUser);
   });
 
+  app.post("/api/auth/profile", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith("Bearer ")) {
+        return res.status(401).json({ message: "Supabase token required" });
+      }
+      const token = authHeader.slice(7);
+      const { data: { user: sbUser }, error } = await supabaseAdmin.auth.getUser(token);
+      if (error || !sbUser?.email) {
+        return res.status(401).json({ message: "Invalid token" });
+      }
+
+      const existing = await storage.getUserByEmail(sbUser.email);
+      if (existing) {
+        const { password: _, ...safe } = existing;
+        return res.json(safe);
+      }
+
+      const { name, dob, gender, ethnicity, location, tagline, tier, photoLicenseAgreed } = req.body;
+      if (!name) return res.status(400).json({ message: "Name is required" });
+
+      const newUser = await storage.createUser({
+        name,
+        email: sbUser.email,
+        password: "SUPABASE_AUTH",
+        dob: dob || null,
+        gender: gender || null,
+        ethnicity: ethnicity || null,
+        location: location || null,
+        tagline: tagline || null,
+        tier: tier || "free",
+        photoLicenseAgreed: !!photoLicenseAgreed,
+      });
+
+      const { password: _, ...safe } = newUser;
+      res.status(201).json(safe);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.post("/api/auth/logout", (req, res) => {
     req.session.destroy(() => {
       res.json({ message: "Logged out" });
@@ -169,7 +226,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/users", async (req, res) => {
-    const userId = (req.session as any)?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
     const allUsers = await storage.getAllUsers();
     const safe = allUsers.map(({ password: _, ...u }) => u);
@@ -177,7 +234,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/users/:id", async (req, res) => {
-    const sessionUserId = (req.session as any)?.userId;
+    const sessionUserId = await authenticateRequest(req);
     if (!sessionUserId || sessionUserId !== req.params.id) {
       return res.status(401).json({ message: "Not authorized" });
     }
@@ -265,7 +322,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/matches", async (req, res) => {
-    const userId = (req.session as any)?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) {
       return res.status(401).json({ message: "Not authenticated" });
     }
@@ -374,7 +431,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/verify/start", async (req, res) => {
-    const userId = (req.session as any)?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
 
     try {

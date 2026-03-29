@@ -10,8 +10,9 @@ ROAM is an adventure-matching dating app where users post real travel/adventure 
 - **Backend**: Express (root `server/`) serving both API and Vite dev server on port 5000
 - **Database**: PostgreSQL + Drizzle ORM
 - **Validation**: Zod + drizzle-zod
-- **Auth**: Session-based (express-session + memorystore), scrypt password hashing
-- **Real-time**: Socket.io (server) + socket.io-client (browser) — match rooms, DB-persisted messages
+- **Auth**: Supabase Auth (primary) + express-session (fallback for existing sessions). Server verifies Supabase JWT via `supabaseAdmin.auth.getUser()`, links to Replit DB user by email.
+- **Real-time Messaging**: Supabase Realtime — `messages` + `typing_indicators` tables in Supabase Postgres with RLS + pub/sub
+- **Legacy real-time**: Socket.io kept for backward compat
 - **Offline**: localStorage message cache + pending queue (auto-flushes on reconnect)
 - **Monorepo**: pnpm workspaces (artifacts/*, lib/*)
 
