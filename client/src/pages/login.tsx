@@ -144,8 +144,18 @@ export default function Login() {
                 </div>
               )}
 
+              <div className="text-right -mt-1 mb-1">
+                <Link href="/forgot-password">
+                  <button type="button" className="font-mono text-[10px] tracking-wider"
+                          style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}
+                          data-testid="link-forgot-password">
+                    Forgot password?
+                  </button>
+                </Link>
+              </div>
+
               <button type="submit"
-                      className="w-full py-4 rounded-2xl text-[13px] font-mono tracking-wider uppercase font-medium mt-2 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+                      className="w-full py-4 rounded-2xl text-[13px] font-mono tracking-wider uppercase font-medium mt-1 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
                       style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
                       disabled={!valid || signingIn}
                       data-testid="button-signin">

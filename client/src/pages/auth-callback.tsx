@@ -41,6 +41,12 @@ export default function AuthCallback() {
           session = existing;
         }
 
+        if (type === "recovery") {
+          setStatus("success");
+          setTimeout(() => navigate("/reset-password"), 800);
+          return;
+        }
+
         if (session?.access_token) {
           const profileRes = await fetch("/api/auth/me", {
             headers: { Authorization: `Bearer ${session.access_token}` },
@@ -97,8 +103,10 @@ export default function AuthCallback() {
               ))}
             </div>
             <p className="font-serif text-2xl font-black mb-1">
-              Confirming your<br />
-              <span className="italic" style={{ color: "var(--roam-electric)" }}>account</span>
+              {new URLSearchParams(window.location.search).get("type") === "recovery"
+                ? <>Verifying your<br /><span className="italic" style={{ color: "var(--roam-electric)" }}>reset link</span></>
+                : <>Confirming your<br /><span className="italic" style={{ color: "var(--roam-electric)" }}>account</span></>
+              }
             </p>
             <p className="text-sm mt-2" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
               Just a moment…

@@ -10,6 +10,8 @@ import Landing from "@/pages/landing";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import AuthCallback from "@/pages/auth-callback";
+import ForgotPassword from "@/pages/forgot-password";
+import ResetPassword from "@/pages/reset-password";
 import Discover from "@/pages/discover";
 import Upload from "@/pages/upload";
 import Matches from "@/pages/matches";
@@ -22,6 +24,8 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route path="/auth/callback" component={AuthCallback} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route path="/discover">
         <RequireAuth><Discover /></RequireAuth>
       </Route>
