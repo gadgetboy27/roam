@@ -9,6 +9,7 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
+import AuthCallback from "@/pages/auth-callback";
 import Discover from "@/pages/discover";
 import Upload from "@/pages/upload";
 import Matches from "@/pages/matches";
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
+      <Route path="/auth/callback" component={AuthCallback} />
       <Route path="/discover">
         <RequireAuth><Discover /></RequireAuth>
       </Route>
