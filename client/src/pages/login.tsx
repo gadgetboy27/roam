@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 import { Eye, EyeOff, Compass } from "lucide-react";
+import { SiFacebook } from "react-icons/si";
 
 const HERO_URLS = [
   "https://images.unsplash.com/photo-1551632811-561732d1e306?w=400&q=75&fit=crop",
@@ -29,6 +31,13 @@ export default function Login() {
   }, [user, authLoading, navigate]);
 
   const valid = email.includes("@") && password.length >= 6;
+
+  const handleFacebook = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: "facebook",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,6 +167,16 @@ export default function Login() {
                 <span className="font-mono text-[10px] tracking-wider" style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}>or</span>
                 <div className="flex-1 h-px" style={{ background: "rgba(var(--roam-cream-rgb),0.08)" }} />
               </div>
+
+              <button
+                type="button"
+                onClick={handleFacebook}
+                className="w-full py-3.5 rounded-2xl text-[13px] font-mono tracking-wider uppercase font-medium flex items-center justify-center gap-2.5 transition-all"
+                style={{ background: "#1877f2", color: "#fff" }}
+                data-testid="button-facebook-login">
+                <SiFacebook size={16} />
+                Continue with Facebook
+              </button>
 
               <div className="text-center text-[13px]" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
                 New to roam?{" "}

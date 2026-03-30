@@ -25,21 +25,55 @@ export default function AuthCallback() {
           return;
         }
 
+        let session: any = null;
+
         if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
+          session = data.session;
         } else if (tokenHash && type) {
-          const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+          const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
           if (error) throw error;
+          session = data.session;
         } else {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) throw new Error("No confirmation token found in this link.");
+          const { data: { session: existing } } = await supabase.auth.getSession();
+          if (!existing) throw new Error("No confirmation token found in this link.");
+          session = existing;
+        }
+
+        if (session?.access_token) {
+          const profileRes = await fetch("/api/auth/me", {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+            credentials: "include",
+          });
+
+          if (!profileRes.ok) {
+            const sbUser = session.user;
+            const fullName =
+              sbUser?.user_metadata?.full_name ||
+              sbUser?.user_metadata?.name ||
+              sbUser?.email?.split("@")[0] ||
+              "Adventurer";
+
+            const createRes = await fetch("/api/auth/profile", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${session.access_token}`,
+              },
+              credentials: "include",
+              body: JSON.stringify({ name: fullName, tier: "free" }),
+            });
+            if (!createRes.ok) {
+              const err = await createRes.json().catch(() => ({ message: "Profile creation failed" }));
+              throw new Error(err.message);
+            }
+          }
         }
 
         await refresh();
         setStatus("success");
-
-        setTimeout(() => navigate("/discover"), 1200);
+        setTimeout(() => navigate("/discover"), 1100);
       } catch (err: any) {
         setErrorMsg(err.message || "Verification failed. Try signing in again.");
         setStatus("error");
@@ -47,7 +81,7 @@ export default function AuthCallback() {
     }
 
     handleCallback();
-  }, [navigate, refresh]);
+  }, []);
 
   return (
     <div className="min-h-screen relative flex items-center justify-center px-6">

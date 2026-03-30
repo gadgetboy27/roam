@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { ArrowLeft, Check, X, Camera, Compass } from "lucide-react";
+import { SiFacebook } from "react-icons/si";
 
 const TIERS = [
   {
@@ -152,6 +153,13 @@ export default function Signup() {
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
   const toggle = (id: string) => { setChecked(c => ({ ...c, [id]: !c[id] })); setWarnConsent(false); };
 
+  const handleFacebook = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: "facebook",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+  };
+
   const step1Valid = form.name && form.email && form.password && form.password.length >= 8 && form.dob;
   const requiredConsents = CONSENTS.filter(c => c.required).map(c => c.id);
   const consentValid = requiredConsents.every(id => checked[id]);
@@ -295,6 +303,22 @@ export default function Signup() {
               <p className="text-[13px] mb-5 leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
                 Takes 60 seconds. Your photos do the talking.
               </p>
+
+              <button
+                type="button"
+                onClick={handleFacebook}
+                className="w-full py-3.5 rounded-2xl text-[13px] font-mono tracking-wider uppercase font-medium flex items-center justify-center gap-2.5 mb-4 transition-all"
+                style={{ background: "#1877f2", color: "#fff" }}
+                data-testid="button-facebook-signup">
+                <SiFacebook size={16} />
+                Continue with Facebook
+              </button>
+
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-1 h-px" style={{ background: "rgba(var(--roam-cream-rgb),0.08)" }} />
+                <span className="font-mono text-[10px] tracking-wider" style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}>or sign up with email</span>
+                <div className="flex-1 h-px" style={{ background: "rgba(var(--roam-cream-rgb),0.08)" }} />
+              </div>
 
               <div className="space-y-3">
                 <InputField label="Full name">
