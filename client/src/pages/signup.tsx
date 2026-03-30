@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { ArrowLeft, Check, X, Camera, Compass } from "lucide-react";
-import { SiFacebook } from "react-icons/si";
+import { SiFacebook, SiGoogle } from "react-icons/si";
 
 const TIERS = [
   {
@@ -160,6 +160,13 @@ export default function Signup() {
     });
   };
 
+  const handleGoogle = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+  };
+
   const step1Valid = form.name && form.email && form.password && form.password.length >= 8 && form.dob;
   const requiredConsents = CONSENTS.filter(c => c.required).map(c => c.id);
   const consentValid = requiredConsents.every(id => checked[id]);
@@ -304,15 +311,26 @@ export default function Signup() {
                 Takes 60 seconds. Your photos do the talking.
               </p>
 
-              <button
-                type="button"
-                onClick={handleFacebook}
-                className="w-full py-3.5 rounded-2xl text-[13px] font-mono tracking-wider uppercase font-medium flex items-center justify-center gap-2.5 mb-4 transition-all"
-                style={{ background: "#1877f2", color: "#fff" }}
-                data-testid="button-facebook-signup">
-                <SiFacebook size={16} />
-                Continue with Facebook
-              </button>
+              <div className="grid grid-cols-2 gap-2.5 mb-4">
+                <button
+                  type="button"
+                  onClick={handleGoogle}
+                  className="py-3.5 rounded-2xl text-[12px] font-mono tracking-wide uppercase font-medium flex items-center justify-center gap-2 transition-all"
+                  style={{ background: "rgba(var(--roam-cream-rgb),0.06)", border: "1px solid rgba(var(--roam-cream-rgb),0.12)", color: "var(--roam-cream)" }}
+                  data-testid="button-google-signup">
+                  <SiGoogle size={14} />
+                  Google
+                </button>
+                <button
+                  type="button"
+                  onClick={handleFacebook}
+                  className="py-3.5 rounded-2xl text-[12px] font-mono tracking-wide uppercase font-medium flex items-center justify-center gap-2 transition-all"
+                  style={{ background: "#1877f2", color: "#fff" }}
+                  data-testid="button-facebook-signup">
+                  <SiFacebook size={14} />
+                  Facebook
+                </button>
+              </div>
 
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex-1 h-px" style={{ background: "rgba(var(--roam-cream-rgb),0.08)" }} />

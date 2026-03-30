@@ -3,7 +3,7 @@ import { useLocation, Link } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { Eye, EyeOff, Compass } from "lucide-react";
-import { SiFacebook } from "react-icons/si";
+import { SiFacebook, SiGoogle } from "react-icons/si";
 
 const HERO_URLS = [
   "https://images.unsplash.com/photo-1551632811-561732d1e306?w=400&q=75&fit=crop",
@@ -35,6 +35,13 @@ export default function Login() {
   const handleFacebook = async () => {
     await supabase.auth.signInWithOAuth({
       provider: "facebook",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+  };
+
+  const handleGoogle = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
   };
@@ -168,15 +175,26 @@ export default function Login() {
                 <div className="flex-1 h-px" style={{ background: "rgba(var(--roam-cream-rgb),0.08)" }} />
               </div>
 
-              <button
-                type="button"
-                onClick={handleFacebook}
-                className="w-full py-3.5 rounded-2xl text-[13px] font-mono tracking-wider uppercase font-medium flex items-center justify-center gap-2.5 transition-all"
-                style={{ background: "#1877f2", color: "#fff" }}
-                data-testid="button-facebook-login">
-                <SiFacebook size={16} />
-                Continue with Facebook
-              </button>
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleGoogle}
+                  className="py-3.5 rounded-2xl text-[12px] font-mono tracking-wide uppercase font-medium flex items-center justify-center gap-2 transition-all"
+                  style={{ background: "rgba(var(--roam-cream-rgb),0.06)", border: "1px solid rgba(var(--roam-cream-rgb),0.12)", color: "var(--roam-cream)" }}
+                  data-testid="button-google-login">
+                  <SiGoogle size={14} />
+                  Google
+                </button>
+                <button
+                  type="button"
+                  onClick={handleFacebook}
+                  className="py-3.5 rounded-2xl text-[12px] font-mono tracking-wide uppercase font-medium flex items-center justify-center gap-2 transition-all"
+                  style={{ background: "#1877f2", color: "#fff" }}
+                  data-testid="button-facebook-login">
+                  <SiFacebook size={14} />
+                  Facebook
+                </button>
+              </div>
 
               <div className="text-center text-[13px]" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
                 New to roam?{" "}
