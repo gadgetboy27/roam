@@ -91,8 +91,21 @@ export default function Profile() {
     if (params.get("verified") === "1") {
       setVerifySubmitted(true);
       window.history.replaceState({}, "", "/profile");
+      refresh();
     }
   }, []);
+
+  useEffect(() => {
+    if (!user?.identityVerificationId || user?.identityVerified) return;
+    let attempts = 0;
+    const maxAttempts = 10;
+    const interval = setInterval(async () => {
+      attempts++;
+      await refresh();
+      if (attempts >= maxAttempts) clearInterval(interval);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [user?.identityVerificationId, user?.identityVerified]);
 
   const handleStartVerification = async () => {
     if (!user) return;
