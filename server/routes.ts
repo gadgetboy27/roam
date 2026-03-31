@@ -17,21 +17,41 @@ import { supabaseAdmin } from "./supabaseAdmin";
 const PgSessionStore = connectPgSimple(session);
 const isProd = process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1";
 
-const authAttempts = new Map<string, { count: number; resetAt: number }>();
-function rateLimit(req: Request, res: Response, next: NextFunction) {
-  const key = req.ip || "unknown";
-  const now = Date.now();
-  const rec = authAttempts.get(key);
-  if (rec && now < rec.resetAt) {
-    if (rec.count >= 10) {
-      return res.status(429).json({ message: "Too many attempts. Please try again in 15 minutes." });
+// ---------------------------------------------------------------------------
+// Rate limiting — in-memory per-IP buckets, configurable per endpoint.
+// Each call to createRateLimiter() returns an independent middleware with
+// its own counter store, so limits don't bleed between endpoints.
+// ---------------------------------------------------------------------------
+function createRateLimiter(maxRequests: number, windowMs: number, message?: string) {
+  const store = new Map<string, { count: number; resetAt: number }>();
+  const defaultMsg = `Too many requests. Please try again in ${Math.round(windowMs / 60000)} minutes.`;
+  return function rateLimiter(req: Request, res: Response, next: NextFunction) {
+    const key = req.ip || "unknown";
+    const now = Date.now();
+    const rec = store.get(key);
+    if (rec && now < rec.resetAt) {
+      if (rec.count >= maxRequests) {
+        res.set("Retry-After", String(Math.ceil((rec.resetAt - now) / 1000)));
+        return res.status(429).json({ message: message || defaultMsg });
+      }
+      rec.count++;
+    } else {
+      store.set(key, { count: 1, resetAt: now + windowMs });
     }
-    rec.count++;
-  } else {
-    authAttempts.set(key, { count: 1, resetAt: now + 15 * 60 * 1000 });
-  }
-  next();
+    next();
+  };
 }
+
+// 5 login attempts per 15 minutes — brute-force protection
+const loginLimiter    = createRateLimiter(5,  15 * 60 * 1000, "Too many login attempts. Please try again in 15 minutes.");
+// 10 signups per hour — prevents account farming
+const signupLimiter   = createRateLimiter(10, 60 * 60 * 1000, "Too many sign-up attempts. Please try again later.");
+// 10 OAuth profile creations per hour
+const profileLimiter  = createRateLimiter(10, 60 * 60 * 1000);
+// 3 identity verification starts per hour — Stripe sessions are expensive
+const verifyLimiter   = createRateLimiter(3,  60 * 60 * 1000, "Too many verification attempts. Please try again in an hour.");
+// 30 photo uploads per hour
+const uploadLimiter   = createRateLimiter(30, 60 * 60 * 1000);
 
 async function authenticateRequest(req: Request): Promise<string | null> {
   const authHeader = req.headers.authorization;
@@ -103,7 +123,7 @@ export async function registerRoutes(
     })
   );
 
-  app.post("/api/auth/signup", rateLimit, async (req, res) => {
+  app.post("/api/auth/signup", signupLimiter, async (req, res) => {
     try {
       const parsed = signupSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -139,7 +159,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/auth/login", rateLimit, async (req, res) => {
+  app.post("/api/auth/login", loginLimiter, async (req, res) => {
     try {
       const { email, password } = req.body;
       if (!email || !password) {
@@ -178,7 +198,7 @@ export async function registerRoutes(
     res.json(safeUser);
   });
 
-  app.post("/api/auth/profile", async (req, res) => {
+  app.post("/api/auth/profile", profileLimiter, async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader?.startsWith("Bearer ")) {
@@ -269,7 +289,7 @@ export async function registerRoutes(
     res.json(photos);
   });
 
-  app.post("/api/photos", async (req, res) => {
+  app.post("/api/photos", uploadLimiter, async (req, res) => {
     try {
       const photo = await storage.createPhoto(req.body);
       res.status(201).json(photo);
@@ -278,7 +298,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/upload", async (req, res) => {
+  app.post("/api/upload", uploadLimiter, async (req, res) => {
     try {
       const { dataUrl, filename, userId, caption, displayOrder } = req.body;
       if (!dataUrl || !filename || !userId) {
@@ -430,7 +450,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/verify/start", async (req, res) => {
+  app.post("/api/verify/start", verifyLimiter, async (req, res) => {
     const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
 
