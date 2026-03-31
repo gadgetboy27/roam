@@ -115,7 +115,11 @@ export default function Discover() {
   };
 
   const handleRoam = () => {
-    if (!user) return;
+    if (!user) {
+      showToast("Sign up free to connect with adventurers like " + profile.name + " →");
+      setTimeout(() => navigate("/signup"), 1800);
+      return;
+    }
     pendingMatchRef.current = {
       name: profile.name,
       hero: profile.hero,

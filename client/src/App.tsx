@@ -26,9 +26,7 @@ function Router() {
       <Route path="/auth/callback" component={AuthCallback} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
-      <Route path="/discover">
-        <RequireAuth><Discover /></RequireAuth>
-      </Route>
+      <Route path="/discover" component={Discover} />
       <Route path="/upload">
         <RequireAuth><Upload /></RequireAuth>
       </Route>
