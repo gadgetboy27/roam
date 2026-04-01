@@ -137,6 +137,22 @@ export async function registerRoutes(
 
       const hashedPassword = await hashPassword(parsed.data.password);
 
+      // Create in Supabase so the user can log in via Supabase auth later.
+      // email_confirm: true skips the confirmation email since we handle
+      // verification ourselves via the signup flow.
+      try {
+        await supabaseAdmin.auth.admin.createUser({
+          email: parsed.data.email,
+          password: parsed.data.password,
+          email_confirm: true,
+        });
+      } catch (sbErr: any) {
+        // "User already registered" is fine — just means they're already in Supabase
+        if (!sbErr.message?.toLowerCase().includes("already")) {
+          console.warn("[signup] Supabase user creation failed:", sbErr.message);
+        }
+      }
+
       const user = await storage.createUser({
         name: parsed.data.name,
         email: parsed.data.email,
@@ -235,6 +251,29 @@ export async function registerRoutes(
       const { password: _, ...safe } = newUser;
       res.status(201).json(safe);
     } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Silently register a legacy (bcrypt-only) user in Supabase after they've
+  // successfully logged in via the fallback path. Fire-and-forget from the client.
+  app.post("/api/auth/migrate-to-supabase", async (req, res) => {
+    try {
+      const userId = await authenticateRequest(req);
+      if (!userId) return res.status(401).json({ message: "Not authenticated" });
+      const { email, password } = req.body;
+      if (!email || !password) return res.status(400).json({ message: "email and password required" });
+      await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+      });
+      console.log(`[migrate] Created Supabase account for legacy user: ${email}`);
+      res.json({ ok: true });
+    } catch (err: any) {
+      // Already exists is fine — nothing to do
+      if (err.message?.toLowerCase().includes("already")) return res.json({ ok: true });
+      console.warn("[migrate] Failed:", err.message);
       res.status(500).json({ message: err.message });
     }
   });

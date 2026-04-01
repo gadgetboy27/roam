@@ -92,18 +92,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   const login = async (email: string, password: string) => {
+    // Try Supabase auth first (covers all new signups and OAuth users)
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      if (error.message.toLowerCase().includes("invalid") || error.message.toLowerCase().includes("credentials")) {
-        throw new Error("Invalid email or password");
-      }
-      throw new Error(error.message);
-    }
-    if (data.session?.access_token) {
+    if (!error && data.session?.access_token) {
       const profile = await fetchProfile(data.session.access_token);
       if (!profile) throw new Error("Account not found. Please sign up first.");
       setUser(profile);
+      return;
     }
+
+    // Fallback: try legacy bcrypt auth for accounts created before Supabase sync.
+    // If this succeeds it sets a server session, then silently registers them in
+    // Supabase so future logins go through the normal path.
+    const fallback = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+      credentials: "include",
+    });
+    if (!fallback.ok) throw new Error("Invalid email or password");
+    const profile = await fallback.json();
+    setUser(profile);
+
+    // Fire-and-forget: register this user in Supabase so next login is seamless
+    fetch("/api/auth/migrate-to-supabase", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+      credentials: "include",
+    }).catch(() => {});
   };
 
   const logout = async () => {
