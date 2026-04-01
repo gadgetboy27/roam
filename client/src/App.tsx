@@ -7,6 +7,8 @@ import { AuthProvider, RequireAuth } from "@/lib/auth";
 import { ThemeProvider } from "@/lib/theme";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
+import Privacy from "@/pages/privacy";
+import DataDeletion from "@/pages/data-deletion";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import AuthCallback from "@/pages/auth-callback";
@@ -26,6 +28,8 @@ function Router() {
       <Route path="/auth/callback" component={AuthCallback} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/data-deletion" component={DataDeletion} />
       <Route path="/discover" component={Discover} />
       <Route path="/upload">
         <RequireAuth><Upload /></RequireAuth>

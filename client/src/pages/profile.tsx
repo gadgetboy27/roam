@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import AppNav from "@/components/app-nav";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
-import { MapPin, Camera, Edit3, Settings, Star, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2 } from "lucide-react";
+import { MapPin, Camera, Edit3, Settings, Star, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2, Trash2 } from "lucide-react";
 import { computeVibeWord } from "@/lib/fingerprint";
 
 const FALLBACK_HERO = "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&q=80&fit=crop";
@@ -86,6 +86,8 @@ export default function Profile() {
   const [verifySubmitted, setVerifySubmitted] = useState(false);
   const [verifyTimedOut, setVerifyTimedOut] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
   const [upgraded, setUpgraded] = useState(false);
   const [upgradeError, setUpgradeError] = useState("");
@@ -156,6 +158,18 @@ export default function Profile() {
       setVerifyError("Could not reset verification. Please try again.");
     } finally {
       setResetting(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      await apiRequest("DELETE", "/api/account");
+      await logout();
+      navigate("/");
+    } catch (err: any) {
+      setConfirmDelete(false);
+      setDeleting(false);
     }
   };
 
@@ -582,6 +596,53 @@ export default function Profile() {
                 View &amp; Share
               </div>
             </button>
+
+            <div className="mt-6 rounded-2xl overflow-hidden"
+                 style={{ border: "1px solid rgba(var(--roam-ember-rgb),0.18)" }}>
+              <div className="px-4 py-3"
+                   style={{ background: "rgba(var(--roam-ember-rgb),0.06)", borderBottom: "1px solid rgba(var(--roam-ember-rgb),0.1)" }}>
+                <span className="font-mono text-[10px] tracking-wider uppercase"
+                      style={{ color: "rgba(var(--roam-ember-rgb),0.7)" }}>Account</span>
+              </div>
+              <div className="px-4 py-4" style={{ background: "rgba(var(--roam-ember-rgb),0.03)" }}>
+                {!confirmDelete ? (
+                  <button
+                    className="flex items-center gap-2.5 font-mono text-[11px] tracking-wider transition-all"
+                    style={{ color: "rgba(var(--roam-ember-rgb),0.6)" }}
+                    onClick={() => setConfirmDelete(true)}
+                    data-testid="button-delete-account-prompt">
+                    <Trash2 size={13} />
+                    Delete my account and all data
+                  </button>
+                ) : (
+                  <div>
+                    <p className="font-mono text-[11px] leading-relaxed mb-3"
+                       style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>
+                      This permanently deletes your profile, photos, matches, and messages. This cannot be undone.
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        className="flex items-center gap-2 font-mono text-[10px] tracking-wider uppercase font-semibold px-4 py-2.5 rounded-xl transition-all"
+                        style={{ background: "var(--roam-ember)", color: "#fff", opacity: deleting ? 0.7 : 1 }}
+                        onClick={handleDeleteAccount}
+                        disabled={deleting}
+                        data-testid="button-delete-account-confirm">
+                        {deleting ? <><Loader2 size={11} className="animate-spin" /> Deleting…</> : <><Trash2 size={11} /> Yes, delete everything</>}
+                      </button>
+                      <button
+                        className="font-mono text-[10px] tracking-wider uppercase px-4 py-2.5 rounded-xl transition-all"
+                        style={{ background: "rgba(var(--roam-cream-rgb),0.07)", color: "rgba(var(--roam-cream-rgb),0.5)" }}
+                        onClick={() => setConfirmDelete(false)}
+                        disabled={deleting}
+                        data-testid="button-delete-account-cancel">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
           </div>
         </div>
       </div>

@@ -246,11 +246,23 @@ export default function Landing() {
               <span className="font-serif text-lg font-black">roam</span>
               <span style={{ color: "var(--roam-electric)" }} className="font-serif text-lg font-black">.</span>
               <span className="font-mono text-[9px] ml-2 tracking-wider uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
-                Blue Maunga Limited
+                Swiperight Apps Aotearoa
               </span>
             </div>
-            <div className="font-mono text-[10px] tracking-wider" style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}>
-              Adventure matching since 2025
+            <div className="flex items-center gap-5">
+              <Link href="/privacy">
+                <span className="font-mono text-[10px] tracking-wider cursor-pointer hover:opacity-70 transition-opacity" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+                  Privacy Policy
+                </span>
+              </Link>
+              <Link href="/data-deletion">
+                <span className="font-mono text-[10px] tracking-wider cursor-pointer hover:opacity-70 transition-opacity" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+                  Data Deletion
+                </span>
+              </Link>
+              <span className="font-mono text-[10px] tracking-wider" style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}>
+                © 2025 · letsroam.life
+              </span>
             </div>
           </div>
         </footer>

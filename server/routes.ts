@@ -640,6 +640,38 @@ export async function registerRoutes(
     return res.json({ received: true });
   });
 
+  app.delete("/api/account", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    try {
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const stripe = await getUncachableStripeClient();
+      if (user.stripeSubscriptionId) {
+        try {
+          await stripe.subscriptions.cancel(user.stripeSubscriptionId);
+        } catch (err: any) {
+          console.warn("[account-delete] Stripe subscription cancel failed:", err.message);
+        }
+      }
+
+      await storage.deleteUser(userId);
+
+      try {
+        await supabaseAdmin.auth.admin.deleteUser(userId);
+      } catch (err: any) {
+        console.warn("[account-delete] Supabase auth delete failed:", err.message);
+      }
+
+      console.log(`[account-delete] User ${userId} (${user.email}) deleted their account`);
+      return res.json({ ok: true });
+    } catch (err: any) {
+      console.error("[account-delete] Error:", err.message);
+      return res.status(500).json({ message: err.message });
+    }
+  });
+
   app.post("/api/verify/start", verifyLimiter, async (req, res) => {
     const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ message: "Not authenticated" });

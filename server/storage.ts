@@ -30,6 +30,7 @@ export interface IStorage {
   deleteBucketItem(id: string): Promise<void>;
 
   updateUserVerification(userId: string, verificationId: string | null, verified: boolean): Promise<User | undefined>;
+  deleteUser(userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -115,6 +116,10 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBucketItem(id: string): Promise<void> {
     await db.delete(bucketList).where(eq(bucketList.id, id));
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, userId));
   }
 
   async updateUserVerification(userId: string, verificationId: string | null, verified: boolean): Promise<User | undefined> {
