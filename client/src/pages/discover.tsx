@@ -1,8 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useLocation } from "wouter";
 import AppNav from "@/components/app-nav";
 import { useAuth } from "@/lib/auth";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { HonestyTier } from "@/lib/fingerprint";
 import {
@@ -89,6 +89,13 @@ const DEMO_PROFILES = [
 
 export default function Discover() {
   const { user } = useAuth();
+
+  const { data: allUsers = [], isLoading: loadingUsers } = useQuery<any[]>({
+    queryKey: ["/api/users"],
+    enabled: !!user,
+    refetchInterval: 60000,
+  });
+
   const [profileIdx, setProfileIdx] = useState(0);
   const [animKey, setAnimKey] = useState(0);
   const [roamedIds, setRoamedIds] = useState<Set<string>>(new Set());
@@ -107,8 +114,36 @@ export default function Discover() {
   const pendingMatchRef = useRef<typeof matchCelebration>(null);
   const [, navigate] = useLocation();
 
-  const profile = DEMO_PROFILES[profileIdx % DEMO_PROFILES.length];
-  const isVerifiedUser = profile.honestyTier === "verified-adventure";
+  const realDeck = useMemo(() => {
+    if (!user) return null;
+    return allUsers
+      .filter(u => u.id !== user.id)
+      .map(u => {
+        const age = u.dob
+          ? Math.floor((Date.now() - new Date(u.dob).getTime()) / (365.25 * 24 * 3600 * 1000))
+          : null;
+        return {
+          id: u.id as string,
+          name: u.name as string,
+          age: age as number | null,
+          ethnicity: (u.ethnicity || "") as string,
+          tagline: (u.tagline || "Adventure awaits") as string,
+          hero: (u.avatarUrl || "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=800&q=85&fit=crop") as string,
+          dna: ((u.adventureTags || []) as string[]),
+          honestyTier: (u.identityVerified ? "verified-adventure" : "unverified") as HonestyTier,
+          almostMet: null as { location: string; dateHint: string } | null,
+          pioneerBadge: null as PioneerBadge,
+          hasNewMatch: false,
+        };
+      });
+  }, [allUsers, user]);
+
+  const deck = realDeck ?? DEMO_PROFILES;
+  const deckExhausted = user != null && !loadingUsers && deck.length > 0 && profileIdx >= deck.length;
+  const noUsersYet = user != null && !loadingUsers && deck.length === 0;
+
+  const profile = deck[Math.min(profileIdx, Math.max(deck.length - 1, 0))];
+  const isVerifiedUser = profile?.honestyTier === "verified-adventure";
   const cardKey = `profile-${animKey}`;
 
   const roamMutation = useMutation({
@@ -145,6 +180,7 @@ export default function Discover() {
   };
 
   const handleRoam = () => {
+    if (!profile) return;
     if (!user) {
       showToast("Sign up free to connect with adventurers like " + profile.name + " →");
       setTimeout(() => navigate("/signup"), 1800);
@@ -246,6 +282,39 @@ export default function Discover() {
         </div>
       )}
 
+      {loadingUsers && user && (
+        <div className="absolute inset-0 flex items-center justify-center z-10">
+          <div className="flex flex-col items-center gap-3">
+            <Compass size={32} style={{ color: "var(--roam-electric)", opacity: 0.5, animation: "spin 2s linear infinite" }} />
+            <div className="font-mono text-[11px] tracking-wider" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Finding adventurers…</div>
+          </div>
+        </div>
+      )}
+
+      {(deckExhausted || noUsersYet) && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 px-8 text-center">
+          <Compass size={52} style={{ color: "var(--roam-electric)", marginBottom: 20, opacity: 0.7 }} />
+          <div className="font-serif text-[26px] font-black mb-3 leading-tight" style={{ color: "rgba(var(--roam-cream-rgb),0.95)" }}>
+            {noUsersYet ? "You're first here!" : "All caught up"}
+          </div>
+          <div className="font-mono text-[11px] leading-relaxed max-w-[260px]" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+            {noUsersYet
+              ? "No other adventurers yet — share roam. to grow the community and discover your first match"
+              : "You've seen everyone for now. More adventurers are joining every day — check back soon."}
+          </div>
+          {deckExhausted && (
+            <button
+              className="mt-6 px-5 py-2.5 rounded-2xl font-mono text-[11px] tracking-wider"
+              style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)", color: "var(--roam-electric)" }}
+              onClick={() => setProfileIdx(0)}
+              data-testid="button-restart-deck">
+              Start over
+            </button>
+          )}
+        </div>
+      )}
+
+      {!deckExhausted && !noUsersYet && profile && (
       <div key={cardKey}
            className="absolute inset-0"
            style={{
@@ -424,6 +493,7 @@ export default function Discover() {
           </div>
         </div>
       </div>
+      )}
 
       {matchCelebration && (
         <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center"

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import AppNav from "@/components/app-nav";
 import {
   Send, ArrowLeft, WifiOff, Clock, MapPin, BookmarkCheck,
@@ -139,6 +139,54 @@ export default function Matches() {
     enabled: !!user,
   });
 
+  const { data: allUsers = [] } = useQuery<any[]>({
+    queryKey: ["/api/users"],
+    enabled: !!user,
+  });
+
+  const usersById = useMemo(() => {
+    const map: Record<string, any> = {};
+    allUsers.forEach(u => { map[u.id] = u; });
+    return map;
+  }, [allUsers]);
+
+  const realConnections = useMemo(() => {
+    return dbMatches
+      .filter((m: any) => m.status === "matched")
+      .map((m: any) => {
+        const partnerId = m.userAId === user?.id ? m.userBId : m.userAId;
+        const partner = usersById[partnerId];
+        if (!partner) return null;
+        const age = partner.dob
+          ? Math.floor((Date.now() - new Date(partner.dob).getTime()) / (365.25 * 24 * 3600 * 1000))
+          : null;
+        const sharedTags: string[] = m.sharedTags || [];
+        const opener = sharedTags.length > 0
+          ? `You're both into ${sharedTags[0]} — what's been your best experience?`
+          : `Hey ${partner.name}, where's your next adventure headed?`;
+        const matchedAt = m.matchedAt ? new Date(m.matchedAt) : new Date(m.createdAt);
+        const hoursAgo = Math.floor((Date.now() - matchedAt.getTime()) / 3600000);
+        const when = hoursAgo < 1 ? "Matched just now"
+          : hoursAgo < 24 ? `Matched ${hoursAgo}h ago`
+          : hoursAgo < 48 ? "Matched yesterday"
+          : `Matched ${Math.floor(hoursAgo / 24)}d ago`;
+        return {
+          id: m.id as string,
+          name: partner.name as string,
+          nameAge: age ? `${partner.name}, ${age}` : (partner.name as string),
+          shared: sharedTags,
+          when,
+          img: (partner.avatarUrl || "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=150&q=80&fit=crop") as string,
+          opener,
+          seed: [] as CachedMessage[],
+        };
+      })
+      .filter((c): c is NonNullable<typeof c> => c !== null);
+  }, [dbMatches, user, usersById]);
+
+  const connections = realConnections.length > 0 ? realConnections : DEMO_CONNECTIONS;
+  const isDemo = realConnections.length === 0 && !!user;
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Record<string, CachedMessage[]>>(() => {
     const init: Record<string, CachedMessage[]> = {};
@@ -161,7 +209,7 @@ export default function Matches() {
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const selectedMatch = DEMO_CONNECTIONS.find(m => m.id === selectedId);
+  const selectedMatch = connections.find(m => m.id === selectedId);
   const messages = selectedId ? (conversations[selectedId] ?? []) : [];
 
   const waitingMatches = dbMatches.filter((m: any) =>
@@ -319,11 +367,21 @@ export default function Matches() {
                   mutual roamers
                 </div>
                 <h1 className="font-serif text-[28px] font-black leading-[1.05]" data-testid="text-match-count">
-                  {DEMO_CONNECTIONS.length} connections
+                  {isDemo ? "0" : realConnections.length} connections
                 </h1>
                 <p className="text-[11px] mt-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
-                  You and these adventurers have both said yes. Start planning.
+                  {isDemo
+                    ? "No mutual matches yet — head to Discover to find your people"
+                    : "You and these adventurers have both said yes. Start planning."}
                 </p>
+                {isDemo && (
+                  <div className="mt-3 px-3 py-2 rounded-xl inline-block"
+                       style={{ background: "rgba(var(--roam-electric-rgb),0.06)", border: "1px solid rgba(var(--roam-electric-rgb),0.18)" }}>
+                    <span className="font-mono text-[9px] tracking-wider" style={{ color: "rgba(var(--roam-electric-rgb),0.6)" }}>
+                      ↓ preview of what connections look like
+                    </span>
+                  </div>
+                )}
               </div>
 
               {offlineBanner()}
@@ -358,7 +416,7 @@ export default function Matches() {
               )}
 
               <div className="px-3.5 space-y-2" data-testid="connections-list">
-                {DEMO_CONNECTIONS.map((m, i) => {
+                {connections.map((m, i) => {
                   const msgs = conversations[m.id] ?? [];
                   const last = msgs[msgs.length - 1] ?? null;
                   const hasPending = msgs.some(msg => msg.pending);
