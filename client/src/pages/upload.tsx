@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import AppNav from "@/components/app-nav";
 import { Mountain, Ban, ImageOff, Users, Check, AlertTriangle, UploadCloud, X, Camera, Plus } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/lib/auth";
 
 const RULES = [
   { icon: Mountain, color: "var(--roam-electric)", text: "Photos with YOU in the adventure — strongly preferred" },
@@ -45,6 +46,7 @@ function ProtectedImage({ src, alt, className, style }: { src: string; alt: stri
 }
 
 export default function Upload() {
+  const { user } = useAuth();
   const [photos, setPhotos] = useState<UploadPhoto[]>([]);
   const [demoSelected, setDemoSelected] = useState<typeof SCORE_DEMOS[0] | null>(null);
   const [demoAnalysing, setDemoAnalysing] = useState(false);
@@ -95,10 +97,11 @@ export default function Upload() {
       setPhotos(prev => prev.map(p => p.id === photo.id ? { ...p, status: "uploading" } : p));
       try {
         const dataUrl = await fileToDataUrl(photo.file);
+        if (!user) throw new Error("Not signed in");
         await apiRequest("POST", "/api/upload", {
           dataUrl,
           filename: photo.file.name,
-          userId: "demo",
+          userId: user.id,
           caption: photo.caption,
           displayOrder: photos.indexOf(photo),
         });

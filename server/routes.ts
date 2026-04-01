@@ -6,9 +6,6 @@ import { signupSchema } from "@shared/schema";
 import { hashPassword, comparePassword } from "./auth";
 import { buildFingerprint, computeOverlap, detectAlmostMet, computeHonestyTier } from "./fingerprint";
 import { getUncachableStripeClient } from "./stripeClient";
-import { writeFile, mkdir } from "fs/promises";
-import { existsSync } from "fs";
-import path from "path";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import pg from "pg";
@@ -96,10 +93,9 @@ export async function registerRoutes(
       }
     });
   });
-  const uploadsDir = path.join(process.cwd(), "uploads");
-  if (!existsSync(uploadsDir)) {
-    await mkdir(uploadsDir, { recursive: true });
-  }
+  // Ensure the Supabase Storage bucket exists (idempotent — no-op if already present)
+  await supabaseAdmin.storage.createBucket("photos", { public: true }).catch(() => {});
+
 
   const sessionPool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 
@@ -368,13 +364,21 @@ export async function registerRoutes(
       }
 
       const ext = matches[1] === "jpeg" ? "jpg" : matches[1];
+      const mimeType = `image/${matches[1]}`;
       const base64Data = matches[2];
-      const safeFilename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const filePath = path.join(uploadsDir, safeFilename);
+      const storagePath = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const fileBuffer = Buffer.from(base64Data, "base64");
 
-      await writeFile(filePath, Buffer.from(base64Data, "base64"));
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from("photos")
+        .upload(storagePath, fileBuffer, { contentType: mimeType, upsert: false });
 
-      const storageUrl = `/uploads/${safeFilename}`;
+      if (uploadError) {
+        return res.status(500).json({ message: `Storage error: ${uploadError.message}` });
+      }
+
+      const { data: urlData } = supabaseAdmin.storage.from("photos").getPublicUrl(storagePath);
+      const storageUrl = urlData.publicUrl;
       const photo = await storage.createPhoto({
         userId,
         storageUrl,

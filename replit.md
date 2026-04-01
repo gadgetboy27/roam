@@ -177,13 +177,19 @@ ROAM is an adventure-matching dating app where users post real travel/adventure 
 - `STRIPE_PAYMENT_WEBHOOK_SECRET` — Stripe payment webhook signing secret
 - Stripe API keys via Replit Stripe connector (no manual env var needed)
 
+## Photo Storage
+
+Photos upload to Supabase Storage bucket `photos` (auto-created on server startup).
+- Upload endpoint decodes base64 data URL, uploads to `{userId}/{timestamp}-{random}.{ext}`
+- Stores permanent public HTTPS URL (`https://znqbnldsalsfpraiplxz.supabase.co/storage/v1/object/public/photos/...`) in photos.storageUrl
+- Bucket is public — no auth needed to view photos
+- Avatars are still stored as data URLs directly in users.avatarUrl (small thumbnails, acceptable)
+
 ## Known Gaps / Future Work
 
-- **Discover page**: Shows demo profiles only — real user profiles not yet wired to the swipe deck
-- **Matches page**: Shows demo connections — real matched users' conversations not yet wired into the connection list
-- **Photo storage**: Files stored locally in `uploads/` — won't persist across deployments; should migrate to Supabase Storage
-- **Stripe Billing Portal**: Must be enabled in Stripe Dashboard → Billing → Customer portal
+- **Stripe Billing Portal**: Must be enabled in Stripe Dashboard → Billing → Customer portal (one toggle)
 - **Rate limiting**: In-memory only — swap for Redis in multi-server deployments
+- **Demo users in DB**: The seeded demo accounts (mia@demo.roam, kai@demo.roam etc.) appear in logged-in users' discover decks — consider filtering by email domain server-side
 
 ## Running
 
