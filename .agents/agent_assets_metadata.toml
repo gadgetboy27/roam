@@ -12,14 +12,32 @@ uri = "file://attached_assets/generated_images/roam-logo-wide.png"
 type = "image"
 title = "roam wide logo"
 
+[[generated]]
+id = "_lbAHmTEaxeaNYeVGS15G"
+uri = "file://attached_assets/generated_images/roam-icon-raw.png"
+type = "image"
+title = "roam icon square"
+
+[[generated]]
+id = "Im87MA54cDYIm1umQ7-lL"
+uri = "file://attached_assets/generated_images/roam-logo-raw.png"
+type = "image"
+title = "roam wide logo"
+
 [[outputs]]
 id = "GAIwftJUopC3-bs-1Le79"
 uri = "file://attached_assets/generated_images/roam-icon-512.png"
 type = "image"
-title = "roam. Icon (square — for Stripe business icon)"
+title = "roam. Icon — 171KB (square, for Stripe business icon)"
 
 [[outputs]]
 id = "nRs5YWcQVVzOnTzcgIfpi"
 uri = "file://attached_assets/generated_images/roam-logo-wide.png"
 type = "image"
-title = "roam. Logo (wide — for Stripe receipts & emails)"
+title = "roam. Logo — 302KB PNG (for Stripe receipts & emails)"
+
+[[outputs]]
+id = "eToey0penBSoLN6beNypv"
+uri = "file://attached_assets/generated_images/roam-logo-wide.jpg"
+type = "image"
+title = "roam. Logo — 26KB JPG (lightweight alternative)"
