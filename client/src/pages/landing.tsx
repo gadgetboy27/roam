@@ -255,6 +255,11 @@ export default function Landing() {
                   Privacy Policy
                 </span>
               </Link>
+              <Link href="/terms">
+                <span className="font-mono text-[10px] tracking-wider cursor-pointer hover:opacity-70 transition-opacity" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+                  Terms of Service
+                </span>
+              </Link>
               <Link href="/data-deletion">
                 <span className="font-mono text-[10px] tracking-wider cursor-pointer hover:opacity-70 transition-opacity" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
                   Data Deletion

@@ -24,6 +24,12 @@ uri = "file://attached_assets/generated_images/roam-logo-raw.png"
 type = "image"
 title = "roam wide logo"
 
+[[generated]]
+id = "gU8AcvO3D8mxclRxtfCrQ"
+uri = "file://attached_assets/generated_images/roam-icon-1024.png"
+type = "image"
+title = "roam app icon"
+
 [[outputs]]
 id = "GAIwftJUopC3-bs-1Le79"
 uri = "file://attached_assets/generated_images/roam-icon-512.png"
@@ -41,3 +47,9 @@ id = "eToey0penBSoLN6beNypv"
 uri = "file://attached_assets/generated_images/roam-logo-wide.jpg"
 type = "image"
 title = "roam. Logo — 26KB JPG (lightweight alternative)"
+
+[[outputs]]
+id = "9WR4zBkawE0oVQqxcMvIh"
+uri = "file://attached_assets/generated_images/roam-icon-1024.png"
+type = "image"
+title = "roam. App Icon 1024×1024"
