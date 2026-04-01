@@ -65,10 +65,88 @@ async function authenticateRequest(req: Request): Promise<string | null> {
   return (req.session as any)?.userId || null;
 }
 
+const DATA_DELETION_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Deletion — roam.</title>
+<style>
+  body{font-family:Georgia,serif;background:#0e1a0e;color:#e8e0cc;max-width:680px;margin:60px auto;padding:0 24px;line-height:1.7}
+  h1{font-size:28px;margin-bottom:4px}
+  h1 span{color:#c8e64a}
+  .sub{font-family:monospace;font-size:11px;letter-spacing:.1em;color:rgba(232,224,204,.35);margin-bottom:40px}
+  h2{font-family:monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#c8e64a;margin-top:32px;margin-bottom:10px}
+  p,li{font-size:13px;color:rgba(232,224,204,.65)}
+  ul{padding-left:20px}
+  a{color:#c8e64a}
+  .card{border:1px solid rgba(232,224,204,.1);border-radius:14px;padding:20px 24px;margin-top:10px}
+</style>
+</head>
+<body>
+<h1>Data <span>Deletion</span></h1>
+<div class="sub">Swiperight Apps Aotearoa &middot; letsroam.life</div>
+
+<h2>Option 1 &mdash; Delete from inside the app</h2>
+<div class="card">
+  <ul>
+    <li>Open roam. and sign in</li>
+    <li>Go to your Profile (bottom right icon)</li>
+    <li>Scroll to the bottom and tap <strong>Delete my account and all data</strong></li>
+    <li>Confirm in the dialog &mdash; deletion is immediate and permanent</li>
+  </ul>
+</div>
+
+<h2>Option 2 &mdash; Email us</h2>
+<div class="card">
+  <p>Email <a href="mailto:privacy@letsroam.life">privacy@letsroam.life</a> with the subject line <strong>Delete my data</strong> and include the email address linked to your account. We will delete your data within 30 days and send confirmation.</p>
+</div>
+
+<h2>What gets deleted</h2>
+<div class="card">
+  <ul>
+    <li>Your profile, name, bio, and location</li>
+    <li>All photos you uploaded</li>
+    <li>Your Adventure Fingerprint and bucket list</li>
+    <li>All matches and messages</li>
+    <li>Your Adventurer subscription (cancelled immediately)</li>
+    <li>Your authentication record</li>
+  </ul>
+</div>
+
+<h2>Retention</h2>
+<div class="card">
+  <p>We retain minimal records required by law (e.g. payment receipts from Stripe) for up to 7 years. These records do not include your profile or personal communications.</p>
+</div>
+</body>
+</html>`;
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  // Server-side data deletion page — Facebook URL validator and crawlers
+  // require a real HTML response, not a client-side React route.
+  app.get("/data-deletion", (_req, res) => {
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(DATA_DELETION_HTML);
+  });
+
+  // Facebook Data Deletion Callback endpoint (POST).
+  // Use this URL in Facebook App Settings → Data Deletion → Callback URL:
+  //   https://letsroam.life/api/facebook/data-deletion
+  // Facebook sends a signed_request; we return a confirmation code + status URL.
+  app.post("/api/facebook/data-deletion", (req, res) => {
+    const { signed_request } = req.body || {};
+    const confirmationCode = `roam-del-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    console.log("[facebook-deletion] received callback, signed_request present:", !!signed_request);
+    return res.json({
+      url: `https://letsroam.life/data-deletion?confirmation=${confirmationCode}`,
+      confirmation_code: confirmationCode,
+    });
+  });
+
   const io = new SocketServer(httpServer, {
     path: "/socket.io",
     cors: { origin: "*", methods: ["GET", "POST"] },
