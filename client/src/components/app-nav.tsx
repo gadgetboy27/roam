@@ -4,10 +4,10 @@ import { Compass, MessageCircle, Plus, User, Palette, Check } from "lucide-react
 import { useConnectionStatus } from "@/lib/useConnectionStatus";
 import { useTheme, THEMES } from "@/lib/theme";
 
-const BOTTOM_ITEMS = [
-  { path: "/discover", label: "discover", icon: Compass },
-  { path: "/matches",  label: "matches",  icon: MessageCircle },
-  { path: "/profile",  label: "profile",  icon: User },
+const NAV_ITEMS = [
+  { path: "/discover", label: "Discover", icon: Compass },
+  { path: "/matches",  label: "Matches",  icon: MessageCircle },
+  { path: "/profile",  label: "Profile",  icon: User },
 ];
 
 export default function AppNav() {
@@ -115,55 +115,51 @@ export default function AppNav() {
         </div>
       </nav>
 
-      <div className="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-xl"
+      <div className="fixed right-3 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-1 py-2.5 px-1.5 rounded-[26px]"
            style={{
-             background: `rgba(var(--roam-forest-rgb),0.14)`,
-             borderTop: `1px solid rgba(var(--roam-cream-rgb),0.1)`,
+             background: `rgba(var(--roam-forest-rgb),0.82)`,
+             backdropFilter: "blur(24px)",
+             WebkitBackdropFilter: "blur(24px)",
+             border: `1px solid rgba(var(--roam-cream-rgb),0.08)`,
+             boxShadow: "0 4px 32px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.04)",
            }}
-           data-testid="bottom-nav">
-        <div className="max-w-lg mx-auto flex items-center justify-around px-4 pt-2 pb-[env(safe-area-inset-bottom,8px)]" style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom))" }}>
-          {BOTTOM_ITEMS.slice(0, 2).map(item => {
-            const active = location === item.path;
-            return (
-              <Link key={item.path} href={item.path}>
-                <button className="flex flex-col items-center gap-1 py-1 px-4 rounded-2xl transition-all"
-                        style={{ color: active ? "var(--roam-electric)" : `rgba(var(--roam-cream-rgb),0.35)` }}
-                        data-testid={`nav-${item.label}`}>
-                  <item.icon size={22} strokeWidth={active ? 2.2 : 1.7} />
-                  <span className="font-mono text-[9px] tracking-wider uppercase">{item.label}</span>
-                </button>
-              </Link>
-            );
-          })}
+           data-testid="side-nav">
+        {NAV_ITEMS.map(item => {
+          const active = location === item.path;
+          return (
+            <Link key={item.path} href={item.path}>
+              <button
+                title={item.label}
+                className="relative w-10 h-10 rounded-[18px] flex items-center justify-center transition-all"
+                style={{
+                  background: active ? `rgba(var(--roam-electric-rgb),0.14)` : "transparent",
+                  color: active ? "var(--roam-electric)" : `rgba(var(--roam-cream-rgb),0.38)`,
+                }}
+                data-testid={`nav-${item.label.toLowerCase()}`}>
+                <item.icon size={18} strokeWidth={1.8} />
+                {active && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
+                       style={{ background: "var(--roam-electric)" }} />
+                )}
+              </button>
+            </Link>
+          );
+        })}
 
-          <Link href="/upload">
-            <button className="flex flex-col items-center -mt-5 transition-all hover:scale-105"
-                    data-testid="nav-post">
-              <div className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
-                   style={{
-                     background: "var(--roam-electric)",
-                     boxShadow: "0 4px 20px rgba(var(--roam-electric-rgb),0.45)",
-                   }}>
-                <Plus size={26} style={{ color: "var(--roam-electric-fg)" }} strokeWidth={2.5} />
-              </div>
-              <span className="font-mono text-[9px] tracking-wider uppercase mt-1" style={{ color: `rgba(var(--roam-cream-rgb),0.35)` }}>post</span>
-            </button>
-          </Link>
+        <div className="w-5 h-px my-0.5" style={{ background: `rgba(var(--roam-cream-rgb),0.1)` }} />
 
-          {BOTTOM_ITEMS.slice(2).map(item => {
-            const active = location === item.path;
-            return (
-              <Link key={item.path} href={item.path}>
-                <button className="flex flex-col items-center gap-1 py-1 px-4 rounded-2xl transition-all"
-                        style={{ color: active ? "var(--roam-electric)" : `rgba(var(--roam-cream-rgb),0.35)` }}
-                        data-testid={`nav-${item.label}`}>
-                  <item.icon size={22} strokeWidth={active ? 2.2 : 1.7} />
-                  <span className="font-mono text-[9px] tracking-wider uppercase">{item.label}</span>
-                </button>
-              </Link>
-            );
-          })}
-        </div>
+        <Link href="/upload">
+          <button
+            title="Post"
+            className="w-10 h-10 rounded-[18px] flex items-center justify-center transition-all hover:opacity-90 active:scale-95"
+            style={{
+              background: "var(--roam-electric)",
+              boxShadow: `0 2px 14px rgba(var(--roam-electric-rgb),0.45)`,
+            }}
+            data-testid="nav-post">
+            <Plus size={18} strokeWidth={2.5} style={{ color: "var(--roam-forest)" }} />
+          </button>
+        </Link>
       </div>
     </>
   );

@@ -358,7 +358,7 @@ export default function Matches() {
       <div className="topo-bg" />
       <div className="relative z-10">
         <AppNav />
-        <div className="max-w-lg mx-auto pb-32">
+        <div className="max-w-lg mx-auto pb-8 pr-14">
 
           {!selectedId ? (
             <>
