@@ -394,6 +394,11 @@ export async function registerRoutes(
       const { userAId, userBId, status } = req.body;
       if (!userAId || !userBId) return res.status(400).json({ message: "userAId and userBId are required" });
 
+      // Block matches involving demo profiles — they are display-only placeholders
+      if (String(userAId).startsWith("demo-") || String(userBId).startsWith("demo-")) {
+        return res.json({ isNewMatch: false, demo: true });
+      }
+
       const existing = await storage.getMatchBetween(userAId, userBId);
       if (existing) {
         if (
