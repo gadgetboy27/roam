@@ -84,6 +84,9 @@ export default function Profile() {
   const [verifying, setVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState("");
   const [verifySubmitted, setVerifySubmitted] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
+  const [upgraded, setUpgraded] = useState(false);
+  const [upgradeError, setUpgradeError] = useState("");
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -93,7 +96,37 @@ export default function Profile() {
       window.history.replaceState({}, "", "/profile");
       refresh();
     }
+    if (params.get("upgraded") === "1") {
+      setUpgraded(true);
+      window.history.replaceState({}, "", "/profile");
+      refresh();
+    }
   }, []);
+
+  const handleUpgrade = async () => {
+    setUpgrading(true);
+    setUpgradeError("");
+    try {
+      const res = await apiRequest("POST", "/api/checkout/start");
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else setUpgradeError("Could not start checkout. Please try again.");
+    } catch (err: any) {
+      setUpgradeError(err?.message || "Something went wrong.");
+    } finally {
+      setUpgrading(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    try {
+      const res = await apiRequest("POST", "/api/checkout/portal");
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } catch {
+      setUpgradeError("Could not open billing portal. Please try again.");
+    }
+  };
 
   useEffect(() => {
     if (!user?.identityVerificationId || user?.identityVerified) return;
@@ -244,22 +277,67 @@ export default function Profile() {
                   Your tier
                 </span>
                 <span className="font-mono text-[9px] tracking-wider uppercase py-0.5 px-2 rounded-lg"
-                      style={{ background: "rgba(var(--roam-electric-rgb),0.15)", color: "var(--roam-electric)" }}>
-                  Adventurer
+                      style={{
+                        background: user?.tier === "free"
+                          ? "rgba(var(--roam-sky-rgb),0.15)"
+                          : user?.tier === "contributor"
+                            ? "rgba(var(--roam-ember-rgb),0.15)"
+                            : "rgba(var(--roam-electric-rgb),0.15)",
+                        color: user?.tier === "free"
+                          ? "var(--roam-sky)"
+                          : user?.tier === "contributor"
+                            ? "var(--roam-ember)"
+                            : "var(--roam-electric)",
+                      }}>
+                  {user?.tier === "free" ? "Explorer" : user?.tier === "contributor" ? "Contributor" : "Adventurer"}
                 </span>
               </div>
-              <div className="flex items-center gap-3 font-mono text-[11px]">
-                <div className="text-center">
-                  <div className="font-semibold" style={{ color: "var(--roam-electric)" }}>3</div>
-                  <div className="text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>matches</div>
-                </div>
-                <div className="w-px h-6" style={{ background: "rgba(var(--roam-cream-rgb),0.12)" }} />
-                <div className="text-center">
-                  <div className="font-semibold" style={{ color: "var(--roam-electric)" }}>6</div>
-                  <div className="text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>photos</div>
+              {user?.tier === "adventurer" && user?.stripeCustomerId && (
+                <button onClick={handleManageSubscription}
+                        className="font-mono text-[10px] tracking-wider"
+                        style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}
+                        data-testid="button-manage-subscription">
+                  Manage subscription →
+                </button>
+              )}
+            </div>
+
+            {upgraded && (
+              <div className="mb-4 px-4 py-3 rounded-2xl flex items-center gap-3"
+                   style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)" }}>
+                <span style={{ color: "var(--roam-electric)" }}>✦</span>
+                <span className="font-mono text-[11px]" style={{ color: "var(--roam-electric)" }}>Welcome to Adventurer! All features unlocked.</span>
+              </div>
+            )}
+
+            {user?.tier === "free" && (
+              <div className="mb-4 rounded-2xl overflow-hidden"
+                   style={{ border: "1px solid rgba(var(--roam-electric-rgb),0.2)", background: "rgba(var(--roam-electric-rgb),0.04)" }}>
+                <div className="px-4 pt-4 pb-3">
+                  <div className="font-serif text-[15px] font-bold mb-1" style={{ color: "var(--roam-cream)" }}>
+                    Unlock Adventurer
+                  </div>
+                  <div className="font-mono text-[10px] leading-relaxed mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                    Unlimited matches · Full messaging · Almost Met radar · Bucket List matching
+                  </div>
+                  {upgradeError && (
+                    <div className="mb-2 text-[11px] font-mono px-3 py-2 rounded-xl"
+                         style={{ background: "rgba(232,98,26,0.1)", color: "var(--roam-ember)" }}>
+                      {upgradeError}
+                    </div>
+                  )}
+                  <button onClick={handleUpgrade} disabled={upgrading}
+                          className="w-full py-3 rounded-xl font-mono text-[11px] tracking-wider uppercase font-medium transition-all"
+                          style={{ background: "var(--roam-electric)", color: "var(--roam-forest)", opacity: upgrading ? 0.7 : 1 }}
+                          data-testid="button-upgrade-adventurer">
+                    {upgrading ? "Redirecting…" : "$12 NZD / month — Upgrade now"}
+                  </button>
+                  <div className="text-center mt-2 font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}>
+                    Powered by Stripe · Cancel anytime
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {(() => {
               const vibeWord = computeVibeWord(profileData.dna);

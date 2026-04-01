@@ -18,6 +18,8 @@ export interface AuthUser {
   identityVerified?: boolean;
   identityVerificationId?: string | null;
   identityVerifiedAt?: string | null;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
 }
 
 interface AuthCtx {

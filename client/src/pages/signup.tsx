@@ -210,6 +210,19 @@ export default function Signup() {
         throw new Error(err.message);
       }
       await refresh();
+      if (tier === "adventurer") {
+        // Take them straight to Stripe checkout to pay for their chosen tier
+        const checkoutRes = await fetch("/api/checkout/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          credentials: "include",
+        });
+        const checkoutData = await checkoutRes.json();
+        if (checkoutData.url) {
+          window.location.href = checkoutData.url;
+          return;
+        }
+      }
       setStep(4);
     } catch (e: any) {
       setError(e.message || "Something went wrong");

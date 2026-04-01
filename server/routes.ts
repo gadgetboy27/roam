@@ -489,6 +489,124 @@ export async function registerRoutes(
     }
   });
 
+  // ---------------------------------------------------------------------------
+  // Stripe Hosted Checkout — Adventurer subscription ($12 NZD/month)
+  // ---------------------------------------------------------------------------
+  const checkoutLimiter = createRateLimiter(5, 60 * 60 * 1000);
+
+  app.post("/api/checkout/start", checkoutLimiter, async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    try {
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const stripe = await getUncachableStripeClient();
+      const domain = process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
+      const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
+
+      const session = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        customer_email: user.stripeCustomerId ? undefined : user.email,
+        customer: user.stripeCustomerId || undefined,
+        line_items: [{
+          price_data: {
+            currency: "nzd",
+            product_data: {
+              name: "roam. Adventurer",
+              description: "Unlimited matches · Full messaging · Almost Met radar · Bucket List matching",
+              images: [],
+            },
+            unit_amount: 1200,
+            recurring: { interval: "month" },
+          },
+          quantity: 1,
+        }],
+        success_url: `${baseUrl}/profile?upgraded=1`,
+        cancel_url: `${baseUrl}/profile`,
+        metadata: { userId },
+        allow_promotion_codes: true,
+      });
+
+      return res.json({ url: session.url });
+    } catch (err: any) {
+      console.error("[checkout] Error:", err.message);
+      return res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/checkout/portal", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    try {
+      const user = await storage.getUser(userId);
+      if (!user?.stripeCustomerId) {
+        return res.status(400).json({ message: "No active subscription found" });
+      }
+      const stripe = await getUncachableStripeClient();
+      const domain = process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
+      const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
+      const portal = await stripe.billingPortal.sessions.create({
+        customer: user.stripeCustomerId,
+        return_url: `${baseUrl}/profile`,
+      });
+      return res.json({ url: portal.url });
+    } catch (err: any) {
+      console.error("[portal] Error:", err.message);
+      return res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/stripe/payment-webhook", async (req, res) => {
+    const sig = req.headers["stripe-signature"] as string;
+    const webhookSecret = process.env.STRIPE_PAYMENT_WEBHOOK_SECRET;
+    let event: any;
+    try {
+      const stripe = await getUncachableStripeClient();
+      if (webhookSecret && sig) {
+        event = stripe.webhooks.constructEvent(req.rawBody as Buffer, sig, webhookSecret);
+      } else {
+        event = req.body;
+        console.warn("[payment-webhook] No secret — skipping signature check (dev only)");
+      }
+    } catch (err: any) {
+      return res.status(400).json({ error: `Webhook Error: ${err.message}` });
+    }
+
+    if (event?.type === "checkout.session.completed") {
+      const session = event.data?.object;
+      const userId = session?.metadata?.userId;
+      if (userId) {
+        await storage.updateUser(userId, {
+          tier: "adventurer",
+          stripeCustomerId: session.customer,
+          stripeSubscriptionId: session.subscription,
+        });
+        console.log(`[payment] User ${userId} upgraded to Adventurer`);
+      }
+    }
+
+    if (event?.type === "customer.subscription.deleted") {
+      const sub = event.data?.object;
+      const customerId = sub?.customer;
+      if (customerId) {
+        const allUsers = await storage.getAllUsers();
+        const user = allUsers.find(u => u.stripeCustomerId === customerId);
+        if (user) {
+          await storage.updateUser(user.id, { tier: "free", stripeSubscriptionId: null });
+          console.log(`[payment] User ${user.id} downgraded to free (subscription cancelled)`);
+        }
+      }
+    }
+
+    if (event?.type === "invoice.payment_failed") {
+      const invoice = event.data?.object;
+      console.warn(`[payment] Payment failed for customer ${invoice?.customer}`);
+    }
+
+    return res.json({ received: true });
+  });
+
   app.post("/api/verify/start", verifyLimiter, async (req, res) => {
     const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ message: "Not authenticated" });

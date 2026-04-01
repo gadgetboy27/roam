@@ -24,6 +24,8 @@ export const users = pgTable("users", {
   identityVerified: boolean("identity_verified").default(false),
   identityVerificationId: text("identity_verification_id"),
   identityVerifiedAt: timestamp("identity_verified_at"),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
