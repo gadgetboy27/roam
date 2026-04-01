@@ -8,12 +8,13 @@ ROAM is an adventure-matching dating app where users post real travel/adventure 
 
 - **Frontend**: React + Vite + TanStack Query + wouter + shadcn/ui + Tailwind CSS v4
 - **Backend**: Express (root `server/`) serving both API and Vite dev server on port 5000
-- **Database**: PostgreSQL + Drizzle ORM
+- **Database**: PostgreSQL + Drizzle ORM (Replit managed DB)
 - **Validation**: Zod + drizzle-zod
-- **Auth**: Supabase Auth (primary) + express-session (fallback for existing sessions). Server verifies Supabase JWT via `supabaseAdmin.auth.getUser()`, links to Replit DB user by email.
+- **Auth**: Supabase Auth (primary JWT) + express-session (fallback). Server verifies Supabase JWT via `supabaseAdmin.auth.getUser()`, links to DB user by email. Legacy bcrypt users auto-migrate to Supabase on login.
 - **Real-time Messaging**: Supabase Realtime — `messages` + `typing_indicators` tables in Supabase Postgres with RLS + pub/sub
 - **Legacy real-time**: Socket.io kept for backward compat
 - **Offline**: localStorage message cache + pending queue (auto-flushes on reconnect)
+- **Payments**: Stripe Hosted Checkout (subscriptions) + Stripe Identity (ID verification)
 - **Monorepo**: pnpm workspaces (artifacts/*, lib/*)
 
 ## Structure
@@ -21,26 +22,32 @@ ROAM is an adventure-matching dating app where users post real travel/adventure 
 ```text
 ├── client/src/               # React frontend
 │   ├── pages/                # Page components
-│   │   ├── landing.tsx       # Hero + features + match stories (auth-redirect)
-│   │   ├── login.tsx         # Login page (auth-redirect)
-│   │   ├── signup.tsx        # 3-step signup (auth-redirect)
-│   │   ├── discover.tsx      # Match cards + bucket-list pinning + "Roam Together"
-│   │   ├── upload.tsx        # AI photo screener demo
-│   │   ├── matches.tsx       # Connections list (2 sections) + chat thread
-│   │   └── profile.tsx       # User profile with photo grid + DNA edit + avatar
+│   │   ├── landing.tsx       # Hero + features + match stories
+│   │   ├── login.tsx         # Login page
+│   │   ├── signup.tsx        # 3-step signup with tier selection
+│   │   ├── discover.tsx      # TikTok-style swipe cards (demo profiles for anon users)
+│   │   ├── upload.tsx        # AI photo screener demo + real upload
+│   │   ├── matches.tsx       # Connections list + chat thread
+│   │   └── profile.tsx       # Profile, DNA edit, avatar, verification, upgrade
 │   ├── components/
 │   │   └── app-nav.tsx       # Shared navigation component
 │   ├── lib/queryClient.ts    # TanStack Query setup
 │   ├── lib/auth.tsx          # AuthProvider, useAuth, RequireAuth guard
+│   ├── lib/supabase.ts       # Supabase client + realtime messaging helpers
 │   ├── lib/socket.ts         # Socket.io client singleton
+│   ├── lib/fingerprint.ts    # Adventure Fingerprint engine (client-side)
+│   ├── lib/theme.ts          # Theme provider (4 palettes)
 │   ├── lib/useConnectionStatus.ts  # online/offline/connecting hook
 │   └── lib/messageCache.ts   # localStorage cache + pending queue
 ├── server/                   # Express backend (port 5000)
-│   ├── index.ts              # Entry point + Vite setup
+│   ├── index.ts              # Entry point + Vite setup + rawBody middleware
 │   ├── routes.ts             # All API routes (/api/*)
 │   ├── storage.ts            # DatabaseStorage class (IStorage interface)
 │   ├── db.ts                 # Drizzle ORM + pg pool
-│   ├── auth.ts               # Password hashing (scrypt)
+│   ├── auth.ts               # Password hashing (bcrypt)
+│   ├── fingerprint.ts        # Adventure Fingerprint engine (server-side)
+│   ├── stripeClient.ts       # Stripe client via Replit connector
+│   ├── supabaseAdmin.ts      # Supabase admin client
 │   ├── seed.ts               # Demo data seeder
 │   └── vite.ts               # Vite dev middleware
 └── shared/schema.ts          # Drizzle schema + Zod schemas + types
@@ -62,13 +69,40 @@ ROAM is an adventure-matching dating app where users post real travel/adventure 
 
 **Fonts**: Playfair Display (serif, headings), DM Mono (mono, labels/tags), Outfit (sans, body)
 
+**IMPORTANT**: All rgba() must use `rgba(var(--roam-X-rgb), opacity)` pattern. Do NOT change fonts.
+
 ## Database Tables
 
-- `users` — id (uuid), email, password, name, dob, gender, ethnicity, location, tagline (≤60), tier, adventureTags[], avatarUrl
-- `photos` — id (uuid), userId, storageUrl, caption, personScore, authenticityScore, adventureScore, verdict, tags[], isLicensable
-- `matches` — id (uuid), userAId, userBId, overlapScore, sharedTags[], status (pending/liked_a/liked_b/matched/passed), matchedAt
-- `messages` — id (uuid), matchId, senderId, content
-- `bucket_list` — id (uuid), userId, destinationName, imageUrl
+- `users` — id (uuid), email, password (bcrypt), name, dob, gender, ethnicity, location, tagline (≤60), tier (free/adventurer/contributor), adventureTags[], avatarUrl, identityVerified, identityVerificationId, identityVerifiedAt, stripeCustomerId, stripeSubscriptionId, createdAt
+- `photos` — id (uuid), userId, storageUrl, caption, personScore, authenticityScore, adventureScore, verdict (approved/needs_person/rejected_quote/rejected_manipulated/rejected_stock), tags[], manipulationFlags[], isLicensable, displayOrder, createdAt
+- `matches` — id (uuid), userAId, userBId, overlapScore, sharedTags[], status (pending/liked_a/liked_b/matched/passed), almostMetLocation, almostMetDate, createdAt, matchedAt
+- `messages` — id (uuid), matchId, senderId, content, createdAt
+- `bucket_list` — id (uuid), userId, destinationName, imageUrl, createdAt
+- `user_sessions` — auto-created by connect-pg-simple (not in Drizzle schema)
+
+## Tiers
+
+- **Explorer** (free): limited matches, basic features
+- **Adventurer** ($12 NZD/month via Stripe): unlimited matches, full messaging, Almost Met, Bucket List
+- **Contributor** (free in exchange for photo licensing)
+
+## Stripe Integration
+
+### Identity Verification
+- Endpoint: `POST /api/verify/start` — creates Stripe Identity session, returns hosted URL
+- Webhook: `POST /api/stripe/identity-webhook` — handles `identity.verification_session.verified`
+- Webhook URL: `https://letsroam.life/api/stripe/identity-webhook`
+- Secret stored as: `STRIPE_IDENTITY_WEBHOOK_SECRET`
+- Profile page polls every 3s post-verification until `identityVerified` becomes true
+
+### Subscription Checkout
+- Endpoint: `POST /api/checkout/start` — creates Stripe Checkout session ($12 NZD/month)
+- Endpoint: `POST /api/checkout/portal` — creates Stripe Billing Portal session
+- Webhook: `POST /api/stripe/payment-webhook` — handles `checkout.session.completed`, `customer.subscription.deleted`, `invoice.payment_failed`
+- Webhook URL: `https://letsroam.life/api/stripe/payment-webhook`
+- Secret stored as: `STRIPE_PAYMENT_WEBHOOK_SECRET`
+- On successful payment: sets `tier = adventurer`, stores `stripeCustomerId` + `stripeSubscriptionId`
+- On subscription cancelled: reverts `tier = free`
 
 ## Match Lifecycle
 
@@ -76,58 +110,83 @@ ROAM is an adventure-matching dating app where users post real travel/adventure 
 2. User B clicks "Roam Together" on User A → server detects reciprocal like → auto-promotes to `status = matched`, sets `matchedAt`
 3. Only `matched` connections show in the "Connections" section with messaging enabled
 4. One-sided likes show in "Waiting to roam back" section (no messaging)
+5. Demo profiles (id starts with `demo-`) are blocked from creating real matches
 
-## API Endpoints
+## API Endpoints (all auth-guarded where appropriate)
 
-- `POST /api/auth/register` — Create account
-- `POST /api/auth/login` — Login
-- `GET /api/auth/me` — Current user
-- `POST /api/auth/logout` — Logout
-- `GET /api/users` — List all users
+- `POST /api/auth/signup` — Create account (rate: 10/hr)
+- `POST /api/auth/login` — Login (rate: 5/15min)
+- `GET /api/auth/me` — Current user (Bearer token or session)
+- `POST /api/auth/profile` — Create profile from Supabase OAuth (rate: 10/hr)
+- `POST /api/auth/migrate-to-supabase` — Migrate legacy user to Supabase (auth required)
+- `POST /api/auth/logout` — Destroy session
+- `GET /api/users` — All users (auth required)
 - `PATCH /api/users/:id` — Update profile (auth required, own user only)
 - `GET /api/users/:id/photos` — User's photos
-- `POST /api/photos` — Upload photo record
-- `GET /api/matches` — Current user's matches (both directions, session auth)
-- `POST /api/matches` — Like someone; auto-promotes to matched if reciprocal
-- `PATCH /api/matches/:id` — Update match status
-- `GET /api/matches/:matchId/messages` — Chat messages
-- `POST /api/messages` — Send message
+- `POST /api/photos` — Create photo record (auth required, own userId only)
+- `POST /api/upload` — Upload photo file (auth required, own userId only, rate: 30/hr)
+- `GET /api/matches` — Current user's matches (auth required)
+- `POST /api/matches` — Like someone; demo profiles blocked; auto-promotes if reciprocal
+- `PATCH /api/matches/:id` — Update match status (auth required)
+- `GET /api/matches/:matchId/messages` — Chat messages (auth required)
+- `POST /api/messages` — Send message (auth required, own senderId only)
 - `GET /api/bucket-list/:userId` — User's bucket list
-- `POST /api/bucket-list` — Pin a destination
-- `DELETE /api/bucket-list/:id` — Unpin a destination
+- `POST /api/bucket-list` — Pin a destination (auth required)
+- `DELETE /api/bucket-list/:id` — Unpin a destination (auth required)
+- `POST /api/checkout/start` — Start Stripe Checkout (auth required, rate: 5/hr)
+- `POST /api/checkout/portal` — Open Stripe Billing Portal (auth required)
+- `POST /api/stripe/payment-webhook` — Stripe payment events (signature verified)
+- `POST /api/verify/start` — Start Stripe Identity (auth required, rate: 3/hr)
+- `POST /api/stripe/identity-webhook` — Stripe identity events (signature verified)
 
 ## Key Features
 
-### Auth Persistence
-- Logged-in users visiting `/`, `/login`, `/signup` are redirected to `/discover`
-- `RequireAuth` guard redirects unauthenticated users from protected routes to `/login`
+### Auth Flow
+- Signup: Supabase `signUp()` → `/api/auth/profile` to create DB record → redirect to checkout if Adventurer tier
+- Login: Supabase `signInWithPassword()` → Bearer JWT → `/api/auth/me` OR legacy bcrypt fallback → auto-migrate legacy users
+- Google/Facebook OAuth via Supabase OAuth → `/auth/callback` → `/api/auth/profile`
+- Password reset via Supabase email flow
 
-### Profile Editing
-- Name, tagline, location, adventure DNA all save to DB via `PATCH /api/users/:id` + `refresh()`
-- Avatar photo picker in edit modal — reads file as data URL, saves to user record
-- 31 Adventure DNA tags including: extreme sports, horse riding, walking, running, pub games, couch surfing, food & wine trails, boating/fishing, sports matches
+### Discover Page
+- Anonymous visitors: see demo profiles (Mia, Kai, Sam, Astrid) — all unverified, all unmatchable
+- Swipe right on demo → signup nudge toast → redirect to /signup after 1.8s
+- Logged-in users: same demo profiles (real profile discovery not yet wired)
+- Adventure tags: icon-only pills that expand on hover/tap
 
-### Bucket List
-- Discover page: bookmark button on each destination card — toggles pin/unpin in DB
-- Matches page: pinned destinations shown in horizontal scroll at top
+### Profile Page
+- Edit name, tagline, location, adventure DNA (31 tags)
+- Avatar upload (stored as data URL in DB)
+- Identity verification (Stripe Identity — auto-polled for result)
+- Tier upgrade (Stripe Checkout) for free users
+- Manage subscription (Stripe Billing Portal) for Adventurer users
 
-### Connections Page (matches.tsx)
-- **Connections section**: mutual `matched` pairs → messaging open
-- **Waiting section**: one-sided `liked_a`/`liked_b` → "Waiting to roam back"
-- No percentage scores — replaced with conversation momentum:
-  - "Say hi →" (no messages, green compass icon)
-  - "Your turn →" (they replied last, amber flame icon)  
-  - "Their turn…" (you replied last, muted chat icon)
-- "Keep momentum" nudge card encouraging fast first messages
+### Rate Limiting
+- In-memory per-IP buckets via `createRateLimiter(maxRequests, windowMs)` factory
+- Independent stores per endpoint — no bleed between routes
+- Swap for Redis when scaling to multiple servers
 
-## Demo Accounts
+## Required Secrets
 
-- demo@roam.app / demo1234
-- mia@demo.roam / adventure123
-- kai@demo.roam / adventure123
-- sam@demo.roam / adventure123
+- `DATABASE_URL` — Replit managed PostgreSQL
+- `SESSION_SECRET` — Express session secret
+- `SUPABASE_URL` — Supabase project URL
+- `SUPABASE_SERVICE_ROLE_KEY` — Supabase admin key
+- `SUPABASE_ANON_KEY` — Supabase public anon key
+- `SUPABASE_DB_PASSWORD` — Supabase database password
+- `STRIPE_IDENTITY_WEBHOOK_SECRET` — Stripe Identity webhook signing secret
+- `STRIPE_PAYMENT_WEBHOOK_SECRET` — Stripe payment webhook signing secret
+- Stripe API keys via Replit Stripe connector (no manual env var needed)
+
+## Known Gaps / Future Work
+
+- **Discover page**: Shows demo profiles only — real user profiles not yet wired to the swipe deck
+- **Matches page**: Shows demo connections — real matched users' conversations not yet wired into the connection list
+- **Photo storage**: Files stored locally in `uploads/` — won't persist across deployments; should migrate to Supabase Storage
+- **Stripe Billing Portal**: Must be enabled in Stripe Dashboard → Billing → Customer portal
+- **Rate limiting**: In-memory only — swap for Redis in multi-server deployments
 
 ## Running
 
 - Main workflow: `npm run dev` (starts Express + Vite on port 5000)
 - DB push: `npx drizzle-kit push --force`
+- Deployed at: `https://letsroam.life`

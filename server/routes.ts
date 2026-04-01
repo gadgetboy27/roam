@@ -315,6 +315,8 @@ export async function registerRoutes(
   });
 
   app.delete("/api/bucket-list/:id", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
     try {
       await storage.deleteBucketItem(req.params.id);
       res.json({ message: "Deleted" });
@@ -329,6 +331,11 @@ export async function registerRoutes(
   });
 
   app.post("/api/photos", uploadLimiter, async (req, res) => {
+    const authUserId = await authenticateRequest(req);
+    if (!authUserId) return res.status(401).json({ message: "Not authenticated" });
+    if (req.body.userId && req.body.userId !== authUserId) {
+      return res.status(403).json({ message: "Cannot create photos for another user" });
+    }
     try {
       const photo = await storage.createPhoto(req.body);
       res.status(201).json(photo);
@@ -339,9 +346,15 @@ export async function registerRoutes(
 
   app.post("/api/upload", uploadLimiter, async (req, res) => {
     try {
+      const authUserId = await authenticateRequest(req);
+      if (!authUserId) return res.status(401).json({ message: "Not authenticated" });
+
       const { dataUrl, filename, userId, caption, displayOrder } = req.body;
       if (!dataUrl || !filename || !userId) {
         return res.status(400).json({ message: "dataUrl, filename, userId required" });
+      }
+      if (userId !== authUserId) {
+        return res.status(403).json({ message: "Cannot upload photos for another user" });
       }
 
       const MAX_SIZE = 8 * 1024 * 1024;
@@ -460,6 +473,8 @@ export async function registerRoutes(
   });
 
   app.patch("/api/matches/:id", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
     const { status } = req.body;
     const updated = await storage.updateMatchStatus(req.params.id, status);
     if (!updated) return res.status(404).json({ message: "Match not found" });
@@ -467,11 +482,18 @@ export async function registerRoutes(
   });
 
   app.get("/api/matches/:matchId/messages", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
     const msgs = await storage.getMessagesByMatch(req.params.matchId);
     res.json(msgs);
   });
 
   app.post("/api/messages", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    if (req.body.senderId && req.body.senderId !== userId) {
+      return res.status(403).json({ message: "Cannot send messages as another user" });
+    }
     try {
       const msg = await storage.createMessage(req.body);
       res.status(201).json(msg);
@@ -486,8 +508,10 @@ export async function registerRoutes(
   });
 
   app.post("/api/bucket-list", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
     try {
-      const item = await storage.createBucketItem(req.body);
+      const item = await storage.createBucketItem({ ...req.body, userId });
       res.status(201).json(item);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
