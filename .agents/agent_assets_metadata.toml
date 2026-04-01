@@ -1,0 +1,25 @@
+uploads = []
+
+[[generated]]
+id = "w6O3icp-mdG_Kk3nS97B1"
+uri = "file://attached_assets/generated_images/roam-icon-512.png"
+type = "image"
+title = "roam icon square"
+
+[[generated]]
+id = "IVM_rBxkb-K71IHZehyMP"
+uri = "file://attached_assets/generated_images/roam-logo-wide.png"
+type = "image"
+title = "roam wide logo"
+
+[[outputs]]
+id = "GAIwftJUopC3-bs-1Le79"
+uri = "file://attached_assets/generated_images/roam-icon-512.png"
+type = "image"
+title = "roam. Icon (square — for Stripe business icon)"
+
+[[outputs]]
+id = "nRs5YWcQVVzOnTzcgIfpi"
+uri = "file://attached_assets/generated_images/roam-logo-wide.png"
+type = "image"
+title = "roam. Logo (wide — for Stripe receipts & emails)"
