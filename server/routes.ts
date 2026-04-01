@@ -669,6 +669,21 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/verify/reset", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    try {
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      if (user.identityVerified) return res.status(400).json({ message: "Already verified" });
+      await storage.updateUserVerification(userId, null, false);
+      return res.json({ ok: true });
+    } catch (err: any) {
+      console.error("[verify-reset] Error:", err.message);
+      return res.status(500).json({ message: err.message });
+    }
+  });
+
   app.post("/api/stripe/identity-webhook", async (req, res) => {
     const sig = req.headers["stripe-signature"] as string;
     const webhookSecret = process.env.STRIPE_IDENTITY_WEBHOOK_SECRET;
@@ -705,6 +720,7 @@ export async function registerRoutes(
       const userId = session?.metadata?.userId;
       if (userId) {
         console.log(`[identity] User ${userId} verification requires input — last error: ${JSON.stringify(session?.last_error)}`);
+        await storage.updateUserVerification(userId, null, false);
       }
     }
 

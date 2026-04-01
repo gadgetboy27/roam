@@ -84,6 +84,8 @@ export default function Profile() {
   const [verifying, setVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState("");
   const [verifySubmitted, setVerifySubmitted] = useState(false);
+  const [verifyTimedOut, setVerifyTimedOut] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
   const [upgraded, setUpgraded] = useState(false);
   const [upgradeError, setUpgradeError] = useState("");
@@ -132,13 +134,30 @@ export default function Profile() {
     if (!user?.identityVerificationId || user?.identityVerified) return;
     let attempts = 0;
     const maxAttempts = 10;
+    setVerifyTimedOut(false);
     const interval = setInterval(async () => {
       attempts++;
       await refresh();
-      if (attempts >= maxAttempts) clearInterval(interval);
+      if (attempts >= maxAttempts) {
+        clearInterval(interval);
+        setVerifyTimedOut(true);
+      }
     }, 3000);
     return () => clearInterval(interval);
   }, [user?.identityVerificationId, user?.identityVerified]);
+
+  const handleResetVerification = async () => {
+    setResetting(true);
+    try {
+      await apiRequest("POST", "/api/verify/reset");
+      setVerifyTimedOut(false);
+      await refresh();
+    } catch {
+      setVerifyError("Could not reset verification. Please try again.");
+    } finally {
+      setResetting(false);
+    }
+  };
 
   const handleStartVerification = async () => {
     if (!user) return;
@@ -349,12 +368,14 @@ export default function Profile() {
                     <span className="font-mono text-[9px] tracking-widest uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Vibe</span>
                     <span className="font-mono text-[10px] tracking-wider" style={{ color: "var(--roam-electric)" }}>{vibeWord}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
-                       style={{ background: "rgba(var(--roam-electric-rgb),0.08)", border: "1px solid rgba(var(--roam-electric-rgb),0.35)" }}
-                       data-testid="badge-verified-user">
-                    <span className="font-mono text-[11px] font-bold" style={{ color: "var(--roam-electric)" }}>✓</span>
-                    <span className="font-mono text-[10px] tracking-wider" style={{ color: "var(--roam-electric)" }}>Verified User</span>
-                  </div>
+                  {user?.identityVerified && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+                         style={{ background: "rgba(var(--roam-electric-rgb),0.08)", border: "1px solid rgba(var(--roam-electric-rgb),0.35)" }}
+                         data-testid="badge-verified-user">
+                      <span className="font-mono text-[11px] font-bold" style={{ color: "var(--roam-electric)" }}>✓</span>
+                      <span className="font-mono text-[10px] tracking-wider" style={{ color: "var(--roam-electric)" }}>Verified User</span>
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -388,16 +409,36 @@ export default function Profile() {
               ) : user?.identityVerificationId && !user?.identityVerified ? (
                 <div className="px-4 py-4 flex items-start gap-3"
                      style={{ background: "rgba(var(--roam-cream-rgb),0.03)" }}>
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 animate-spin"
-                       style={{ border: "2px solid rgba(var(--roam-electric-rgb),0.2)", borderTopColor: "var(--roam-electric)" }}>
-                  </div>
-                  <div>
-                    <div className="font-mono text-[11px] tracking-wider font-semibold mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.7)" }}>
-                      Verification in progress
+                  {verifyTimedOut ? (
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 flex-none"
+                         style={{ background: "rgba(var(--roam-ember-rgb),0.12)", border: "1px solid rgba(var(--roam-ember-rgb),0.3)" }}>
+                      <span style={{ fontSize: "15px" }}>!</span>
                     </div>
-                    <div className="font-mono text-[10px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
-                      We're confirming your identity. This usually takes less than a minute.
+                  ) : (
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 animate-spin"
+                         style={{ border: "2px solid rgba(var(--roam-electric-rgb),0.2)", borderTopColor: "var(--roam-electric)" }}>
                     </div>
+                  )}
+                  <div className="flex-1">
+                    <div className="font-mono text-[11px] tracking-wider font-semibold mb-1"
+                         style={{ color: verifyTimedOut ? "rgba(var(--roam-ember-rgb),0.85)" : "rgba(var(--roam-cream-rgb),0.7)" }}>
+                      {verifyTimedOut ? "Verification is taking longer than expected" : "Verification in progress"}
+                    </div>
+                    <div className="font-mono text-[10px] leading-relaxed mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                      {verifyTimedOut
+                        ? "This sometimes happens when documents take a moment to process. You can wait or start again."
+                        : "We're confirming your identity. This usually takes less than a minute."}
+                    </div>
+                    {verifyTimedOut && (
+                      <button
+                        className="font-mono text-[10px] tracking-wider uppercase font-semibold px-3 py-2 rounded-xl transition-all"
+                        style={{ background: "rgba(var(--roam-cream-rgb),0.08)", border: "1px solid rgba(var(--roam-cream-rgb),0.15)", color: "rgba(var(--roam-cream-rgb),0.6)", opacity: resetting ? 0.6 : 1 }}
+                        onClick={handleResetVerification}
+                        disabled={resetting}
+                        data-testid="button-retry-verification">
+                        {resetting ? "Resetting…" : "Start over"}
+                      </button>
+                    )}
                   </div>
                 </div>
               ) : verifySubmitted ? (
