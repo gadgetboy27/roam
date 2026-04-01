@@ -5,6 +5,34 @@ import { useAuth } from "@/lib/auth";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { HonestyTier } from "@/lib/fingerprint";
+import {
+  Mountain, Waves, Camera, ShoppingBag, Building2,
+  Backpack, TreePine, Bike, Tent, Compass, Footprints,
+  Sunset, Fish, Wind, MapPin,
+} from "lucide-react";
+
+const TAG_ICON_MAP: Record<string, React.ReactNode> = {
+  "alpine hiking":   <Mountain size={12} />,
+  "rock climbing":   <Mountain size={12} />,
+  "night markets":   <ShoppingBag size={12} />,
+  "surfing":         <Waves size={12} />,
+  "urban roaming":   <Building2 size={12} />,
+  "backpacking":     <Backpack size={12} />,
+  "kayaking":        <Waves size={12} />,
+  "forest trails":   <TreePine size={12} />,
+  "canyoning":       <Mountain size={12} />,
+  "coastal walks":   <Footprints size={12} />,
+  "photography":     <Camera size={12} />,
+  "cycling":         <Bike size={12} />,
+  "camping":         <Tent size={12} />,
+  "sailing":         <Wind size={12} />,
+  "fishing":         <Fish size={12} />,
+  "travel":          <Compass size={12} />,
+  "sunsets":         <Sunset size={12} />,
+};
+function tagIcon(tag: string) {
+  return TAG_ICON_MAP[tag.toLowerCase()] ?? <MapPin size={12} />;
+}
 
 type PioneerBadge = { place: string; location: string; tagCount: number } | null;
 
@@ -16,7 +44,7 @@ const DEMO_PROFILES = [
     tagline: "Chasing elevation, good coffee and anything with a summit",
     hero: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&q=85&fit=crop",
     dna: ["alpine hiking", "rock climbing", "night markets"],
-    honestyTier: "verified-adventure" as HonestyTier,
+    honestyTier: "unverified" as HonestyTier,
     almostMet: null,
     pioneerBadge: { place: "Franz Josef Glacier", location: "West Coast, NZ", tagCount: 47 } as PioneerBadge,
     hasNewMatch: true,
@@ -28,7 +56,7 @@ const DEMO_PROFILES = [
     tagline: "Lost in alleyways, found in barrels",
     hero: "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=800&q=85&fit=crop",
     dna: ["surfing", "night markets", "urban roaming"],
-    honestyTier: "verified-adventure" as HonestyTier,
+    honestyTier: "unverified" as HonestyTier,
     almostMet: null,
     pioneerBadge: { place: "Raglan Left", location: "Waikato, NZ", tagCount: 83 } as PioneerBadge,
     hasNewMatch: false,
@@ -40,7 +68,7 @@ const DEMO_PROFILES = [
     tagline: "Every forest has a path worth getting lost on",
     hero: "https://images.unsplash.com/photo-1473773508845-188df298d2d1?w=800&q=85&fit=crop",
     dna: ["backpacking", "kayaking", "forest trails"],
-    honestyTier: "mostly-verified" as HonestyTier,
+    honestyTier: "unverified" as HonestyTier,
     almostMet: null,
     pioneerBadge: null as PioneerBadge,
     hasNewMatch: false,
@@ -52,7 +80,7 @@ const DEMO_PROFILES = [
     tagline: "Storm-chasing sea cliffs. Been to Faroe twice, going again",
     hero: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=800&q=85&fit=crop",
     dna: ["canyoning", "coastal walks", "photography"],
-    honestyTier: "verified-adventure" as HonestyTier,
+    honestyTier: "unverified" as HonestyTier,
     almostMet: { location: "Faroe Islands", dateHint: "2024 — you were both there" },
     pioneerBadge: { place: "Milford Track", location: "Fiordland, NZ", tagCount: 31 } as PioneerBadge,
     hasNewMatch: true,
@@ -66,6 +94,7 @@ export default function Discover() {
   const [roamedIds, setRoamedIds] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<string | null>(null);
   const [pioneerTipOpen, setPioneerTipOpen] = useState(false);
+  const [expandedTag, setExpandedTag] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
   const [dragOffsetY, setDragOffsetY] = useState(0);
   const [exitDir, setExitDir] = useState<"up" | "left" | "right" | null>(null);
@@ -112,6 +141,7 @@ export default function Discover() {
     setAnimKey(k => k + 1);
     setProfileIdx(i => i + 1);
     setPioneerTipOpen(false);
+    setExpandedTag(null);
   };
 
   const handleRoam = () => {
@@ -357,13 +387,40 @@ export default function Discover() {
 
         <div className="absolute left-0 right-0 px-4" style={{ bottom: "78px" }}>
           <div className="flex flex-wrap gap-2" data-testid="dna-tags-row">
-            {profile.dna.map(tag => (
-              <span key={tag}
-                    className="font-mono text-[9px] tracking-wider px-3 py-1.5 rounded-xl backdrop-blur-md"
-                    style={{ background: "rgba(0,0,0,0.48)", border: "1px solid rgba(255,255,255,0.18)", color: "rgba(255,255,255,0.86)" }}>
-                {tag}
-              </span>
-            ))}
+            {profile.dna.map(tag => {
+              const isOpen = expandedTag === tag;
+              return (
+                <button
+                  key={tag}
+                  className="flex items-center backdrop-blur-md rounded-xl transition-all duration-200"
+                  style={{
+                    background: "rgba(0,0,0,0.48)",
+                    border: `1px solid ${isOpen ? "rgba(255,255,255,0.38)" : "rgba(255,255,255,0.18)"}`,
+                    padding: "6px 8px",
+                    gap: isOpen ? "5px" : "0px",
+                  }}
+                  onMouseEnter={() => setExpandedTag(tag)}
+                  onMouseLeave={() => setExpandedTag(null)}
+                  onPointerDown={e => { e.stopPropagation(); setExpandedTag(isOpen ? null : tag); }}
+                  data-testid={`tag-${tag.replace(/\s+/g, "-")}`}
+                >
+                  <span style={{ color: "rgba(255,255,255,0.82)", display: "flex", alignItems: "center" }}>
+                    {tagIcon(tag)}
+                  </span>
+                  <span
+                    className="font-mono text-[9px] tracking-wider whitespace-nowrap overflow-hidden"
+                    style={{
+                      maxWidth: isOpen ? "110px" : "0px",
+                      opacity: isOpen ? 1 : 0,
+                      transition: "max-width 0.2s ease, opacity 0.15s ease",
+                      color: "rgba(255,255,255,0.86)",
+                    }}
+                  >
+                    {tag}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
