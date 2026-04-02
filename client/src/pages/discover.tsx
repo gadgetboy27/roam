@@ -394,7 +394,7 @@ export default function Discover() {
                : dragOffset === 0 && dragOffsetY === 0
                  ? "transform 0.28s cubic-bezier(0.34,1.56,0.64,1)"
                  : "none",
-             animation: !exitDir ? "fadeUp 0.35s ease-out both" : undefined,
+             animation: !exitDir ? "cardFadeIn 0.35s ease-out both" : undefined,
            }}
            onTouchStart={handleTouchStart}
            onTouchMove={handleTouchMove}
