@@ -16,6 +16,7 @@ export interface IStorage {
 
   createPhoto(photo: InsertPhoto): Promise<Photo>;
   getPhotosByUser(userId: string): Promise<Photo[]>;
+  getFirstApprovedPhotoPerUser(): Promise<Record<string, string>>;
 
   createMatch(match: InsertMatch): Promise<Match>;
   getMatchesForUser(userId: string): Promise<Match[]>;
@@ -72,6 +73,19 @@ export class DatabaseStorage implements IStorage {
 
   async getPhotosByUser(userId: string): Promise<Photo[]> {
     return db.select().from(photos).where(eq(photos.userId, userId)).orderBy(photos.displayOrder);
+  }
+
+  async getFirstApprovedPhotoPerUser(): Promise<Record<string, string>> {
+    const approved = await db
+      .select({ userId: photos.userId, storageUrl: photos.storageUrl })
+      .from(photos)
+      .where(eq(photos.verdict, "approved"))
+      .orderBy(photos.displayOrder);
+    const map: Record<string, string> = {};
+    for (const p of approved) {
+      if (!map[p.userId]) map[p.userId] = p.storageUrl;
+    }
+    return map;
   }
 
   async createMatch(match: InsertMatch): Promise<Match> {

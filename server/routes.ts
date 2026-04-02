@@ -361,8 +361,14 @@ export async function registerRoutes(
   app.get("/api/users", async (req, res) => {
     const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
-    const allUsers = await storage.getAllUsers();
-    const safe = allUsers.map(({ password: _, ...u }) => u);
+    const [allUsers, heroPhotoMap] = await Promise.all([
+      storage.getAllUsers(),
+      storage.getFirstApprovedPhotoPerUser(),
+    ]);
+    const safe = allUsers.map(({ password: _, ...u }) => ({
+      ...u,
+      heroPhotoUrl: heroPhotoMap[u.id] ?? null,
+    }));
     res.json(safe);
   });
 
