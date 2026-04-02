@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useLocation } from "wouter";
 import AppNav from "@/components/app-nav";
 import {
   Send, ArrowLeft, WifiOff, Clock, MapPin, BookmarkCheck,
@@ -7,6 +8,7 @@ import {
 import { useConnectionStatus } from "@/lib/useConnectionStatus";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { useQuery } from "@tanstack/react-query";
 import {
   supabase, fetchMessages, sendSupabaseMessage, markMessagesRead,
@@ -130,6 +132,7 @@ function groupByDay(msgs: CachedMessage[]) {
 export default function Matches() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const myId = user?.id ?? "demo-user";
   const isPaid = user?.tier === "adventurer";
 
@@ -433,6 +436,11 @@ export default function Matches() {
                              toast({
                                title: "Adventurer tier unlocks this 🔒",
                                description: "Upgrade to see match photos and start conversations.",
+                               action: (
+                                 <ToastAction altText="Upgrade now" onClick={() => navigate("/profile")}>
+                                   Upgrade now
+                                 </ToastAction>
+                               ),
                              });
                              return;
                            }
