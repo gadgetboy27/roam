@@ -1,10 +1,10 @@
-import { eq, and, or, desc } from "drizzle-orm";
+import { eq, and, or, desc, inArray } from "drizzle-orm";
 import { db } from "./db";
 import {
-  users, photos, matches, messages, bucketList,
+  users, photos, matches, messages, bucketList, ads,
   type User, type InsertUser, type Photo, type InsertPhoto,
   type Match, type InsertMatch, type Message, type InsertMessage,
-  type BucketListItem, type InsertBucketList,
+  type BucketListItem, type InsertBucketList, type Ad, type InsertAd,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -31,6 +31,13 @@ export interface IStorage {
 
   updateUserVerification(userId: string, verificationId: string | null, verified: boolean): Promise<User | undefined>;
   deleteUser(userId: string): Promise<void>;
+
+  createAd(ad: InsertAd): Promise<Ad>;
+  getAdById(id: string): Promise<Ad | undefined>;
+  getAllAds(): Promise<Ad[]>;
+  getAdsByStatus(status: string): Promise<Ad[]>;
+  getLiveAd(): Promise<Ad | undefined>;
+  updateAd(id: string, data: Partial<InsertAd & { reviewedAt: Date | null; expiresAt: Date | null; impressions: number }>): Promise<Ad | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -120,6 +127,37 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUser(userId: string): Promise<void> {
     await db.delete(users).where(eq(users.id, userId));
+  }
+
+  async createAd(ad: InsertAd): Promise<Ad> {
+    const [created] = await db.insert(ads).values(ad).returning();
+    return created;
+  }
+
+  async getAdById(id: string): Promise<Ad | undefined> {
+    const [ad] = await db.select().from(ads).where(eq(ads.id, id));
+    return ad;
+  }
+
+  async getAllAds(): Promise<Ad[]> {
+    return db.select().from(ads).orderBy(desc(ads.createdAt));
+  }
+
+  async getAdsByStatus(status: string): Promise<Ad[]> {
+    return db.select().from(ads).where(eq(ads.status, status as any)).orderBy(desc(ads.createdAt));
+  }
+
+  async getLiveAd(): Promise<Ad | undefined> {
+    const now = new Date();
+    const liveAds = await db.select().from(ads).where(eq(ads.status, "approved"));
+    const valid = liveAds.filter(a => !a.expiresAt || a.expiresAt > now);
+    if (valid.length === 0) return undefined;
+    return valid[Math.floor(Math.random() * valid.length)];
+  }
+
+  async updateAd(id: string, data: Partial<InsertAd & { reviewedAt: Date | null; expiresAt: Date | null; impressions: number }>): Promise<Ad | undefined> {
+    const [updated] = await db.update(ads).set(data as any).where(eq(ads.id, id)).returning();
+    return updated;
   }
 
   async updateUserVerification(userId: string, verificationId: string | null, verified: boolean): Promise<User | undefined> {

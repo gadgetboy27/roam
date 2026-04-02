@@ -250,6 +250,11 @@ export default function Landing() {
               </span>
             </div>
             <div className="flex items-center gap-5">
+              <Link href="/advertise">
+                <span className="font-mono text-[10px] tracking-wider cursor-pointer hover:opacity-70 transition-opacity" style={{ color: "rgba(var(--roam-electric-rgb),0.6)" }}>
+                  Advertise
+                </span>
+              </Link>
               <Link href="/privacy">
                 <span className="font-mono text-[10px] tracking-wider cursor-pointer hover:opacity-70 transition-opacity" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
                   Privacy Policy

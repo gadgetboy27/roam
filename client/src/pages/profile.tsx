@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import AppNav from "@/components/app-nav";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
-import { MapPin, Camera, Edit3, Settings, Star, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2, Trash2 } from "lucide-react";
+import { MapPin, Camera, Edit3, Settings, Star, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2, Trash2, Megaphone } from "lucide-react";
 import { computeVibeWord } from "@/lib/fingerprint";
 
 const FALLBACK_HERO = "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&q=80&fit=crop";
@@ -596,6 +596,23 @@ export default function Profile() {
                 View &amp; Share
               </div>
             </button>
+
+            <Link href="/advertise">
+              <button
+                className="w-full flex items-center gap-3.5 p-4 rounded-2xl mt-2 text-left transition-all hover:scale-[1.01]"
+                style={{ background: "linear-gradient(135deg, rgba(var(--roam-electric-rgb),0.06), rgba(var(--roam-sky-rgb),0.04))", border: "1px solid rgba(var(--roam-electric-rgb),0.15)" }}
+                data-testid="button-advertise-with-us">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                     style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.2)" }}>
+                  <Megaphone size={15} style={{ color: "var(--roam-electric)" }} />
+                </div>
+                <div className="flex-1">
+                  <div className="font-semibold text-[13px] mb-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.85)" }}>Advertise on roam.</div>
+                  <div className="font-mono text-[9px] tracking-wider" style={{ color: "rgba(var(--roam-electric-rgb),0.65)" }}>Reach adventure seekers · from $49 NZD</div>
+                </div>
+                <ChevronRight size={13} style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }} />
+              </button>
+            </Link>
 
             <div className="mt-6 rounded-2xl overflow-hidden"
                  style={{ border: "1px solid rgba(var(--roam-ember-rgb),0.18)" }}>

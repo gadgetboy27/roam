@@ -6,6 +6,7 @@ import { z } from "zod";
 export const tierEnum = pgEnum("tier", ["free", "adventurer", "contributor"]);
 export const photoVerdictEnum = pgEnum("photo_verdict", ["approved", "needs_person", "rejected_quote", "rejected_manipulated", "rejected_stock"]);
 export const matchStatusEnum = pgEnum("match_status", ["pending", "liked_a", "liked_b", "matched", "passed"]);
+export const adStatusEnum = pgEnum("ad_status", ["pending_payment", "pending_review", "approved", "rejected", "expired"]);
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -74,6 +75,28 @@ export const bucketList = pgTable("bucket_list", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const ads = pgTable("ads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  advertiserName: text("advertiser_name").notNull(),
+  advertiserEmail: text("advertiser_email").notNull(),
+  advertiserCompany: text("advertiser_company"),
+  tier: text("tier").notNull(),
+  headline: text("headline").notNull(),
+  tagline: text("tagline"),
+  ctaText: text("cta_text"),
+  ctaUrl: text("cta_url"),
+  imageUrl: text("image_url"),
+  videoUrl: text("video_url"),
+  contentType: text("content_type").notNull().default("image"),
+  status: adStatusEnum("status").default("pending_payment").notNull(),
+  stripeSessionId: text("stripe_session_id"),
+  rejectionReason: text("rejection_reason"),
+  reviewedAt: timestamp("reviewed_at"),
+  expiresAt: timestamp("expires_at"),
+  impressions: integer("impressions").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertPhotoSchema = createInsertSchema(photos).omit({ id: true, createdAt: true });
 export const insertMatchSchema = createInsertSchema(matches).omit({ id: true, createdAt: true });
@@ -103,3 +126,7 @@ export type InsertPhoto = z.infer<typeof insertPhotoSchema>;
 export type InsertMatch = z.infer<typeof insertMatchSchema>;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type InsertBucketList = z.infer<typeof insertBucketListSchema>;
+
+export const insertAdSchema = createInsertSchema(ads).omit({ id: true, createdAt: true, reviewedAt: true, expiresAt: true, impressions: true });
+export type Ad = typeof ads.$inferSelect;
+export type InsertAd = z.infer<typeof insertAdSchema>;

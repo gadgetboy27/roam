@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { HonestyTier } from "@/lib/fingerprint";
+import AdCard, { type LiveAd } from "@/components/ad-card";
 import {
   Mountain, Waves, Camera, ShoppingBag, Building2,
   Backpack, TreePine, Bike, Tent, Compass, Footprints,
@@ -99,6 +100,17 @@ export default function Discover() {
   const [profileIdx, setProfileIdx] = useState(0);
   const [animKey, setAnimKey] = useState(0);
   const [roamedIds, setRoamedIds] = useState<Set<string>>(new Set());
+  const [swipedCount, setSwipedCount] = useState(0);
+  const [showingAd, setShowingAd] = useState(false);
+  const [adExitDir, setAdExitDir] = useState<"left" | "right" | "up" | null>(null);
+  const [adDragOffset, setAdDragOffset] = useState(0);
+  const [adDragOffsetY, setAdDragOffsetY] = useState(0);
+
+  const { data: liveAd } = useQuery<LiveAd | null>({
+    queryKey: ["/api/ads/live"],
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
   const [toast, setToast] = useState<string | null>(null);
   const [pioneerTipOpen, setPioneerTipOpen] = useState(false);
   const [expandedTag, setExpandedTag] = useState<string | null>(null);
@@ -172,11 +184,46 @@ export default function Discover() {
     setTimeout(() => setToast(null), 2200);
   };
 
+  const dismissAd = () => {
+    setAdExitDir("up");
+    setTimeout(() => {
+      setShowingAd(false);
+      setAdExitDir(null);
+      setAdDragOffset(0);
+      setAdDragOffsetY(0);
+    }, 360);
+  };
+
+  const evaluateAdGesture = () => {
+    const absX = Math.abs(adDragOffset);
+    const absY = Math.abs(adDragOffsetY);
+    if ((absY > absX && adDragOffsetY < -60) || absX > 80) {
+      const dir: "left" | "right" | "up" = absY > absX ? "up" : adDragOffset > 0 ? "right" : "left";
+      setAdExitDir(dir);
+      setTimeout(() => {
+        setShowingAd(false);
+        setAdExitDir(null);
+        setAdDragOffset(0);
+        setAdDragOffsetY(0);
+      }, 360);
+    } else {
+      setAdDragOffset(0);
+      setAdDragOffsetY(0);
+    }
+  };
+
   const advanceCard = () => {
     setAnimKey(k => k + 1);
     setProfileIdx(i => i + 1);
     setPioneerTipOpen(false);
     setExpandedTag(null);
+    setSwipedCount(c => {
+      const next = c + 1;
+      if (next % 7 === 0 && liveAd) {
+        setShowingAd(true);
+      }
+      return next;
+    });
   };
 
   const handleRoam = () => {
@@ -279,6 +326,20 @@ export default function Discover() {
         <div className="fixed left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-2xl font-mono text-[11px] tracking-wider animate-fade-up shadow-lg"
              style={{ top: "74px", background: "var(--roam-electric)", color: "var(--roam-forest)", whiteSpace: "nowrap" }}>
           {toast}
+        </div>
+      )}
+
+      {showingAd && liveAd && (
+        <div className="absolute inset-0 z-30" style={{ padding: "16px 16px 90px" }}>
+          <AdCard
+            ad={liveAd}
+            onDismiss={dismissAd}
+            dragOffset={adDragOffset}
+            dragOffsetY={adDragOffsetY}
+            exitDir={adExitDir}
+            onDragMove={(dx, dy) => { setAdDragOffset(dx); setAdDragOffsetY(dy); }}
+            onDragEnd={evaluateAdGesture}
+          />
         </div>
       )}
 

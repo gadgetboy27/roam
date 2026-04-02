@@ -668,6 +668,101 @@ export async function registerRoutes(
     }
   });
 
+  // ─── Ad system ───────────────────────────────────────────────────────────
+
+  const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "admin@letsroam.life").split(",").map(e => e.trim().toLowerCase());
+  const AD_TIERS: Record<string, { label: string; price: number; days: number }> = {
+    explorer:    { label: "Explorer",    price: 4900,  days: 7  },
+    trailblazer: { label: "Trailblazer", price: 12900, days: 14 },
+    summit:      { label: "Summit",      price: 29900, days: 30 },
+  };
+
+  app.post("/api/ads/submit", async (req, res) => {
+    const { advertiserName, advertiserEmail, advertiserCompany, tier, headline, tagline, ctaText, ctaUrl, imageUrl, videoUrl, contentType } = req.body;
+    if (!advertiserName || !advertiserEmail || !tier || !headline) {
+      return res.status(400).json({ message: "advertiserName, advertiserEmail, tier, and headline are required" });
+    }
+    const tierInfo = AD_TIERS[tier as string];
+    if (!tierInfo) return res.status(400).json({ message: "Invalid tier. Must be explorer, trailblazer, or summit" });
+
+    const ad = await storage.createAd({ advertiserName, advertiserEmail, advertiserCompany, tier, headline, tagline, ctaText, ctaUrl, imageUrl, videoUrl, contentType: contentType || "image", status: "pending_payment" });
+
+    try {
+      const stripe = await getUncachableStripeClient();
+      const origin = req.headers.origin || "https://letsroam.life";
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        currency: "nzd",
+        line_items: [{
+          price_data: {
+            currency: "nzd",
+            unit_amount: tierInfo.price,
+            product_data: { name: `roam. Ad Slot — ${tierInfo.label} (${tierInfo.days} days)`, description: headline },
+          },
+          quantity: 1,
+        }],
+        metadata: { type: "ad", adId: ad.id },
+        customer_email: advertiserEmail,
+        success_url: `${origin}/advertise/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${origin}/advertise`,
+      });
+      await storage.updateAd(ad.id, { stripeSessionId: session.id });
+      return res.json({ checkoutUrl: session.url, adId: ad.id });
+    } catch (err: any) {
+      console.error("[ads] Stripe error:", err.message);
+      return res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/ads/live", async (_req, res) => {
+    const ad = await storage.getLiveAd();
+    if (!ad) return res.json(null);
+    await storage.updateAd(ad.id, { impressions: (ad.impressions ?? 0) + 1 });
+    return res.json(ad);
+  });
+
+  app.get("/api/ads/admin", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+    const allAds = await storage.getAllAds();
+    return res.json(allAds);
+  });
+
+  app.post("/api/ads/admin/:id/approve", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+    const ad = await storage.getAdById(req.params.id);
+    if (!ad) return res.status(404).json({ message: "Ad not found" });
+    const tierInfo = AD_TIERS[ad.tier] || AD_TIERS.explorer;
+    const expiresAt = new Date(Date.now() + tierInfo.days * 24 * 3600 * 1000);
+    const updated = await storage.updateAd(ad.id, { status: "approved", reviewedAt: new Date(), expiresAt, rejectionReason: null });
+    console.log(`[ads] Admin approved ad ${ad.id} (${ad.advertiserName})`);
+    return res.json(updated);
+  });
+
+  app.post("/api/ads/admin/:id/reject", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+    const { reason } = req.body;
+    const updated = await storage.updateAd(req.params.id, { status: "rejected", reviewedAt: new Date(), rejectionReason: reason || "Does not meet content guidelines" });
+    console.log(`[ads] Admin rejected ad ${req.params.id}: ${reason}`);
+    return res.json(updated);
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+
   app.post("/api/stripe/payment-webhook", async (req, res) => {
     const sig = req.headers["stripe-signature"] as string;
     const webhookSecret = process.env.STRIPE_PAYMENT_WEBHOOK_SECRET;
@@ -686,14 +781,24 @@ export async function registerRoutes(
 
     if (event?.type === "checkout.session.completed") {
       const session = event.data?.object;
-      const userId = session?.metadata?.userId;
-      if (userId) {
-        await storage.updateUser(userId, {
-          tier: "adventurer",
-          stripeCustomerId: session.customer,
-          stripeSubscriptionId: session.subscription,
-        });
-        console.log(`[payment] User ${userId} upgraded to Adventurer`);
+      const metaType = session?.metadata?.type;
+
+      if (metaType === "ad") {
+        const adId = session?.metadata?.adId;
+        if (adId) {
+          await storage.updateAd(adId, { status: "pending_review" });
+          console.log(`[payment] Ad ${adId} paid — moved to pending_review`);
+        }
+      } else {
+        const userId = session?.metadata?.userId;
+        if (userId) {
+          await storage.updateUser(userId, {
+            tier: "adventurer",
+            stripeCustomerId: session.customer,
+            stripeSubscriptionId: session.subscription,
+          });
+          console.log(`[payment] User ${userId} upgraded to Adventurer`);
+        }
       }
     }
 
