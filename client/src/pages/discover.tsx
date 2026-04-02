@@ -406,7 +406,7 @@ export default function Discover() {
            onContextMenu={e => e.preventDefault()}>
 
         <img src={profile.hero} alt={profile.name}
-             className="absolute inset-0 w-full h-full object-cover transition-transform duration-[6s] ease-out"
+             className="absolute inset-0 w-full h-full object-cover"
              draggable={false} style={{ pointerEvents: "none" }} />
 
         <div className="absolute inset-0 pointer-events-none"
