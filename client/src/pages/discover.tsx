@@ -1,9 +1,10 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import AppNav from "@/components/app-nav";
 import { useAuth } from "@/lib/auth";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { Check, X } from "lucide-react";
 import type { HonestyTier } from "@/lib/fingerprint";
 import AdCard, { type LiveAd } from "@/components/ad-card";
 import {
@@ -120,11 +121,22 @@ export default function Discover() {
   const [matchCelebration, setMatchCelebration] = useState<{
     name: string; hero: string; sharedTags: string[]; almostMet: typeof DEMO_PROFILES[0]["almostMet"];
   } | null>(null);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [welcomeTier, setWelcomeTier] = useState<"free" | "adventurer" | "contributor">("adventurer");
+  const [welcomePaying, setWelcomePaying] = useState(false);
   const dragStartX = useRef<number | null>(null);
   const dragStartY = useRef<number | null>(null);
   const isMouseDown = useRef(false);
   const pendingMatchRef = useRef<typeof matchCelebration>(null);
   const [, navigate] = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("welcome") === "1") {
+      setShowWelcomeModal(true);
+      window.history.replaceState({}, "", "/discover");
+    }
+  }, []);
 
   const realDeck = useMemo(() => {
     if (!user) return null;
@@ -617,6 +629,137 @@ export default function Discover() {
                     data-testid="button-keep-exploring">
               keep exploring
             </button>
+          </div>
+        </div>
+      )}
+
+      {showWelcomeModal && (
+        <div className="fixed inset-0 z-[200] flex flex-col justify-end" data-testid="welcome-plan-modal">
+          <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.75)" }} />
+          <div className="relative rounded-t-[28px] max-h-[92vh] overflow-y-auto"
+               style={{ background: "var(--roam-surface)", border: "1px solid rgba(var(--roam-cream-rgb),0.1)" }}>
+            <div className="px-5 pt-6 pb-2">
+              <div className="font-mono text-[10px] tracking-[2px] uppercase mb-1" style={{ color: "var(--roam-electric)" }}>
+                Welcome to roam.
+              </div>
+              <h2 className="font-serif text-[22px] font-black leading-tight mb-1">
+                Choose your <span className="italic" style={{ color: "var(--roam-electric)" }}>adventure plan</span>
+              </h2>
+              <p className="text-[12px] mb-4 leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                You can change or cancel anytime. Contributor access is genuinely free.
+              </p>
+
+              <div className="space-y-2.5 mb-4">
+                {[
+                  {
+                    id: "free" as const,
+                    name: "Explorer", badge: "Free", badgeColor: "sky",
+                    price: "$0", priceSub: "forever",
+                    desc: "Get started, see your matches, limited connections.",
+                    features: [
+                      { yes: true, text: "Up to 9 photos" },
+                      { yes: true, text: "See adventure DNA matches" },
+                      { yes: true, text: "3 match connections per month" },
+                      { yes: false, text: "Messaging locked (read only)" },
+                    ],
+                  },
+                  {
+                    id: "adventurer" as const,
+                    name: "Adventurer", badge: "Most popular", badgeColor: "electric",
+                    price: "$12", priceSub: "NZD / month",
+                    desc: "Unlimited matches, full messaging, Almost Met radar.",
+                    features: [
+                      { yes: true, text: "Unlimited photo uploads" },
+                      { yes: true, text: "Full messaging with all matches" },
+                      { yes: true, text: "Bucket List destination matching" },
+                      { yes: true, text: "Almost Met alerts" },
+                    ],
+                  },
+                  {
+                    id: "contributor" as const,
+                    name: "Contributor", badge: "Free access", badgeColor: "ember",
+                    price: "Free", priceSub: "licence trade",
+                    desc: "Get full Adventurer access free — licence your travel photos.",
+                    features: [
+                      { yes: true, text: "Everything in Adventurer — free" },
+                      { yes: true, text: "Photos may be licensed to travel brands" },
+                      { yes: true, text: "You keep full ownership — non-exclusive" },
+                    ],
+                  },
+                ].map(t => (
+                  <div key={t.id}
+                       className="rounded-[20px] cursor-pointer transition-all relative overflow-hidden"
+                       style={{
+                         background: welcomeTier === t.id ? "var(--roam-surface)" : "var(--roam-moss)",
+                         border: welcomeTier === t.id ? "1.5px solid var(--roam-electric)" : "1.5px solid rgba(var(--roam-cream-rgb),0.07)",
+                       }}
+                       onClick={() => setWelcomeTier(t.id)}
+                       data-testid={`welcome-tier-${t.id}`}>
+                    {welcomeTier === t.id && <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: "var(--roam-electric)" }} />}
+                    <div className="p-3.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 text-[14px] font-semibold">
+                            {t.name}
+                            <span className="font-mono text-[8px] tracking-wider uppercase py-0.5 px-2 rounded-lg"
+                                  style={{
+                                    background: t.badgeColor === "electric" ? "rgba(var(--roam-electric-rgb),0.15)" : t.badgeColor === "ember" ? "rgba(232,98,26,0.15)" : "rgba(var(--roam-sky-rgb),0.15)",
+                                    color: t.badgeColor === "electric" ? "var(--roam-electric)" : t.badgeColor === "ember" ? "var(--roam-ember)" : "var(--roam-sky)",
+                                  }}>
+                              {t.badge}
+                            </span>
+                          </div>
+                          <p className="text-[11px] mt-1 leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>{t.desc}</p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <div className="font-serif text-[20px] font-bold">{t.price}</div>
+                          <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>{t.priceSub}</div>
+                        </div>
+                      </div>
+                      <div className="mt-2.5 pt-2.5 space-y-1" style={{ borderTop: "1px solid rgba(var(--roam-cream-rgb),0.06)" }}>
+                        {t.features.map((f, i) => (
+                          <div key={i} className="flex items-baseline gap-2 text-[11px]"
+                               style={{ color: f.yes ? "rgba(var(--roam-cream-rgb),0.7)" : "rgba(var(--roam-cream-rgb),0.3)" }}>
+                            <span className="flex-shrink-0" style={{ color: f.yes ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.25)" }}>
+                              {f.yes ? <Check size={10} /> : <X size={10} />}
+                            </span>
+                            {f.text}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                className="w-full py-3.5 rounded-2xl font-mono text-[12px] tracking-wider uppercase font-medium mb-2 transition-all disabled:opacity-60"
+                style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
+                disabled={welcomePaying}
+                onClick={async () => {
+                  if (welcomeTier === "adventurer") {
+                    setWelcomePaying(true);
+                    try {
+                      const res = await apiRequest("POST", "/api/checkout/start");
+                      const data = await res.json();
+                      if (data.url) { window.location.href = data.url; return; }
+                    } catch {}
+                    setWelcomePaying(false);
+                  } else {
+                    setShowWelcomeModal(false);
+                  }
+                }}
+                data-testid="button-welcome-continue">
+                {welcomePaying ? "Redirecting…" : welcomeTier === "adventurer" ? "Continue → Pay $12 NZD/mo" : "Continue with " + (welcomeTier === "contributor" ? "Contributor" : "Explorer (free)")}
+              </button>
+              <button
+                className="w-full py-2.5 mb-4 font-mono text-[11px] tracking-wider"
+                style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}
+                onClick={() => setShowWelcomeModal(false)}
+                data-testid="button-welcome-skip">
+                Decide later
+              </button>
+            </div>
           </div>
         </div>
       )}

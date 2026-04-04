@@ -335,7 +335,28 @@ export default function Profile() {
               )}
             </div>
 
-            {upgraded && (
+            {upgraded && !user?.identityVerified && (
+              <div className="mb-4 rounded-2xl overflow-hidden"
+                   style={{ border: "1px solid rgba(var(--roam-electric-rgb),0.35)", background: "rgba(var(--roam-electric-rgb),0.07)" }}>
+                <div className="px-4 pt-4 pb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span style={{ color: "var(--roam-electric)" }}>✦</span>
+                    <span className="font-mono text-[11px] font-semibold" style={{ color: "var(--roam-electric)" }}>Welcome to Adventurer!</span>
+                  </div>
+                  <div className="font-mono text-[10px] leading-relaxed mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
+                    All features unlocked. Add a ✓ verified badge to your profile — it builds trust and gets you more matches.
+                  </div>
+                  <button onClick={handleStartVerification} disabled={verifying}
+                          className="w-full py-3 rounded-xl font-mono text-[11px] tracking-wider uppercase font-medium transition-all"
+                          style={{ background: "var(--roam-electric)", color: "var(--roam-forest)", opacity: verifying ? 0.7 : 1 }}
+                          data-testid="button-verify-after-upgrade">
+                    {verifying ? "Starting…" : "Get verified now →"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {upgraded && user?.identityVerified && (
               <div className="mb-4 px-4 py-3 rounded-2xl flex items-center gap-3"
                    style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)" }}>
                 <span style={{ color: "var(--roam-electric)" }}>✦</span>
@@ -345,13 +366,28 @@ export default function Profile() {
 
             {user?.tier === "free" && (
               <div className="mb-4 rounded-2xl overflow-hidden"
-                   style={{ border: "1px solid rgba(var(--roam-electric-rgb),0.2)", background: "rgba(var(--roam-electric-rgb),0.04)" }}>
-                <div className="px-4 pt-4 pb-3">
-                  <div className="font-serif text-[15px] font-bold mb-1" style={{ color: "var(--roam-cream)" }}>
-                    Unlock Adventurer
+                   style={{ border: "1.5px solid rgba(var(--roam-electric-rgb),0.4)", background: "linear-gradient(135deg, rgba(var(--roam-electric-rgb),0.08) 0%, rgba(var(--roam-electric-rgb),0.03) 100%)" }}>
+                <div className="px-4 pt-4 pb-4">
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div>
+                      <div className="font-serif text-[17px] font-black mb-0.5" style={{ color: "var(--roam-cream)" }}>
+                        Unlock Adventurer
+                      </div>
+                      <div className="font-mono text-[9px] tracking-wider uppercase" style={{ color: "var(--roam-electric)" }}>
+                        Most popular plan
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="font-serif text-[22px] font-bold" style={{ color: "var(--roam-cream)" }}>$12</div>
+                      <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>NZD / mo</div>
+                    </div>
                   </div>
-                  <div className="font-mono text-[10px] leading-relaxed mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
-                    Unlimited matches · Full messaging · Almost Met radar · Bucket List matching
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 mb-3">
+                    {["Unlimited matches", "Full messaging", "Almost Met radar", "Bucket List matching"].map(f => (
+                      <div key={f} className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>
+                        <span style={{ color: "var(--roam-electric)" }}>✓</span> {f}
+                      </div>
+                    ))}
                   </div>
                   {upgradeError && (
                     <div className="mb-2 text-[11px] font-mono px-3 py-2 rounded-xl"
@@ -360,10 +396,10 @@ export default function Profile() {
                     </div>
                   )}
                   <button onClick={handleUpgrade} disabled={upgrading}
-                          className="w-full py-3 rounded-xl font-mono text-[11px] tracking-wider uppercase font-medium transition-all"
+                          className="w-full py-3.5 rounded-xl font-mono text-[12px] tracking-wider uppercase font-semibold transition-all"
                           style={{ background: "var(--roam-electric)", color: "var(--roam-forest)", opacity: upgrading ? 0.7 : 1 }}
                           data-testid="button-upgrade-adventurer">
-                    {upgrading ? "Redirecting…" : "$12 NZD / month — Upgrade now"}
+                    {upgrading ? "Redirecting…" : "Upgrade to Adventurer →"}
                   </button>
                   <div className="text-center mt-2 font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}>
                     Powered by Stripe · Cancel anytime

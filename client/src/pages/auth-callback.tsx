@@ -47,6 +47,7 @@ export default function AuthCallback() {
           return;
         }
 
+        let isNewUser = false;
         if (session?.access_token) {
           const profileRes = await fetch("/api/auth/me", {
             headers: { Authorization: `Bearer ${session.access_token}` },
@@ -54,6 +55,7 @@ export default function AuthCallback() {
           });
 
           if (!profileRes.ok) {
+            isNewUser = true;
             const sbUser = session.user;
             const fullName =
               sbUser?.user_metadata?.full_name ||
@@ -79,7 +81,7 @@ export default function AuthCallback() {
 
         await refresh();
         setStatus("success");
-        setTimeout(() => navigate("/discover"), 1100);
+        setTimeout(() => navigate(isNewUser ? "/discover?welcome=1" : "/discover"), 1100);
       } catch (err: any) {
         setErrorMsg(err.message || "Verification failed. Try signing in again.");
         setStatus("error");
