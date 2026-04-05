@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { ArrowLeft, Check, X, Camera, Compass } from "lucide-react";
+import { ArrowLeft, Check, X, Camera, Compass, ShieldAlert } from "lucide-react";
 import { SiFacebook, SiGoogle } from "react-icons/si";
 
 const TIERS = [
@@ -537,6 +537,34 @@ export default function Signup() {
               <p className="text-[13px] mb-5 leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
                 Read and tick each item. Required ones must be checked.
               </p>
+
+              <div className="rounded-2xl p-4 mb-5 animate-fade-up"
+                   style={{ background: "rgba(232,98,26,0.06)", border: "1px solid rgba(232,98,26,0.22)" }}
+                   data-testid="safety-disclaimer">
+                <div className="flex items-start gap-3">
+                  <ShieldAlert size={20} className="flex-shrink-0 mt-0.5" style={{ color: "var(--roam-ember)" }} />
+                  <div>
+                    <div className="text-[13px] font-semibold mb-2.5" style={{ color: "var(--roam-ember)" }}>
+                      Your safety comes first
+                    </div>
+                    <ul className="space-y-2">
+                      {[
+                        "Before meeting anyone, check they are identity-verified and have AI-screened photos — both are shown on their profile.",
+                        "For your first few meetups, go as a group or choose a well-populated public place.",
+                        "Trust your instincts. Never feel pressured to meet someone you're not comfortable with.",
+                        "Keep conversations inside roam.'s messaging until you're confident — avoid sharing personal contact details too early.",
+                        "roam. and its creators genuinely care about your safety and have built every safeguard we can. Your personal safety is ultimately your own responsibility.",
+                      ].map((tip, i) => (
+                        <li key={i} className="flex items-start gap-2 text-[11px] leading-relaxed"
+                            style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>
+                          <span className="flex-shrink-0 mt-[3px]" style={{ color: "var(--roam-ember)" }}>•</span>
+                          {tip}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
 
               <div className="space-y-2.5 mb-5">
                 {CONSENTS.map(c => {
