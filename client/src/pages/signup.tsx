@@ -61,33 +61,33 @@ const CONSENTS = [
     id: "terms",
     required: true,
     label: "Terms of Service & Privacy Policy",
-    desc: "I agree to the ROAM Terms of Service and Privacy Policy, including how my data is stored and used to power adventure matching.",
+    desc: "I agree to roam.'s Terms of Service and Privacy Policy.",
     linkText: "Read full terms",
   },
   {
     id: "age",
     required: true,
     label: "Age confirmation",
-    desc: "I confirm I am 18 years of age or older.",
+    desc: "I confirm I am 18 or older.",
   },
   {
     id: "authentic",
     required: true,
-    label: "Authentic content pledge",
-    desc: "I agree to only post photos I personally took or appear in. I will not post AI-generated images, stock photos, or images manipulated to misrepresent reality.",
+    label: "Authentic content",
+    desc: "I'll only post real photos I took or appear in — no AI, stock, or heavily edited images.",
   },
   {
     id: "photo_license",
     required: false,
-    label: "Photo licensing (Contributor tier only)",
-    desc: "I grant ROAM a non-exclusive, worldwide licence to sublicense my approved photos to third-party travel brands, tourism operators, and stock libraries.",
+    label: "Photo licensing (Contributor tier)",
+    desc: "I grant roam. a non-exclusive licence to pitch my approved photos to travel brands.",
     isLicense: true,
   },
   {
     id: "marketing",
     required: false,
-    label: "Adventure inspiration emails",
-    desc: "Send me occasional emails about new features, Bucket List destination matches, and adventure ideas. Unsubscribe anytime.",
+    label: "Occasional emails",
+    desc: "Send me feature updates and adventure inspiration. Unsubscribe anytime.",
   },
 ];
 
@@ -502,18 +502,6 @@ export default function Signup() {
                 ))}
               </div>
 
-              {tier === "contributor" && (
-                <div className="rounded-2xl p-4 mb-5 flex gap-3 animate-fade-up"
-                     style={{ background: "rgba(var(--roam-electric-rgb),0.06)", border: "1px solid rgba(var(--roam-electric-rgb),0.2)" }}>
-                  <Camera size={20} className="flex-shrink-0 mt-0.5" style={{ color: "var(--roam-electric)" }} />
-                  <div className="text-xs leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.7)" }}>
-                    <strong className="block mb-1 text-[13px]" style={{ color: "var(--roam-electric)" }}>How photo licensing works</strong>
-                    Your photos stay yours. We may pitch them non-exclusively to travel brands and tourism operators.
-                    You earn a royalty if a photo sells above $200 NZD.
-                  </div>
-                </div>
-              )}
-
               <button className="w-full py-4 rounded-2xl text-[13px] font-mono tracking-wider uppercase font-medium transition-all"
                       style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
                       onClick={() => setStep(3)}
@@ -549,11 +537,9 @@ export default function Signup() {
                     </div>
                     <ul className="space-y-2">
                       {[
-                        "Before meeting anyone, check they are identity-verified and have AI-screened photos — both are shown on their profile.",
-                        "For your first few meetups, go as a group or choose a well-populated public place.",
-                        "Trust your instincts. Never feel pressured to meet someone you're not comfortable with.",
-                        "Keep conversations inside roam.'s messaging until you're confident — avoid sharing personal contact details too early.",
-                        "roam. and its creators genuinely care about your safety and have built every safeguard we can. Your personal safety is ultimately your own responsibility.",
+                        "Check they're identity-verified before meeting — it's shown on every profile.",
+                        "First meetups: public place, daytime, or with others. Trust your gut.",
+                        "Keep chats inside roam. until you're confident. Your safety is your own responsibility.",
                       ].map((tip, i) => (
                         <li key={i} className="flex items-start gap-2 text-[11px] leading-relaxed"
                             style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>

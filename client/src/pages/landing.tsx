@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Mountain, Camera, MapPin, Compass, Shield, Zap, Users, ArrowRight } from "lucide-react";
+import { Mountain, Camera, MapPin, Compass, Zap, ArrowRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
 const HERO_IMAGES = [
@@ -19,7 +19,7 @@ const FEATURES = [
   {
     icon: Compass,
     title: "Adventure DNA",
-    desc: "Get matched on shared experiences - hiking trails, surf breaks, night markets, and more.",
+    desc: "Matched on shared experiences — hiking trails, surf breaks, night markets, and more.",
   },
   {
     icon: Zap,
@@ -29,17 +29,7 @@ const FEATURES = [
   {
     icon: MapPin,
     title: "Bucket List Matching",
-    desc: "Pin destinations you want to visit. We'll match you with people headed the same way.",
-  },
-  {
-    icon: Shield,
-    title: "AI Photo Screening",
-    desc: "No quote graphics, no stock photos, no heavily manipulated images. Real adventures only.",
-  },
-  {
-    icon: Users,
-    title: "Real Connections",
-    desc: "Bond over shared places, not fake bios. Find someone who gets your kind of adventure.",
+    desc: "Pin destinations you want to visit. Match with people headed the same way.",
   },
 ];
 
@@ -166,7 +156,7 @@ export default function Landing() {
                 Not another <span className="italic" style={{ color: "var(--roam-electric)" }}>selfie app</span>
               </h2>
             </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid sm:grid-cols-2 gap-5">
               {FEATURES.map((f, i) => (
                 <div key={i} className="p-5 rounded-2xl transition-all"
                      style={{ background: "rgba(var(--roam-cream-rgb),0.03)", border: "1px solid rgba(var(--roam-cream-rgb),0.06)" }}

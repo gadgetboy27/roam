@@ -469,7 +469,7 @@ export default function Profile() {
                       Identity Verified
                     </div>
                     <div className="font-mono text-[10px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
-                      Government-issued ID + selfie confirmed. The ✓ means you're a real person — not a judgement of your adventures.
+                      Government ID + selfie confirmed. You're a verified real person.
                     </div>
                     {user.identityVerifiedAt && (
                       <div className="font-mono text-[9px] mt-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
