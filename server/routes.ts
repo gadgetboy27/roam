@@ -42,6 +42,8 @@ function createRateLimiter(maxRequests: number, windowMs: number, message?: stri
 
 // 5 login attempts per 15 minutes — brute-force protection
 const loginLimiter    = createRateLimiter(5,  15 * 60 * 1000, "Too many login attempts. Please try again in 15 minutes.");
+// 3 admin login attempts per 30 minutes — stricter brute-force protection
+const adminLoginLimiter = createRateLimiter(3, 30 * 60 * 1000, "Too many admin login attempts. Please try again in 30 minutes.");
 // 10 signups per hour — prevents account farming
 const signupLimiter   = createRateLimiter(10, 60 * 60 * 1000, "Too many sign-up attempts. Please try again later.");
 // 10 OAuth profile creations per hour
@@ -365,7 +367,7 @@ export async function registerRoutes(
 
   // ─── Admin auth ──────────────────────────────────────────────────────────
 
-  app.post("/api/admin/auth/login", async (req, res) => {
+  app.post("/api/admin/auth/login", adminLoginLimiter, async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {
       return res.status(400).json({ message: "Username and password required" });
