@@ -2,10 +2,14 @@ import { eq, and, or, desc, inArray } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, photos, matches, messages, bucketList, ads, adminUsers,
+  groups, groupMembers, groupMessages, groupEvents, notifications,
   type User, type InsertUser, type Photo, type InsertPhoto,
   type Match, type InsertMatch, type Message, type InsertMessage,
   type BucketListItem, type InsertBucketList, type Ad, type InsertAd,
   type AdminUser, type InsertAdminUser,
+  type Group, type InsertGroup, type GroupMember, type InsertGroupMember,
+  type GroupMessage, type GroupEvent, type InsertGroupEvent,
+  type Notification,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -47,6 +51,34 @@ export interface IStorage {
   getAllAdmins(): Promise<AdminUser[]>;
   getAdminCount(): Promise<number>;
   deleteAdmin(id: string): Promise<void>;
+
+  createGroup(data: InsertGroup): Promise<Group>;
+  getGroup(id: string): Promise<Group | undefined>;
+  getAllGroups(): Promise<Group[]>;
+  updateGroup(id: string, data: Partial<InsertGroup>): Promise<Group | undefined>;
+  deleteGroup(id: string): Promise<void>;
+
+  addGroupMember(data: InsertGroupMember): Promise<GroupMember>;
+  getGroupMember(groupId: string, userId: string): Promise<GroupMember | undefined>;
+  getGroupMembers(groupId: string): Promise<GroupMember[]>;
+  updateGroupMember(id: number, data: Partial<InsertGroupMember>): Promise<GroupMember | undefined>;
+  removeGroupMember(groupId: string, userId: string): Promise<void>;
+  getGroupsForUser(userId: string): Promise<Group[]>;
+  getUserActiveGroupIds(userId: string): Promise<string[]>;
+
+  createGroupMessage(data: { groupId: string; senderId: string; content: string }): Promise<GroupMessage>;
+  getGroupMessages(groupId: string, limit?: number): Promise<GroupMessage[]>;
+
+  createGroupEvent(data: InsertGroupEvent): Promise<GroupEvent>;
+  getGroupEvents(groupId: string): Promise<GroupEvent[]>;
+  getGroupEvent(id: string): Promise<GroupEvent | undefined>;
+  deleteGroupEvent(id: string): Promise<void>;
+
+  createNotification(data: { userId: string; type: string; title: string; body?: string; data?: string }): Promise<Notification>;
+  getNotificationsForUser(userId: string, limit?: number): Promise<Notification[]>;
+  getUnreadNotificationCount(userId: string): Promise<number>;
+  markNotificationRead(id: number): Promise<void>;
+  markAllNotificationsRead(userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -221,6 +253,127 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAdmin(id: string): Promise<void> {
     await db.delete(adminUsers).where(eq(adminUsers.id, id));
+  }
+
+  async createGroup(data: InsertGroup): Promise<Group> {
+    const [created] = await db.insert(groups).values(data).returning();
+    return created;
+  }
+
+  async getGroup(id: string): Promise<Group | undefined> {
+    const [group] = await db.select().from(groups).where(eq(groups.id, id));
+    return group;
+  }
+
+  async getAllGroups(): Promise<Group[]> {
+    return db.select().from(groups).where(eq(groups.isActive, true)).orderBy(desc(groups.createdAt));
+  }
+
+  async updateGroup(id: string, data: Partial<InsertGroup>): Promise<Group | undefined> {
+    const [updated] = await db.update(groups).set(data as any).where(eq(groups.id, id)).returning();
+    return updated;
+  }
+
+  async deleteGroup(id: string): Promise<void> {
+    await db.update(groups).set({ isActive: false }).where(eq(groups.id, id));
+  }
+
+  async addGroupMember(data: InsertGroupMember): Promise<GroupMember> {
+    const [created] = await db.insert(groupMembers).values(data).returning();
+    return created;
+  }
+
+  async getGroupMember(groupId: string, userId: string): Promise<GroupMember | undefined> {
+    const [member] = await db.select().from(groupMembers)
+      .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId)));
+    return member;
+  }
+
+  async getGroupMembers(groupId: string): Promise<GroupMember[]> {
+    return db.select().from(groupMembers).where(eq(groupMembers.groupId, groupId));
+  }
+
+  async updateGroupMember(id: number, data: Partial<InsertGroupMember>): Promise<GroupMember | undefined> {
+    const [updated] = await db.update(groupMembers).set(data as any).where(eq(groupMembers.id, id)).returning();
+    return updated;
+  }
+
+  async removeGroupMember(groupId: string, userId: string): Promise<void> {
+    await db.delete(groupMembers)
+      .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId)));
+  }
+
+  async getGroupsForUser(userId: string): Promise<Group[]> {
+    const memberships = await db.select().from(groupMembers)
+      .where(and(eq(groupMembers.userId, userId), eq(groupMembers.status, "approved")));
+    if (memberships.length === 0) return [];
+    const groupIds = memberships.map(m => m.groupId);
+    return db.select().from(groups).where(and(inArray(groups.id, groupIds), eq(groups.isActive, true)));
+  }
+
+  async getUserActiveGroupIds(userId: string): Promise<string[]> {
+    const memberships = await db.select().from(groupMembers)
+      .where(and(eq(groupMembers.userId, userId), eq(groupMembers.status, "approved")));
+    return memberships.map(m => m.groupId);
+  }
+
+  async createGroupMessage(data: { groupId: string; senderId: string; content: string }): Promise<GroupMessage> {
+    const [created] = await db.insert(groupMessages).values(data).returning();
+    return created;
+  }
+
+  async getGroupMessages(groupId: string, limit = 100): Promise<GroupMessage[]> {
+    const rows = await db.select().from(groupMessages)
+      .where(eq(groupMessages.groupId, groupId))
+      .orderBy(desc(groupMessages.createdAt))
+      .limit(limit);
+    return rows.reverse();
+  }
+
+  async createGroupEvent(data: InsertGroupEvent): Promise<GroupEvent> {
+    const [created] = await db.insert(groupEvents).values(data).returning();
+    return created;
+  }
+
+  async getGroupEvents(groupId: string): Promise<GroupEvent[]> {
+    return db.select().from(groupEvents)
+      .where(eq(groupEvents.groupId, groupId))
+      .orderBy(groupEvents.startAt);
+  }
+
+  async getGroupEvent(id: string): Promise<GroupEvent | undefined> {
+    const [event] = await db.select().from(groupEvents).where(eq(groupEvents.id, id));
+    return event;
+  }
+
+  async deleteGroupEvent(id: string): Promise<void> {
+    await db.delete(groupEvents).where(eq(groupEvents.id, id));
+  }
+
+  async createNotification(data: { userId: string; type: string; title: string; body?: string; data?: string }): Promise<Notification> {
+    const [created] = await db.insert(notifications).values(data).returning();
+    return created;
+  }
+
+  async getNotificationsForUser(userId: string, limit = 30): Promise<Notification[]> {
+    return db.select().from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt))
+      .limit(limit);
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    const rows = await db.select().from(notifications)
+      .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+    return rows.length;
+  }
+
+  async markNotificationRead(id: number): Promise<void> {
+    await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, id));
+  }
+
+  async markAllNotificationsRead(userId: string): Promise<void> {
+    await db.update(notifications).set({ isRead: true }).where(eq(notifications.userId, userId));
   }
 }
 

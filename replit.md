@@ -28,9 +28,12 @@ ROAM is an adventure-matching dating app where users post real travel/adventure 
 │   │   ├── discover.tsx      # TikTok-style swipe cards (demo profiles for anon users)
 │   │   ├── upload.tsx        # AI photo screener demo + real upload
 │   │   ├── matches.tsx       # Connections list + chat thread
-│   │   └── profile.tsx       # Profile, DNA edit, avatar, verification, upgrade
+│   │   ├── profile.tsx       # Profile, DNA edit, avatar, verification, upgrade, open-to-roaming toggle, groups
+│   │   ├── roamers.tsx       # Roamers (Groups) discover page at /roamers
+│   │   └── group.tsx         # Group detail at /groups/:id (About/Campsite/Events tabs)
 │   ├── components/
-│   │   └── app-nav.tsx       # Shared navigation component
+│   │   ├── app-nav.tsx       # Shared navigation (now includes Roamers link + notification bell)
+│   │   └── notification-bell.tsx  # Notification dropdown in top nav
 │   ├── lib/queryClient.ts    # TanStack Query setup
 │   ├── lib/auth.tsx          # AuthProvider, useAuth, RequireAuth guard
 │   ├── lib/supabase.ts       # Supabase client + realtime messaging helpers
@@ -80,6 +83,11 @@ ROAM is an adventure-matching dating app where users post real travel/adventure 
 - `bucket_list` — id (uuid), userId, destinationName, imageUrl, createdAt
 - `ads` — id (uuid), advertiserName, advertiserEmail, advertiserCompany, tier, headline, tagline, ctaText, ctaUrl, imageUrl, videoUrl, contentType, status (pending_payment/pending_review/approved/rejected/expired), stripeSessionId, rejectionReason, reviewedAt, expiresAt, impressions, createdAt
 - `user_sessions` — auto-created by connect-pg-simple (not in Drizzle schema)
+- `groups` — id (uuid), name, description, type (squad/crew/community), maxSize, leaderId, location, adventureTags[], coverImageUrl, visibility (open/closed), isActive, createdAt
+- `group_members` — id (serial), groupId, userId, role (leader/moderator/member), status (pending/approved), requestedAt, joinedAt
+- `group_messages` — id (serial), groupId, senderId, content, createdAt
+- `group_events` — id (uuid), groupId, createdBy, title, description, location, startAt, endAt, createdAt
+- `notifications` — id (serial), userId, type, title, body, data (JSON string), isRead, createdAt
 
 ## Tiers
 

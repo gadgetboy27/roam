@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import AppNav from "@/components/app-nav";
 import { useAuth } from "@/lib/auth";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
 import { MapPin, Camera, Edit3, Settings, Star, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2, Trash2, Megaphone } from "lucide-react";
 import { computeVibeWord } from "@/lib/fingerprint";
 
@@ -212,6 +213,27 @@ export default function Profile() {
 
   const [editForm, setEditForm] = useState({ ...profileData });
   const [notifications, setNotifications] = useState({ matches: true, messages: true, bucketList: false });
+  const [openToRoaming, setOpenToRoaming] = useState<boolean>(!!(user as any)?.openToRoaming);
+  const [savingRoaming, setSavingRoaming] = useState(false);
+
+  const { data: myGroups = [] } = useQuery<any[]>({
+    queryKey: ["/api/groups"],
+    select: (data) => data.filter((g: any) => g.leaderId === user?.id || false),
+    enabled: !!user,
+  });
+
+  const toggleOpenToRoaming = async (val: boolean) => {
+    if (!user) return;
+    setSavingRoaming(true);
+    setOpenToRoaming(val);
+    try {
+      await apiRequest("PATCH", `/api/users/${user.id}/open-to-roaming`, { openToRoaming: val });
+    } catch {
+      setOpenToRoaming(!val);
+    } finally {
+      setSavingRoaming(false);
+    }
+  };
 
   const openEdit = () => { setEditForm({ ...profileData }); setSaveError(""); setEditOpen(true); };
 
@@ -580,6 +602,42 @@ export default function Profile() {
               </div>
             </div>
 
+            {myGroups.length > 0 && (
+              <div className="mb-5">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+                    My groups
+                  </div>
+                  <Link href="/roamers">
+                    <span className="text-[11px] font-mono" style={{ color: "rgba(var(--roam-electric-rgb),0.7)" }}>See all →</span>
+                  </Link>
+                </div>
+                <div className="space-y-2">
+                  {myGroups.slice(0, 3).map((g: any) => (
+                    <Link key={g.id} href={`/groups/${g.id}`}>
+                      <div className="flex items-center justify-between p-3 rounded-xl"
+                           style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}
+                           data-testid={`my-group-${g.id}`}>
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl flex items-center justify-center font-serif font-black text-base"
+                               style={{ background: "rgba(var(--roam-electric-rgb),0.12)", color: "var(--roam-electric)" }}>
+                            r.
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium" style={{ color: "var(--roam-cream)" }}>{g.name}</div>
+                            <div className="text-[10px] font-mono" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+                              {g.type} · {g.memberCount ?? 0} members
+                            </div>
+                          </div>
+                        </div>
+                        <ChevronRight size={14} style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }} />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="mb-5">
               <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
                 Your photos
@@ -823,6 +881,29 @@ export default function Profile() {
 
       <Sheet open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Settings">
         <div className="space-y-2">
+          <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+            Roamers
+          </div>
+          <div className="flex items-center justify-between p-4 rounded-2xl mb-4"
+               style={{ background: "var(--roam-moss)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
+            <div>
+              <div className="text-sm font-medium">Open to roaming</div>
+              <div className="text-[11px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+                Show an <span className="font-serif font-black" style={{ color: "var(--roam-electric)" }}>r.</span> badge on your discover card
+              </div>
+            </div>
+            <button
+              className="w-11 h-6 rounded-full relative transition-all flex-shrink-0"
+              style={{ background: openToRoaming ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.12)" }}
+              onClick={() => toggleOpenToRoaming(!openToRoaming)}
+              disabled={savingRoaming}
+              data-testid="toggle-open-to-roaming"
+            >
+              <div className="w-4 h-4 rounded-full absolute top-1 transition-all"
+                   style={{ background: "white", left: openToRoaming ? "calc(100% - 20px)" : "4px" }} />
+            </button>
+          </div>
+
           <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
             Notifications
           </div>

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp, real, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, timestamp, real, serial, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -27,6 +27,7 @@ export const users = pgTable("users", {
   identityVerifiedAt: timestamp("identity_verified_at"),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
+  openToRoaming: boolean("open_to_roaming").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -98,6 +99,62 @@ export const ads = pgTable("ads", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const groups = pgTable("groups", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type").notNull().default("squad"),
+  maxSize: integer("max_size").notNull().default(5),
+  leaderId: varchar("leader_id").notNull(),
+  location: text("location"),
+  adventureTags: text("adventure_tags").array(),
+  coverImageUrl: text("cover_image_url"),
+  visibility: text("visibility").notNull().default("open"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const groupMembers = pgTable("group_members", {
+  id: serial("id").primaryKey(),
+  groupId: varchar("group_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  role: text("role").notNull().default("member"),
+  status: text("status").notNull().default("pending"),
+  requestedAt: timestamp("requested_at").defaultNow(),
+  joinedAt: timestamp("joined_at"),
+});
+
+export const groupMessages = pgTable("group_messages", {
+  id: serial("id").primaryKey(),
+  groupId: varchar("group_id").notNull(),
+  senderId: varchar("sender_id").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const groupEvents = pgTable("group_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  groupId: varchar("group_id").notNull(),
+  createdBy: varchar("created_by").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  location: text("location"),
+  startAt: timestamp("start_at").notNull(),
+  endAt: timestamp("end_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  body: text("body"),
+  data: text("data"),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const adminUsers = pgTable("admin_users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
@@ -143,3 +200,14 @@ export type InsertBucketList = z.infer<typeof insertBucketListSchema>;
 export const insertAdSchema = createInsertSchema(ads).omit({ id: true, createdAt: true, reviewedAt: true, expiresAt: true, impressions: true });
 export type Ad = typeof ads.$inferSelect;
 export type InsertAd = z.infer<typeof insertAdSchema>;
+
+export type Group = typeof groups.$inferSelect;
+export type InsertGroup = typeof groups.$inferInsert;
+export type GroupMember = typeof groupMembers.$inferSelect;
+export type InsertGroupMember = typeof groupMembers.$inferInsert;
+export type GroupMessage = typeof groupMessages.$inferSelect;
+export type InsertGroupMessage = typeof groupMessages.$inferInsert;
+export type GroupEvent = typeof groupEvents.$inferSelect;
+export type InsertGroupEvent = typeof groupEvents.$inferInsert;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;

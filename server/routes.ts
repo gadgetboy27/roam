@@ -1077,5 +1077,302 @@ export async function registerRoutes(
     return res.json({ received: true });
   });
 
+  // ─── Group eligibility helper ─────────────────────────────────────────────
+  async function checkGroupLeaderEligibility(userId: string): Promise<{ eligible: boolean; reason?: string }> {
+    const user = await storage.getUser(userId);
+    if (!user) return { eligible: false, reason: "User not found" };
+    if (user.tier !== "contributor") return { eligible: false, reason: "Contributor tier required to create groups" };
+    if (!user.identityVerified) return { eligible: false, reason: "Identity verification required" };
+    const heroPhoto = await storage.getHeroPhoto(userId);
+    if (!heroPhoto || heroPhoto.status !== "approved") return { eligible: false, reason: "Approved hero photo required" };
+    if (!user.location) return { eligible: false, reason: "Location required" };
+    if (!user.tagline) return { eligible: false, reason: "Tagline required" };
+    const tags = user.adventureTags ?? [];
+    if (tags.length < 3) return { eligible: false, reason: "At least 3 adventure tags required" };
+    if (!user.createdAt) return { eligible: false, reason: "Account age unknown" };
+    const ageMs = Date.now() - new Date(user.createdAt).getTime();
+    if (ageMs < 30 * 24 * 60 * 60 * 1000) return { eligible: false, reason: "Account must be at least 30 days old" };
+    return { eligible: true };
+  }
+
+  // ─── Groups REST API ──────────────────────────────────────────────────────
+
+  app.get("/api/groups", async (req, res) => {
+    const allGroups = await storage.getAllGroups();
+    const enriched = await Promise.all(allGroups.map(async g => {
+      const members = await storage.getGroupMembers(g.id);
+      const approvedCount = members.filter(m => m.status === "approved").length;
+      return { ...g, memberCount: approvedCount };
+    }));
+    res.json(enriched);
+  });
+
+  app.get("/api/groups/:id", async (req, res) => {
+    const group = await storage.getGroup(req.params.id);
+    if (!group) return res.status(404).json({ error: "Group not found" });
+    const members = await storage.getGroupMembers(req.params.id);
+    const approvedCount = members.filter(m => m.status === "approved").length;
+    res.json({ ...group, memberCount: approvedCount });
+  });
+
+  app.post("/api/groups", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Unauthorised" });
+    const eligibility = await checkGroupLeaderEligibility(userId);
+    if (!eligibility.eligible) return res.status(403).json({ error: eligibility.reason });
+    const { name, description, type, location, adventureTags, coverImageUrl, visibility } = req.body;
+    if (!name || !type) return res.status(400).json({ error: "name and type are required" });
+    const maxSizeMap: Record<string, number> = { squad: 5, crew: 20, community: 100 };
+    const group = await storage.createGroup({
+      name,
+      description: description ?? null,
+      type,
+      maxSize: maxSizeMap[type] ?? 5,
+      leaderId: userId,
+      location: location ?? null,
+      adventureTags: adventureTags ?? null,
+      coverImageUrl: coverImageUrl ?? null,
+      visibility: visibility ?? "open",
+      isActive: true,
+    });
+    await storage.addGroupMember({ groupId: group.id, userId, role: "leader", status: "approved", joinedAt: new Date() });
+    res.json(group);
+  });
+
+  app.patch("/api/groups/:id", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Unauthorised" });
+    const group = await storage.getGroup(req.params.id);
+    if (!group) return res.status(404).json({ error: "Group not found" });
+    if (group.leaderId !== userId) return res.status(403).json({ error: "Only the group leader can edit the group" });
+    const { name, description, location, adventureTags, coverImageUrl, visibility } = req.body;
+    const updated = await storage.updateGroup(req.params.id, { name, description, location, adventureTags, coverImageUrl, visibility } as any);
+    res.json(updated);
+  });
+
+  app.delete("/api/groups/:id", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Unauthorised" });
+    const group = await storage.getGroup(req.params.id);
+    if (!group) return res.status(404).json({ error: "Group not found" });
+    if (group.leaderId !== userId) return res.status(403).json({ error: "Only the group leader can dissolve the group" });
+    await storage.deleteGroup(req.params.id);
+    res.json({ success: true });
+  });
+
+  app.get("/api/groups/eligibility/check", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Unauthorised" });
+    const result = await checkGroupLeaderEligibility(userId);
+    res.json(result);
+  });
+
+  // ─── Group members ────────────────────────────────────────────────────────
+
+  app.get("/api/groups/:id/members", async (req, res) => {
+    const members = await storage.getGroupMembers(req.params.id);
+    const enriched = await Promise.all(members.map(async m => {
+      const user = await storage.getUser(m.userId);
+      const hero = await storage.getHeroPhoto(m.userId);
+      return { ...m, user: user ? { id: user.id, name: user.name, avatarUrl: user.avatarUrl, location: user.location, tier: user.tier, heroPhotoUrl: hero?.url ?? null } : null };
+    }));
+    res.json(enriched);
+  });
+
+  app.post("/api/groups/:id/join", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Unauthorised" });
+    const group = await storage.getGroup(req.params.id);
+    if (!group || !group.isActive) return res.status(404).json({ error: "Group not found" });
+    const existing = await storage.getGroupMember(req.params.id, userId);
+    if (existing) return res.status(409).json({ error: "Already a member or pending" });
+    const members = await storage.getGroupMembers(req.params.id);
+    const approved = members.filter(m => m.status === "approved").length;
+    if (approved >= group.maxSize) return res.status(400).json({ error: "Group is full" });
+    const status = group.visibility === "open" ? "approved" : "pending";
+    const member = await storage.addGroupMember({
+      groupId: req.params.id,
+      userId,
+      role: "member",
+      status,
+      joinedAt: status === "approved" ? new Date() : undefined,
+    });
+    if (status === "pending") {
+      await storage.createNotification({ userId: group.leaderId, type: "join_request", title: "New join request", body: `Someone wants to join ${group.name}`, data: JSON.stringify({ groupId: group.id }) });
+    }
+    res.json(member);
+  });
+
+  app.post("/api/groups/:id/leave", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Unauthorised" });
+    const group = await storage.getGroup(req.params.id);
+    if (!group) return res.status(404).json({ error: "Group not found" });
+    if (group.leaderId === userId) return res.status(400).json({ error: "Leader cannot leave — transfer leadership or dissolve the group" });
+    await storage.removeGroupMember(req.params.id, userId);
+    res.json({ success: true });
+  });
+
+  app.patch("/api/groups/:id/members/:userId/approve", async (req, res) => {
+    const requesterId = req.session?.userId;
+    if (!requesterId) return res.status(401).json({ error: "Unauthorised" });
+    const group = await storage.getGroup(req.params.id);
+    if (!group || group.leaderId !== requesterId) return res.status(403).json({ error: "Only the group leader can approve members" });
+    const member = await storage.getGroupMember(req.params.id, req.params.userId);
+    if (!member) return res.status(404).json({ error: "Member not found" });
+    const updated = await storage.updateGroupMember(member.id, { status: "approved", joinedAt: new Date() });
+    await storage.createNotification({ userId: req.params.userId, type: "join_approved", title: "Join request approved", body: `You've been approved to join ${group.name}!`, data: JSON.stringify({ groupId: group.id }) });
+    res.json(updated);
+  });
+
+  app.patch("/api/groups/:id/members/:userId/reject", async (req, res) => {
+    const requesterId = req.session?.userId;
+    if (!requesterId) return res.status(401).json({ error: "Unauthorised" });
+    const group = await storage.getGroup(req.params.id);
+    if (!group || group.leaderId !== requesterId) return res.status(403).json({ error: "Only the group leader can reject members" });
+    await storage.removeGroupMember(req.params.id, req.params.userId);
+    res.json({ success: true });
+  });
+
+  app.delete("/api/groups/:id/members/:userId", async (req, res) => {
+    const requesterId = req.session?.userId;
+    if (!requesterId) return res.status(401).json({ error: "Unauthorised" });
+    const group = await storage.getGroup(req.params.id);
+    if (!group) return res.status(404).json({ error: "Group not found" });
+    if (group.leaderId !== requesterId && requesterId !== req.params.userId) return res.status(403).json({ error: "Forbidden" });
+    await storage.removeGroupMember(req.params.id, req.params.userId);
+    res.json({ success: true });
+  });
+
+  // ─── Campsite (group messages) ────────────────────────────────────────────
+
+  app.get("/api/groups/:id/messages", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Unauthorised" });
+    const member = await storage.getGroupMember(req.params.id, userId);
+    if (!member || member.status !== "approved") return res.status(403).json({ error: "You are not a member of this group" });
+    const msgs = await storage.getGroupMessages(req.params.id, 100);
+    const enriched = await Promise.all(msgs.map(async m => {
+      const sender = await storage.getUser(m.senderId);
+      return { ...m, sender: sender ? { id: sender.id, name: sender.name, avatarUrl: sender.avatarUrl } : null };
+    }));
+    res.json(enriched);
+  });
+
+  // ─── Group events ─────────────────────────────────────────────────────────
+
+  app.get("/api/groups/:id/events", async (req, res) => {
+    const events = await storage.getGroupEvents(req.params.id);
+    res.json(events);
+  });
+
+  app.post("/api/groups/:id/events", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Unauthorised" });
+    const group = await storage.getGroup(req.params.id);
+    if (!group) return res.status(404).json({ error: "Group not found" });
+    const member = await storage.getGroupMember(req.params.id, userId);
+    if (!member || member.status !== "approved" || (member.role !== "leader" && member.role !== "moderator")) {
+      return res.status(403).json({ error: "Only leaders can create events" });
+    }
+    const { title, description, location, startAt, endAt } = req.body;
+    if (!title || !startAt) return res.status(400).json({ error: "title and startAt are required" });
+    const event = await storage.createGroupEvent({
+      groupId: req.params.id,
+      createdBy: userId,
+      title,
+      description: description ?? null,
+      location: location ?? null,
+      startAt: new Date(startAt),
+      endAt: endAt ? new Date(endAt) : null,
+    });
+    const members = await storage.getGroupMembers(req.params.id);
+    const approved = members.filter(m => m.status === "approved" && m.userId !== userId);
+    await Promise.all(approved.map(m => storage.createNotification({ userId: m.userId, type: "group_event", title: "New group event", body: `${group.name}: ${title}`, data: JSON.stringify({ groupId: group.id, eventId: event.id }) })));
+    res.json(event);
+  });
+
+  app.delete("/api/groups/:id/events/:eventId", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Unauthorised" });
+    const group = await storage.getGroup(req.params.id);
+    if (!group || group.leaderId !== userId) return res.status(403).json({ error: "Only the group leader can delete events" });
+    await storage.deleteGroupEvent(req.params.eventId);
+    res.json({ success: true });
+  });
+
+  // ─── Open to roaming toggle ───────────────────────────────────────────────
+
+  app.patch("/api/users/:id/open-to-roaming", async (req, res) => {
+    const sessionUserId = req.session?.userId;
+    if (!sessionUserId || sessionUserId !== req.params.id) return res.status(401).json({ error: "Unauthorised" });
+    const { openToRoaming } = req.body;
+    const updated = await storage.updateUser(req.params.id, { openToRoaming: !!openToRoaming });
+    res.json({ openToRoaming: updated?.openToRoaming });
+  });
+
+  // ─── Notifications ────────────────────────────────────────────────────────
+
+  app.get("/api/notifications", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Unauthorised" });
+    const items = await storage.getNotificationsForUser(userId, 30);
+    res.json(items);
+  });
+
+  app.get("/api/notifications/unread-count", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Unauthorised" });
+    const count = await storage.getUnreadNotificationCount(userId);
+    res.json({ count });
+  });
+
+  app.patch("/api/notifications/:id/read", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Unauthorised" });
+    await storage.markNotificationRead(Number(req.params.id));
+    res.json({ success: true });
+  });
+
+  app.patch("/api/notifications/read-all", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Unauthorised" });
+    await storage.markAllNotificationsRead(userId);
+    res.json({ success: true });
+  });
+
+  // ─── Extend Socket.io for group campsite chat ─────────────────────────────
+
+  io.on("connection", (socket) => {
+    socket.on("join_group", (groupId: string) => {
+      socket.join(`group:${groupId}`);
+    });
+
+    socket.on("leave_group", (groupId: string) => {
+      socket.leave(`group:${groupId}`);
+    });
+
+    socket.on("send_group_message", async (data: { groupId: string; senderId: string; content: string; tempId?: string }) => {
+      try {
+        const [member, msg] = await Promise.all([
+          storage.getGroupMember(data.groupId, data.senderId),
+          storage.createGroupMessage({ groupId: data.groupId, senderId: data.senderId, content: data.content }),
+        ]);
+        if (!member || member.status !== "approved") {
+          socket.emit("group_message_error", { tempId: data.tempId, error: "Not a member of this group" });
+          return;
+        }
+        const sender = await storage.getUser(data.senderId);
+        io.to(`group:${data.groupId}`).emit("new_group_message", {
+          ...msg,
+          sender: sender ? { id: sender.id, name: sender.name, avatarUrl: sender.avatarUrl } : null,
+          tempId: data.tempId,
+        });
+      } catch (err: any) {
+        socket.emit("group_message_error", { tempId: data.tempId, error: err.message });
+      }
+    });
+  });
+
   return httpServer;
 }

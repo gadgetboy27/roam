@@ -1,19 +1,23 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation, Link } from "wouter";
-import { Compass, MessageCircle, Plus, User, Palette, Check } from "lucide-react";
+import { Compass, MessageCircle, Plus, User, Palette, Check, Users } from "lucide-react";
 import { useConnectionStatus } from "@/lib/useConnectionStatus";
 import { useTheme, THEMES } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
+import NotificationBell from "@/components/notification-bell";
 
 const NAV_ITEMS = [
-  { path: "/discover", label: "Discover", icon: Compass },
-  { path: "/matches",  label: "Matches",  icon: MessageCircle },
-  { path: "/profile",  label: "Profile",  icon: User },
+  { path: "/discover",  label: "Discover",  icon: Compass },
+  { path: "/roamers",   label: "Roamers",   icon: Users },
+  { path: "/matches",   label: "Matches",   icon: MessageCircle },
+  { path: "/profile",   label: "Profile",   icon: User },
 ];
 
 export default function AppNav() {
   const [location] = useLocation();
   const status = useConnectionStatus();
   const { theme, setTheme } = useTheme();
+  const { user } = useAuth();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const paletteRef = useRef<HTMLDivElement>(null);
 
@@ -61,6 +65,8 @@ export default function AppNav() {
             </div>
           </Link>
 
+          <div className="flex items-center gap-1">
+            {user && <NotificationBell />}
           <div className="relative" ref={paletteRef}>
             <button className="w-8 h-8 rounded-full flex items-center justify-center transition-all"
                     style={{
@@ -111,6 +117,7 @@ export default function AppNav() {
                 </div>
               </div>
             )}
+          </div>
           </div>
         </div>
       </nav>

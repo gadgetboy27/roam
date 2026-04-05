@@ -25,6 +25,8 @@ import AdvertiseSuccess from "@/pages/advertise-success";
 import AdminAds from "@/pages/admin-ads";
 import Admin from "@/pages/admin";
 import AdminLogin from "@/pages/admin-login";
+import Roamers from "@/pages/roamers";
+import GroupPage from "@/pages/group";
 
 function Router() {
   return (
@@ -50,6 +52,10 @@ function Router() {
       </Route>
       <Route path="/advertise" component={Advertise} />
       <Route path="/advertise/success" component={AdvertiseSuccess} />
+      <Route path="/roamers" component={Roamers} />
+      <Route path="/groups/:id">
+        {(params) => <GroupPage />}
+      </Route>
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin" component={Admin} />
       <Route path="/admin/ads" component={AdminAds} />
