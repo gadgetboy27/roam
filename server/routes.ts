@@ -865,6 +865,34 @@ export async function registerRoutes(
     return res.json({ ok: true });
   });
 
+  app.get("/api/admin/groups", async (req, res) => {
+    if (!(await isAdminAuthenticated(req))) {
+      return res.status(401).json({ message: "Admin authentication required" });
+    }
+    try {
+      const allGroups = await storage.getAllGroups();
+      const withCounts = await Promise.all(allGroups.map(async g => {
+        const members = await storage.getGroupMembers(g.id);
+        return { ...g, memberCount: members.filter((m: any) => m.status === "approved").length };
+      }));
+      res.json(withCounts);
+    } catch {
+      res.status(500).json({ message: "Failed to fetch groups" });
+    }
+  });
+
+  app.delete("/api/admin/groups/:id", async (req, res) => {
+    if (!(await isAdminAuthenticated(req))) {
+      return res.status(401).json({ message: "Admin authentication required" });
+    }
+    try {
+      await storage.deleteGroup(req.params.id);
+      res.json({ ok: true });
+    } catch {
+      res.status(500).json({ message: "Failed to delete group" });
+    }
+  });
+
   app.get("/api/ads/admin", async (req, res) => {
     if (!(await isAdminAuthenticated(req))) {
       return res.status(401).json({ message: "Admin authentication required" });

@@ -7,6 +7,7 @@ import {
   Users, BarChart2, Shield, ArrowLeft, Trash2, ChevronDown,
   Loader2, RefreshCw, CheckCircle2, Clock, MousePointerClick,
   Eye, TrendingUp, Megaphone, Plus, LogOut, UserCog, KeyRound,
+  MapPin, Globe, Lock,
 } from "lucide-react";
 import type { Ad } from "@shared/schema";
 
@@ -266,7 +267,7 @@ type AdminAccount = {
 export default function Admin() {
   const [, navigate] = useLocation();
   const { admin, isLoading: authLoading, logout } = useAdminAuth();
-  const [tab, setTab] = useState<"users" | "ads" | "admins">("users");
+  const [tab, setTab] = useState<"users" | "ads" | "groups" | "admins">("users");
   const [tierFilter, setTierFilter] = useState<string>("all");
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
 
@@ -296,6 +297,21 @@ export default function Admin() {
     queryKey: ["/api/admin/accounts"],
     enabled: !!admin,
     retry: false,
+  });
+
+  const { data: allGroups = [], isLoading: groupsLoading, refetch: refetchGroups, isRefetching: groupsRefetching } = useQuery<any[]>({
+    queryKey: ["/api/admin/groups"],
+    enabled: !!admin,
+    retry: false,
+  });
+
+  const deleteGroupMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/groups/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/groups"] });
+      showToast("Group removed");
+    },
+    onError: (e: any) => showToast(e.message || "Delete failed", "err"),
   });
 
   const tierMutation = useMutation({
@@ -349,6 +365,7 @@ export default function Admin() {
   const tiers = ["free", "adventurer", "contributor"] as const;
   const tierCounts = tiers.reduce((acc, t) => ({ ...acc, [t]: users.filter(u => u.tier === t).length }), {} as Record<string, number>);
   const filteredUsers = tierFilter === "all" ? users : users.filter(u => u.tier === tierFilter);
+  const openToRoamingCount = users.filter(u => (u as any).openToRoaming).length;
 
   const totalImpressions = allAds.reduce((s, a) => s + (a.impressions ?? 0), 0);
   const totalClicks = allAds.reduce((s, a) => s + (a.clicks ?? 0), 0);
@@ -412,29 +429,36 @@ export default function Admin() {
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-2 mb-6">
-          <div className="rounded-2xl px-3 py-3 text-center" style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
-            <div className="font-mono text-[20px] font-black" style={{ color: "rgba(var(--roam-electric-rgb),0.9)" }}>{users.length}</div>
-            <div className="font-mono text-[8px] tracking-wider uppercase mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>Total Users</div>
-          </div>
-          <div className="rounded-2xl px-3 py-3 text-center" style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
-            <div className="font-mono text-[20px] font-black" style={{ color: "rgba(var(--roam-electric-rgb),0.9)" }}>{tierCounts.adventurer || 0}</div>
-            <div className="font-mono text-[8px] tracking-wider uppercase mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>Adventurers</div>
-          </div>
-          <div className="rounded-2xl px-3 py-3 text-center" style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
-            <div className="font-mono text-[20px] font-black" style={{ color: "rgba(var(--roam-sky-rgb),0.9)" }}>{liveAds.length}</div>
-            <div className="font-mono text-[8px] tracking-wider uppercase mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>Live Ads</div>
-          </div>
-          <div className="rounded-2xl px-3 py-3 text-center" style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
-            <div className="font-mono text-[20px] font-black" style={{ color: "rgba(var(--roam-ember-rgb),0.9)" }}>{totalImpressions.toLocaleString()}</div>
-            <div className="font-mono text-[8px] tracking-wider uppercase mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>Ad Views</div>
-          </div>
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          {[
+            { value: users.length, label: "Total Users",   color: "rgba(var(--roam-electric-rgb),0.9)" },
+            { value: tierCounts.adventurer || 0, label: "Adventurers", color: "rgba(var(--roam-electric-rgb),0.9)" },
+            { value: tierCounts.contributor || 0, label: "Contributors", color: "rgba(var(--roam-sky-rgb),0.9)" },
+          ].map(s => (
+            <div key={s.label} className="rounded-2xl px-3 py-3 text-center" style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
+              <div className="font-mono text-[20px] font-black" style={{ color: s.color }}>{s.value}</div>
+              <div className="font-mono text-[8px] tracking-wider uppercase mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-3 gap-2 mb-6">
+          {[
+            { value: allGroups.length, label: "Active Groups", color: "rgba(var(--roam-electric-rgb),0.85)" },
+            { value: openToRoamingCount, label: "Open to Roam",  color: "rgba(var(--roam-sky-rgb),0.9)" },
+            { value: liveAds.length, label: "Live Ads",      color: "rgba(var(--roam-ember-rgb),0.9)" },
+          ].map(s => (
+            <div key={s.label} className="rounded-2xl px-3 py-3 text-center" style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
+              <div className="font-mono text-[20px] font-black" style={{ color: s.color }}>{s.value}</div>
+              <div className="font-mono text-[8px] tracking-wider uppercase mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>{s.label}</div>
+            </div>
+          ))}
         </div>
 
-        <div className="flex gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-6">
           {[
             { key: "users",  label: "Users",      icon: Users },
             { key: "ads",    label: "Ad Metrics", icon: BarChart2 },
+            { key: "groups", label: "Groups",      icon: Users },
             { key: "admins", label: "Admins",      icon: UserCog },
           ].map(t => (
             <button key={t.key}
@@ -557,6 +581,90 @@ export default function Admin() {
             ) : (
               <div className="space-y-3">
                 {allAds.map(ad => <AdMetricRow key={ad.id} ad={ad} />)}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === "groups" && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="font-mono text-[10px] tracking-wider uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+                {allGroups.length} active group{allGroups.length !== 1 ? "s" : ""}
+              </div>
+              <button onClick={() => refetchGroups()}
+                      className="p-2 rounded-xl"
+                      style={{ background: "rgba(var(--roam-cream-rgb),0.05)", border: "1px solid rgba(var(--roam-cream-rgb),0.08)" }}
+                      data-testid="refresh-groups">
+                <RefreshCw size={12} className={groupsRefetching ? "animate-spin" : ""} style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }} />
+              </button>
+            </div>
+
+            {groupsLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 size={20} className="animate-spin" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }} />
+              </div>
+            ) : allGroups.length === 0 ? (
+              <div className="text-center py-20">
+                <Users size={24} className="mx-auto mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.2)" }} />
+                <p className="font-mono text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>No groups yet</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {allGroups.map((g: any) => {
+                  const TYPE_COLOR: Record<string, string> = {
+                    squad: "rgba(var(--roam-electric-rgb),0.9)",
+                    crew: "rgba(var(--roam-sky-rgb),0.9)",
+                    community: "rgba(232,98,26,0.9)",
+                  };
+                  return (
+                    <div key={g.id}
+                         className="rounded-2xl px-4 py-3.5"
+                         style={{ background: "rgba(var(--roam-cream-rgb),0.03)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}
+                         data-testid={`group-row-${g.id}`}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium text-[13px]" style={{ color: "rgba(var(--roam-cream-rgb),0.9)" }}>
+                              {g.name}
+                            </span>
+                            <span className="font-mono text-[8px] tracking-wider uppercase px-2 py-0.5 rounded-full"
+                                  style={{ background: `rgba(${g.type === "squad" ? "var(--roam-electric-rgb)" : g.type === "crew" ? "var(--roam-sky-rgb)" : "232,98,26"},0.1)`, color: TYPE_COLOR[g.type] || "rgba(var(--roam-cream-rgb),0.5)" }}>
+                              {g.type}
+                            </span>
+                            <span className="font-mono text-[8px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
+                                  style={{ background: "rgba(var(--roam-cream-rgb),0.05)", color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+                              {g.visibility === "open" ? <Globe size={8} /> : <Lock size={8} />}
+                              {g.visibility}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                            <span className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+                              {g.memberCount} member{g.memberCount !== 1 ? "s" : ""} / {g.maxSize} max
+                            </span>
+                            {g.location && (
+                              <span className="font-mono text-[10px] flex items-center gap-1" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
+                                <MapPin size={9} /> {g.location}
+                              </span>
+                            )}
+                          </div>
+                          {g.description && (
+                            <p className="text-[11px] mt-1 truncate" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+                              {g.description}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => { if (window.confirm(`Remove group "${g.name}"?`)) deleteGroupMutation.mutate(g.id); }}
+                          className="p-1.5 rounded-lg flex-shrink-0 transition-colors"
+                          style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}
+                          data-testid={`button-delete-group-${g.id}`}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
