@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { useAuth } from "@/lib/auth";
+import { useAdminAuth } from "@/lib/adminAuth";
 import { ArrowLeft, CheckCircle2, XCircle, Clock, Eye, Loader2, RefreshCw } from "lucide-react";
 import type { Ad } from "@shared/schema";
 
@@ -124,12 +124,13 @@ function AdRow({ ad, onApprove, onReject }: { ad: Ad; onApprove: (id: string) =>
 }
 
 export default function AdminAds() {
-  const { user } = useAuth();
+  const [, navigate] = useLocation();
+  const { admin, isLoading: authLoading } = useAdminAuth();
   const [filter, setFilter] = useState<string>("pending_review");
 
   const { data: allAds = [], isLoading, refetch, isRefetching } = useQuery<Ad[]>({
     queryKey: ["/api/ads/admin"],
-    enabled: !!user,
+    enabled: !!admin,
     refetchInterval: 30000,
   });
 
@@ -143,6 +144,19 @@ export default function AdminAds() {
       apiRequest("POST", `/api/ads/admin/${id}/reject`, { reason }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/ads/admin"] }),
   });
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 size={24} className="animate-spin" style={{ color: "var(--roam-electric)" }} />
+      </div>
+    );
+  }
+
+  if (!admin) {
+    navigate("/admin/login");
+    return null;
+  }
 
   const filtered = filter === "all" ? allAds : allAds.filter(a => a.status === filter);
   const counts: Record<string, number> = allAds.reduce((acc, a) => ({ ...acc, [a.status]: (acc[a.status] || 0) + 1 }), {} as any);

@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { seedDatabase } from "./seed";
+import { seedInitialAdmin } from "./admin-auth";
 import path from "path";
 
 const app = express();
@@ -95,6 +96,10 @@ httpServer.listen({ port, host: "0.0.0.0", reusePort: true }, () => {
 
     await seedDatabase().catch((err) => {
       console.error("Seed error (non-fatal):", err.message);
+    });
+
+    await seedInitialAdmin().catch((err) => {
+      console.error("Admin seed error (non-fatal):", err.message);
     });
 
     app.use((err: any, _req: Request, res: Response, next: NextFunction) => {

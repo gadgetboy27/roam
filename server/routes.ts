@@ -10,6 +10,7 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import pg from "pg";
 import { supabaseAdmin } from "./supabaseAdmin";
+import { hashAdminPassword, compareAdminPassword, isAdminAuthenticated, getAdminFromSession } from "./admin-auth";
 
 const PgSessionStore = connectPgSimple(session);
 const isProd = process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1";
@@ -362,6 +363,92 @@ export async function registerRoutes(
     });
   });
 
+  // ─── Admin auth ──────────────────────────────────────────────────────────
+
+  app.post("/api/admin/auth/login", async (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ message: "Username and password required" });
+    }
+    const admin = await storage.getAdminByUsername(username.trim().toLowerCase());
+    if (!admin) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+    const valid = await compareAdminPassword(password, admin.passwordHash);
+    if (!valid) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+    (req.session as any).adminId = admin.id;
+    console.log(`[admin] Login: ${admin.username}`);
+    return res.json({ id: admin.id, username: admin.username, displayName: admin.displayName });
+  });
+
+  app.post("/api/admin/auth/logout", (req, res) => {
+    (req.session as any).adminId = null;
+    return res.json({ ok: true });
+  });
+
+  app.get("/api/admin/auth/me", async (req, res) => {
+    const adminId = await getAdminFromSession(req);
+    if (!adminId) return res.status(401).json({ message: "Not authenticated" });
+    const admin = await storage.getAdminById(adminId);
+    if (!admin) return res.status(401).json({ message: "Admin not found" });
+    return res.json({ id: admin.id, username: admin.username, displayName: admin.displayName });
+  });
+
+  app.get("/api/admin/accounts", async (req, res) => {
+    if (!(await isAdminAuthenticated(req))) {
+      return res.status(401).json({ message: "Admin authentication required" });
+    }
+    const admins = await storage.getAllAdmins();
+    return res.json(admins.map(({ passwordHash: _, ...a }) => a));
+  });
+
+  app.post("/api/admin/accounts", async (req, res) => {
+    const adminId = await getAdminFromSession(req);
+    if (!(await isAdminAuthenticated(req))) {
+      return res.status(401).json({ message: "Admin authentication required" });
+    }
+    const { username, password, displayName } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ message: "Username and password required" });
+    }
+    if (password.length < 12) {
+      return res.status(400).json({ message: "Password must be at least 12 characters" });
+    }
+    const existing = await storage.getAdminByUsername(username.trim().toLowerCase());
+    if (existing) return res.status(409).json({ message: "Username already taken" });
+    const passwordHash = await hashAdminPassword(password);
+    const newAdmin = await storage.createAdmin({
+      username: username.trim().toLowerCase(),
+      passwordHash,
+      displayName: displayName?.trim() || username.trim(),
+      createdBy: adminId || undefined,
+    });
+    const creator = adminId ? await storage.getAdminById(adminId) : null;
+    console.log(`[admin] New admin created: "${newAdmin.username}" by "${creator?.username ?? "unknown"}"`);
+    return res.status(201).json({ id: newAdmin.id, username: newAdmin.username, displayName: newAdmin.displayName });
+  });
+
+  app.delete("/api/admin/accounts/:id", async (req, res) => {
+    const adminId = await getAdminFromSession(req);
+    if (!(await isAdminAuthenticated(req))) {
+      return res.status(401).json({ message: "Admin authentication required" });
+    }
+    if (req.params.id === adminId) {
+      return res.status(400).json({ message: "Cannot delete your own admin account" });
+    }
+    const total = await storage.getAdminCount();
+    if (total <= 1) {
+      return res.status(400).json({ message: "Cannot delete the last admin account" });
+    }
+    const target = await storage.getAdminById(req.params.id);
+    if (!target) return res.status(404).json({ message: "Admin not found" });
+    await storage.deleteAdmin(req.params.id);
+    console.log(`[admin] Admin account "${target.username}" deleted`);
+    return res.json({ ok: true });
+  });
+
   app.get("/api/users", async (req, res) => {
     const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
@@ -369,7 +456,7 @@ export async function registerRoutes(
       storage.getAllUsers(),
       storage.getFirstApprovedPhotoPerUser(),
     ]);
-    const safe = allUsers.map(({ password: _, ...u }) => ({
+    const safe = allUsers.map(({ password: _, email: _e, stripeCustomerId: _sc, stripeSubscriptionId: _ss, identityVerificationId: _vi, identityVerifiedAt: _vat, photoLicenseAgreed: _pla, ...u }) => ({
       ...u,
       heroPhotoUrl: heroPhotoMap[u.id] ?? null,
     }));
@@ -680,7 +767,6 @@ export async function registerRoutes(
 
   // ─── Ad system ───────────────────────────────────────────────────────────
 
-  const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "admin@letsroam.life").split(",").map(e => e.trim().toLowerCase());
   const AD_TIERS: Record<string, { label: string; price: number; days: number }> = {
     explorer:    { label: "Explorer",    price: 4900,  days: 7  },
     trailblazer: { label: "Trailblazer", price: 12900, days: 14 },
@@ -739,22 +825,16 @@ export async function registerRoutes(
   });
 
   app.get("/api/admin/users", async (req, res) => {
-    const userId = await authenticateRequest(req);
-    if (!userId) return res.status(401).json({ message: "Not authenticated" });
-    const user = await storage.getUser(userId);
-    if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
-      return res.status(403).json({ message: "Admin access required" });
+    if (!(await isAdminAuthenticated(req))) {
+      return res.status(401).json({ message: "Admin authentication required" });
     }
     const allUsers = await storage.getAllUsers();
     return res.json(allUsers.map(({ password: _, ...u }) => u));
   });
 
   app.patch("/api/admin/users/:id", async (req, res) => {
-    const userId = await authenticateRequest(req);
-    if (!userId) return res.status(401).json({ message: "Not authenticated" });
-    const user = await storage.getUser(userId);
-    if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
-      return res.status(403).json({ message: "Admin access required" });
+    if (!(await isAdminAuthenticated(req))) {
+      return res.status(401).json({ message: "Admin authentication required" });
     }
     const { tier } = req.body;
     if (tier && !["free", "adventurer", "contributor"].includes(tier)) {
@@ -763,19 +843,13 @@ export async function registerRoutes(
     const updated = await storage.updateUser(req.params.id, { ...(tier ? { tier } : {}) });
     if (!updated) return res.status(404).json({ message: "User not found" });
     const { password: _, ...safe } = updated;
-    console.log(`[admin] User ${req.params.id} tier changed to ${tier} by ${user.email}`);
+    console.log(`[admin] User ${req.params.id} tier changed to ${tier}`);
     return res.json(safe);
   });
 
   app.delete("/api/admin/users/:id", async (req, res) => {
-    const userId = await authenticateRequest(req);
-    if (!userId) return res.status(401).json({ message: "Not authenticated" });
-    const user = await storage.getUser(userId);
-    if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
-      return res.status(403).json({ message: "Admin access required" });
-    }
-    if (req.params.id === userId) {
-      return res.status(400).json({ message: "Cannot delete your own admin account" });
+    if (!(await isAdminAuthenticated(req))) {
+      return res.status(401).json({ message: "Admin authentication required" });
     }
     const target = await storage.getUser(req.params.id);
     if (!target) return res.status(404).json({ message: "User not found" });
@@ -785,27 +859,21 @@ export async function registerRoutes(
       if (match) await supabaseAdmin.auth.admin.deleteUser(match.id);
     } catch { /* non-fatal */ }
     await storage.deleteUser(req.params.id);
-    console.log(`[admin] User ${target.email} deleted by admin ${user.email}`);
+    console.log(`[admin] User ${target.email} deleted`);
     return res.json({ ok: true });
   });
 
   app.get("/api/ads/admin", async (req, res) => {
-    const userId = await authenticateRequest(req);
-    if (!userId) return res.status(401).json({ message: "Not authenticated" });
-    const user = await storage.getUser(userId);
-    if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
-      return res.status(403).json({ message: "Admin access required" });
+    if (!(await isAdminAuthenticated(req))) {
+      return res.status(401).json({ message: "Admin authentication required" });
     }
     const allAds = await storage.getAllAds();
     return res.json(allAds);
   });
 
   app.post("/api/ads/admin/:id/approve", async (req, res) => {
-    const userId = await authenticateRequest(req);
-    if (!userId) return res.status(401).json({ message: "Not authenticated" });
-    const user = await storage.getUser(userId);
-    if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
-      return res.status(403).json({ message: "Admin access required" });
+    if (!(await isAdminAuthenticated(req))) {
+      return res.status(401).json({ message: "Admin authentication required" });
     }
     const ad = await storage.getAdById(req.params.id);
     if (!ad) return res.status(404).json({ message: "Ad not found" });
@@ -817,11 +885,8 @@ export async function registerRoutes(
   });
 
   app.post("/api/ads/admin/:id/reject", async (req, res) => {
-    const userId = await authenticateRequest(req);
-    if (!userId) return res.status(401).json({ message: "Not authenticated" });
-    const user = await storage.getUser(userId);
-    if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
-      return res.status(403).json({ message: "Admin access required" });
+    if (!(await isAdminAuthenticated(req))) {
+      return res.status(401).json({ message: "Admin authentication required" });
     }
     const { reason } = req.body;
     const updated = await storage.updateAd(req.params.id, { status: "rejected", reviewedAt: new Date(), rejectionReason: reason || "Does not meet content guidelines" });

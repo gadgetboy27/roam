@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, RequireAuth } from "@/lib/auth";
+import { AdminAuthProvider } from "@/lib/adminAuth";
 import { ThemeProvider } from "@/lib/theme";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
@@ -23,6 +24,7 @@ import Advertise from "@/pages/advertise";
 import AdvertiseSuccess from "@/pages/advertise-success";
 import AdminAds from "@/pages/admin-ads";
 import Admin from "@/pages/admin";
+import AdminLogin from "@/pages/admin-login";
 
 function Router() {
   return (
@@ -48,12 +50,9 @@ function Router() {
       </Route>
       <Route path="/advertise" component={Advertise} />
       <Route path="/advertise/success" component={AdvertiseSuccess} />
-      <Route path="/admin">
-        <RequireAuth><Admin /></RequireAuth>
-      </Route>
-      <Route path="/admin/ads">
-        <RequireAuth><AdminAds /></RequireAuth>
-      </Route>
+      <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/admin" component={Admin} />
+      <Route path="/admin/ads" component={AdminAds} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -65,8 +64,10 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AuthProvider>
-            <Toaster />
-            <Router />
+            <AdminAuthProvider>
+              <Toaster />
+              <Router />
+            </AdminAuthProvider>
           </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>
