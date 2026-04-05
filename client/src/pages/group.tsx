@@ -8,8 +8,40 @@ import { useToast } from "@/hooks/use-toast";
 import { io as ioClient } from "socket.io-client";
 import {
   ArrowLeft, MapPin, Users, Lock, Globe, Send, Calendar, Plus,
-  Trash2, CheckCircle, XCircle, LogOut, Crown, UserPlus,
+  Trash2, CheckCircle, XCircle, LogOut, Crown, UserPlus, CalendarPlus,
 } from "lucide-react";
+
+function addToCalendar(ev: any, groupName: string) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const fmt = (d: Date) =>
+    `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  const start = new Date(ev.startAt);
+  const end = ev.endAt ? new Date(ev.endAt) : new Date(start.getTime() + 2 * 60 * 60 * 1000);
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//roam.//roam. Adventure App//EN",
+    "BEGIN:VEVENT",
+    `DTSTART:${fmt(start)}`,
+    `DTEND:${fmt(end)}`,
+    `SUMMARY:${ev.title}`,
+    ev.location ? `LOCATION:${ev.location}` : null,
+    ev.description ? `DESCRIPTION:${ev.description}` : null,
+    `ORGANIZER;CN=${groupName}:MAILTO:noreply@roam.app`,
+    `UID:${ev.id}@roam.app`,
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].filter(Boolean).join("\r\n");
+  const blob = new Blob([lines], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${ev.title.replace(/\s+/g, "_")}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 const GROUP_TYPE_LABEL: Record<string, string> = { squad: "Squad", crew: "Crew", community: "Community" };
 const GROUP_TYPE_RANGE: Record<string, string> = { squad: "2–5", crew: "6–20", community: "20–100" };
@@ -194,8 +226,8 @@ export default function GroupPage() {
         <AppNav />
         <div className="flex-1 flex flex-col items-center justify-center gap-3">
           <p style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>Group not found</p>
-          <button onClick={() => navigate("/roamers")} className="text-sm underline"
-                  style={{ color: "var(--roam-electric)" }}>Back to Roamers</button>
+          <button onClick={() => navigate("/groups")} className="text-sm underline"
+                  style={{ color: "var(--roam-electric)" }}>Back to Groups</button>
         </div>
       </div>
     );
@@ -211,7 +243,7 @@ export default function GroupPage() {
             <img src={group.coverImageUrl} alt={group.name} className="w-full h-full object-cover" />
             <div className="absolute inset-0"
                  style={{ background: "linear-gradient(to top,rgba(var(--roam-bg-rgb,14,20,15),0.9) 0%,transparent 60%)" }} />
-            <button onClick={() => navigate("/roamers")}
+            <button onClick={() => navigate("/groups")}
                     className="absolute top-4 left-4 p-2 rounded-full backdrop-blur-sm"
                     style={{ background: "rgba(0,0,0,0.45)" }}
                     data-testid="button-back">
@@ -220,7 +252,7 @@ export default function GroupPage() {
           </div>
         ) : (
           <div className="px-5 pt-4 flex items-center gap-3">
-            <button onClick={() => navigate("/roamers")} data-testid="button-back">
+            <button onClick={() => navigate("/groups")} data-testid="button-back">
               <ArrowLeft size={20} style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }} />
             </button>
           </div>
@@ -574,13 +606,22 @@ export default function GroupPage() {
                         <p className="text-[12px] mt-2" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>{ev.description}</p>
                       )}
                     </div>
-                    {isLeader && (
-                      <button onClick={() => deleteEventMutation.mutate(ev.id)}
-                              className="p-1 rounded-lg" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}
-                              data-testid={`button-delete-event-${ev.id}`}>
-                        <Trash2 size={14} />
+                    <div className="flex flex-col gap-1 flex-shrink-0">
+                      <button onClick={() => addToCalendar(ev, group.name)}
+                              className="p-1.5 rounded-lg flex items-center gap-1 text-[10px] font-mono"
+                              style={{ background: "rgba(var(--roam-electric-rgb),0.1)", color: "var(--roam-electric)" }}
+                              title="Add to calendar"
+                              data-testid={`button-add-to-calendar-${ev.id}`}>
+                        <CalendarPlus size={13} />
                       </button>
-                    )}
+                      {isLeader && (
+                        <button onClick={() => deleteEventMutation.mutate(ev.id)}
+                                className="p-1.5 rounded-lg" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}
+                                data-testid={`button-delete-event-${ev.id}`}>
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}

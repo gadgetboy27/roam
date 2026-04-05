@@ -608,7 +608,7 @@ export default function Profile() {
                   <div className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
                     My groups
                   </div>
-                  <Link href="/roamers">
+                  <Link href="/groups">
                     <span className="text-[11px] font-mono" style={{ color: "rgba(var(--roam-electric-rgb),0.7)" }}>See all →</span>
                   </Link>
                 </div>
@@ -882,7 +882,7 @@ export default function Profile() {
       <Sheet open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Settings">
         <div className="space-y-2">
           <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
-            Roamers
+            Groups
           </div>
           <div className="flex items-center justify-between p-4 rounded-2xl mb-4"
                style={{ background: "var(--roam-moss)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>

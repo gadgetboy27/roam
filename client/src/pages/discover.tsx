@@ -470,7 +470,7 @@ export default function Discover() {
           {(profile as any).openToRoaming && (
             <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl backdrop-blur-md"
                     style={{ background: "rgba(0,0,0,0.45)", border: "1px solid rgba(var(--roam-electric-rgb),0.55)" }}
-                    onClick={() => navigate("/roamers")}
+                    onClick={() => navigate("/groups")}
                     data-testid="badge-open-to-roaming">
               <span className="font-serif text-[11px] font-black" style={{ color: "var(--roam-electric)" }}>r.</span>
               <span className="font-mono text-[8px] tracking-wider" style={{ color: "rgba(255,255,255,0.75)" }}>roaming</span>

@@ -147,7 +147,7 @@ export default function Roamers() {
           <div className="flex items-end justify-between">
             <div>
               <h1 className="font-serif text-3xl font-black" style={{ color: "var(--roam-cream)" }}>
-                roamers.
+                groups.
               </h1>
               <p className="text-sm mt-1" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
                 Find your adventure crew

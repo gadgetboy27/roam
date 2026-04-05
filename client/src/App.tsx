@@ -52,6 +52,7 @@ function Router() {
       </Route>
       <Route path="/advertise" component={Advertise} />
       <Route path="/advertise/success" component={AdvertiseSuccess} />
+      <Route path="/groups" component={Roamers} />
       <Route path="/roamers" component={Roamers} />
       <Route path="/groups/:id">
         {(params) => <GroupPage />}
