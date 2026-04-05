@@ -160,11 +160,11 @@ export default function AdminAds() {
       <div className="topo-bg" />
       <div className="relative z-10 max-w-2xl mx-auto px-4 py-8">
 
-        <Link href="/profile">
+        <Link href="/admin">
           <button className="flex items-center gap-2 mb-8 font-mono text-[11px] tracking-wider uppercase"
                   style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
             <ArrowLeft size={13} />
-            Back to profile
+            Back to admin
           </button>
         </Link>
 

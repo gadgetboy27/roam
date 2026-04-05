@@ -94,6 +94,7 @@ export const ads = pgTable("ads", {
   reviewedAt: timestamp("reviewed_at"),
   expiresAt: timestamp("expires_at"),
   impressions: integer("impressions").default(0),
+  clicks: integer("clicks").default(0),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

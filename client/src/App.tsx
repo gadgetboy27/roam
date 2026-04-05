@@ -22,6 +22,7 @@ import Profile from "@/pages/profile";
 import Advertise from "@/pages/advertise";
 import AdvertiseSuccess from "@/pages/advertise-success";
 import AdminAds from "@/pages/admin-ads";
+import Admin from "@/pages/admin";
 
 function Router() {
   return (
@@ -47,6 +48,9 @@ function Router() {
       </Route>
       <Route path="/advertise" component={Advertise} />
       <Route path="/advertise/success" component={AdvertiseSuccess} />
+      <Route path="/admin">
+        <RequireAuth><Admin /></RequireAuth>
+      </Route>
       <Route path="/admin/ads">
         <RequireAuth><AdminAds /></RequireAuth>
       </Route>

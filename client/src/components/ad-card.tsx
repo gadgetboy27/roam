@@ -164,7 +164,10 @@ export default function AdCard({ ad, onDismiss, dragOffset = 0, dragOffsetY = 0,
             href={ad.ctaUrl}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={e => e.stopPropagation()}
+            onClick={e => {
+              e.stopPropagation();
+              fetch(`/api/ads/${ad.id}/click`, { method: "POST" }).catch(() => {});
+            }}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl font-mono text-[11px] tracking-wider font-semibold"
             style={{ background: "#c8e64a", color: "#0e1a0e" }}
             data-testid="ad-cta-button">

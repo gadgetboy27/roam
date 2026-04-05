@@ -134,6 +134,10 @@ ROAM is an adventure-matching dating app where users post real travel/adventure 
 - `GET /api/bucket-list/:userId` — User's bucket list
 - `POST /api/bucket-list` — Pin a destination (auth required)
 - `DELETE /api/bucket-list/:id` — Unpin a destination (auth required)
+- `GET /api/admin/users` — All users without passwords (admin only)
+- `PATCH /api/admin/users/:id` — Change user tier (admin only)
+- `DELETE /api/admin/users/:id` — Ban/remove user + Supabase auth (admin only)
+- `POST /api/ads/:id/click` — Increment ad click counter (public)
 - `POST /api/checkout/start` — Start Stripe Checkout (auth required, rate: 5/hr)
 - `POST /api/checkout/portal` — Open Stripe Billing Portal (auth required)
 - `POST /api/stripe/payment-webhook` — Stripe payment events (signature verified)
@@ -194,6 +198,15 @@ Photos upload to Supabase Storage bucket `photos` (auto-created on server startu
 - **Socket.io CORS**: Restricted to `letsroam.life` in production (wildcard only in dev)
 - **Rate limiting**: In-memory per-IP buckets (login 5/15min, signup 10/hr, verify 3/hr, upload 30/hr)
 - **Stripe webhooks**: Signature verified using `stripe.webhooks.constructEvent()` before processing
+
+## Admin Dashboard (/admin)
+
+Accessible via Profile → Settings → Admin dashboard. Protected by `ADMIN_EMAILS` env var (default: `admin@letsroam.life`). Non-admin users see an "Access Denied" screen.
+
+- **Users tab**: View all users with tier badges, join date, location. Inline tier change dropdown (free / adventurer / contributor) and ban/delete button (with confirmation step). Cannot delete own account.
+- **Ad Metrics tab**: All ads with impressions, clicks, CTR, and a visual bar chart. Aggregate totals at the top (total views, total clicks, overall CTR).
+- **Ad Review Portal** (`/admin/ads`): Approve or reject ads awaiting review. Separate linked page from the main dashboard.
+- **Ad click tracking**: `clicks` column on `ads` table, incremented via `POST /api/ads/:id/click` fired when user clicks the CTA button on an ad card.
 
 ## Known Gaps / Future Work
 

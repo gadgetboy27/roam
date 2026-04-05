@@ -875,6 +875,28 @@ export default function Profile() {
             </div>
           </div>
 
+          <div className="pt-4">
+            <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+              Team
+            </div>
+            <Link href="/admin">
+              <button className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all"
+                      style={{ background: "rgba(var(--roam-electric-rgb),0.05)", border: "1px solid rgba(var(--roam-electric-rgb),0.15)" }}
+                      onClick={() => setSettingsOpen(false)}
+                      data-testid="link-admin-dashboard">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                     style={{ background: "rgba(var(--roam-electric-rgb),0.1)" }}>
+                  <Shield size={15} style={{ color: "var(--roam-electric)" }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium" style={{ color: "var(--roam-electric)" }}>Admin dashboard</div>
+                  <div className="text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Users, ad metrics & moderation</div>
+                </div>
+                <ChevronRight size={15} style={{ color: "rgba(var(--roam-electric-rgb),0.4)" }} />
+              </button>
+            </Link>
+          </div>
+
           <div className="pt-2 pb-1">
             <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-2 pt-2" style={{ color: "rgba(var(--roam-cream-rgb),0.35)", borderTop: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
               Signed in as
