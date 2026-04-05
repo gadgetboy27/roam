@@ -147,9 +147,13 @@ export async function registerRoutes(
     });
   });
 
+  const allowedOrigins = isProd
+    ? ["https://letsroam.life", "https://www.letsroam.life"]
+    : ["http://localhost:5000", "http://localhost:5173"];
+
   const io = new SocketServer(httpServer, {
     path: "/socket.io",
-    cors: { origin: "*", methods: ["GET", "POST"] },
+    cors: { origin: allowedOrigins, methods: ["GET", "POST"] },
     transports: ["websocket", "polling"],
   });
 

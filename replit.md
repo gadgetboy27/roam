@@ -44,7 +44,7 @@ ROAM is an adventure-matching dating app where users post real travel/adventure 
 │   ├── routes.ts             # All API routes (/api/*)
 │   ├── storage.ts            # DatabaseStorage class (IStorage interface)
 │   ├── db.ts                 # Drizzle ORM + pg pool
-│   ├── auth.ts               # Password hashing (bcrypt)
+│   ├── auth.ts               # Password hashing (scrypt)
 │   ├── fingerprint.ts        # Adventure Fingerprint engine (server-side)
 │   ├── stripeClient.ts       # Stripe client via Replit connector
 │   ├── supabaseAdmin.ts      # Supabase admin client
@@ -78,6 +78,7 @@ ROAM is an adventure-matching dating app where users post real travel/adventure 
 - `matches` — id (uuid), userAId, userBId, overlapScore, sharedTags[], status (pending/liked_a/liked_b/matched/passed), almostMetLocation, almostMetDate, createdAt, matchedAt
 - `messages` — id (uuid), matchId, senderId, content, createdAt
 - `bucket_list` — id (uuid), userId, destinationName, imageUrl, createdAt
+- `ads` — id (uuid), advertiserName, advertiserEmail, advertiserCompany, tier, headline, tagline, ctaText, ctaUrl, imageUrl, videoUrl, contentType, status (pending_payment/pending_review/approved/rejected/expired), stripeSessionId, rejectionReason, reviewedAt, expiresAt, impressions, createdAt
 - `user_sessions` — auto-created by connect-pg-simple (not in Drizzle schema)
 
 ## Tiers
@@ -175,7 +176,8 @@ ROAM is an adventure-matching dating app where users post real travel/adventure 
 - `SUPABASE_DB_PASSWORD` — Supabase database password
 - `STRIPE_IDENTITY_WEBHOOK_SECRET` — Stripe Identity webhook signing secret
 - `STRIPE_PAYMENT_WEBHOOK_SECRET` — Stripe payment webhook signing secret
-- Stripe API keys via Replit Stripe connector (no manual env var needed)
+- `STRIPE_SECRET_KEY` — Stripe secret key
+- `STRIPE_PUBLISHABLE_KEY` — Stripe publishable key
 
 ## Photo Storage
 
@@ -184,6 +186,14 @@ Photos upload to Supabase Storage bucket `photos` (auto-created on server startu
 - Stores permanent public HTTPS URL (`https://znqbnldsalsfpraiplxz.supabase.co/storage/v1/object/public/photos/...`) in photos.storageUrl
 - Bucket is public — no auth needed to view photos
 - Avatars are still stored as data URLs directly in users.avatarUrl (small thumbnails, acceptable)
+
+## Security
+
+- **HTTP headers**: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy set on all responses via middleware in `server/index.ts`
+- **Session cookies**: `httpOnly: true`, `secure: true` in prod, `sameSite: strict` in prod
+- **Socket.io CORS**: Restricted to `letsroam.life` in production (wildcard only in dev)
+- **Rate limiting**: In-memory per-IP buckets (login 5/15min, signup 10/hr, verify 3/hr, upload 30/hr)
+- **Stripe webhooks**: Signature verified using `stripe.webhooks.constructEvent()` before processing
 
 ## Known Gaps / Future Work
 
