@@ -173,17 +173,17 @@ export default function Roamers() {
           )}
         </div>
 
-        <div className="px-5 flex gap-2 mb-5 overflow-x-auto pb-1">
+        <div className="px-5 flex flex-wrap gap-2 mb-5">
           {(["all", "squad", "crew", "community"] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)}
-                    className="flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-mono tracking-wider capitalize transition-all"
+                    className="px-3 py-1.5 rounded-full text-[11px] font-mono tracking-wider transition-all"
                     style={{
                       background: filter === f ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.06)",
                       color: filter === f ? "var(--roam-bg)" : "rgba(var(--roam-cream-rgb),0.5)",
                       border: filter === f ? "none" : "1px solid rgba(var(--roam-cream-rgb),0.08)",
                     }}
                     data-testid={`filter-${f}`}>
-              {f === "all" ? "All groups" : `${GROUP_TYPE_LABEL[f]} (${GROUP_TYPE_RANGE[f]})`}
+              {f === "all" ? "All" : f === "squad" ? "Squad 2–5" : f === "crew" ? "Crew 6–20" : "Community 20+"}
             </button>
           ))}
         </div>
