@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { io as ioClient } from "socket.io-client";
 import {
   ArrowLeft, MapPin, Users, Lock, Globe, Send, Calendar, Plus,
-  Trash2, CheckCircle, XCircle, LogOut, Crown, UserPlus, CalendarPlus,
+  Trash2, CheckCircle, XCircle, LogOut, Crown, UserPlus, CalendarPlus, Check,
 } from "lucide-react";
 
 function addToCalendar(ev: any, groupName: string) {
@@ -54,6 +54,110 @@ function formatDate(d: string | Date | null | undefined) {
 function formatDatetime(d: string | Date | null | undefined) {
   if (!d) return "";
   return new Date(d).toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function GroupEventCard({ ev, group, isLeader, isApproved, userId, deleteEventMutation }: {
+  ev: any; group: any; isLeader: boolean; isApproved: boolean; userId?: string; deleteEventMutation: any;
+}) {
+  const { toast } = useToast();
+  const { data: attendees = [] } = useQuery<any[]>({
+    queryKey: ["/api/events", ev.id, "attendees"],
+    queryFn: async () => {
+      const r = await fetch(`/api/events/${ev.id}/attendees`);
+      return r.ok ? r.json() : [];
+    },
+  });
+  const isRsvpd = !!userId && attendees.some((a: any) => a.userId === userId);
+
+  const rsvpMutation = useMutation({
+    mutationFn: () => isRsvpd
+      ? apiRequest("DELETE", `/api/events/${ev.id}/rsvp`)
+      : apiRequest("POST", `/api/events/${ev.id}/rsvp`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events", ev.id, "attendees"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events/upcoming"] });
+      toast({ description: isRsvpd ? "RSVP removed." : "You're going! 🎉" });
+    },
+  });
+
+  return (
+    <div className="p-4 rounded-2xl"
+         style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex-1">
+          <div className="font-medium" style={{ color: "var(--roam-cream)" }}>{ev.title}</div>
+          <div className="text-[11px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+            {formatDatetime(ev.startAt)}{ev.endAt ? ` → ${formatDatetime(ev.endAt)}` : ""}
+          </div>
+          {ev.location && (
+            <div className="flex items-center gap-1 text-[11px] mt-1" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+              <MapPin size={10} /> {ev.location}
+            </div>
+          )}
+          {ev.description && (
+            <p className="text-[12px] mt-2" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>{ev.description}</p>
+          )}
+        </div>
+        <div className="flex flex-col gap-1 flex-shrink-0">
+          <button onClick={() => addToCalendar(ev, group.name)}
+                  className="p-1.5 rounded-lg flex items-center gap-1 text-[10px] font-mono"
+                  style={{ background: "rgba(var(--roam-electric-rgb),0.1)", color: "var(--roam-electric)" }}
+                  title="Add to calendar"
+                  data-testid={`button-add-to-calendar-${ev.id}`}>
+            <CalendarPlus size={13} />
+          </button>
+          {isLeader && (
+            <button onClick={() => deleteEventMutation.mutate(ev.id)}
+                    className="p-1.5 rounded-lg" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}
+                    data-testid={`button-delete-event-${ev.id}`}>
+              <Trash2 size={13} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-2 pt-2" style={{ borderTop: "1px solid rgba(var(--roam-cream-rgb),0.06)" }}>
+        <div className="flex items-center gap-1.5">
+          {attendees.length > 0 ? (
+            <>
+              <div className="flex -space-x-1.5">
+                {attendees.slice(0, 3).map((a: any) => (
+                  <div key={a.userId} className="w-5 h-5 rounded-full overflow-hidden border"
+                       style={{ borderColor: "var(--roam-surface)" }}>
+                    {a.avatarUrl
+                      ? <img src={a.avatarUrl} alt={a.name} className="w-full h-full object-cover" />
+                      : <div className="w-full h-full flex items-center justify-center text-[8px] font-bold"
+                             style={{ background: "rgba(var(--roam-electric-rgb),0.2)", color: "var(--roam-electric)" }}>
+                          {a.name[0]}
+                        </div>
+                    }
+                  </div>
+                ))}
+              </div>
+              <span className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                {attendees.length} going
+              </span>
+            </>
+          ) : (
+            <span className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>No RSVPs yet</span>
+          )}
+        </div>
+        {isApproved && userId && (
+          <button
+            onClick={() => rsvpMutation.mutate()}
+            disabled={rsvpMutation.isPending}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-[10px] tracking-wider font-medium transition-all"
+            style={isRsvpd
+              ? { background: "rgba(var(--roam-electric-rgb),0.12)", color: "var(--roam-electric)", border: "1px solid rgba(var(--roam-electric-rgb),0.35)" }
+              : { background: "var(--roam-electric)", color: "var(--roam-forest)" }}
+            data-testid={`button-rsvp-${ev.id}`}>
+            {isRsvpd && <Check size={10} />}
+            {rsvpMutation.isPending ? "…" : isRsvpd ? "Going ✓" : "RSVP"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function GroupPage() {
@@ -589,41 +693,7 @@ export default function GroupPage() {
               )}
 
               {events.map((ev: any) => (
-                <div key={ev.id} className="p-4 rounded-2xl"
-                     style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="font-medium" style={{ color: "var(--roam-cream)" }}>{ev.title}</div>
-                      <div className="text-[11px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
-                        {formatDatetime(ev.startAt)}{ev.endAt ? ` → ${formatDatetime(ev.endAt)}` : ""}
-                      </div>
-                      {ev.location && (
-                        <div className="flex items-center gap-1 text-[11px] mt-1" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
-                          <MapPin size={10} /> {ev.location}
-                        </div>
-                      )}
-                      {ev.description && (
-                        <p className="text-[12px] mt-2" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>{ev.description}</p>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-1 flex-shrink-0">
-                      <button onClick={() => addToCalendar(ev, group.name)}
-                              className="p-1.5 rounded-lg flex items-center gap-1 text-[10px] font-mono"
-                              style={{ background: "rgba(var(--roam-electric-rgb),0.1)", color: "var(--roam-electric)" }}
-                              title="Add to calendar"
-                              data-testid={`button-add-to-calendar-${ev.id}`}>
-                        <CalendarPlus size={13} />
-                      </button>
-                      {isLeader && (
-                        <button onClick={() => deleteEventMutation.mutate(ev.id)}
-                                className="p-1.5 rounded-lg" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}
-                                data-testid={`button-delete-event-${ev.id}`}>
-                          <Trash2 size={13} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <GroupEventCard key={ev.id} ev={ev} group={group} isLeader={isLeader} isApproved={isApproved} userId={user?.id} deleteEventMutation={deleteEventMutation} />
               ))}
             </div>
           )}

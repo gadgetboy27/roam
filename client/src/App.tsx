@@ -27,6 +27,7 @@ import Admin from "@/pages/admin";
 import AdminLogin from "@/pages/admin-login";
 import Roamers from "@/pages/roamers";
 import GroupPage from "@/pages/group";
+import WhatsOn from "@/pages/whats-on";
 
 function Router() {
   return (
@@ -52,6 +53,7 @@ function Router() {
       </Route>
       <Route path="/advertise" component={Advertise} />
       <Route path="/advertise/success" component={AdvertiseSuccess} />
+      <Route path="/whats-on" component={WhatsOn} />
       <Route path="/groups" component={Roamers} />
       <Route path="/roamers" component={Roamers} />
       <Route path="/groups/:id">

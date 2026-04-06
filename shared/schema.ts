@@ -144,6 +144,13 @@ export const groupEvents = pgTable("group_events", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const groupEventAttendees = pgTable("group_event_attendees", {
+  id: serial("id").primaryKey(),
+  eventId: varchar("event_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull(),
@@ -209,5 +216,6 @@ export type GroupMessage = typeof groupMessages.$inferSelect;
 export type InsertGroupMessage = typeof groupMessages.$inferInsert;
 export type GroupEvent = typeof groupEvents.$inferSelect;
 export type InsertGroupEvent = typeof groupEvents.$inferInsert;
+export type GroupEventAttendee = typeof groupEventAttendees.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;

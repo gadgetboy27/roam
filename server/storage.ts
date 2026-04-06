@@ -1,8 +1,8 @@
-import { eq, and, or, desc, inArray } from "drizzle-orm";
+import { eq, and, or, desc, inArray, gt } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, photos, matches, messages, bucketList, ads, adminUsers,
-  groups, groupMembers, groupMessages, groupEvents, notifications,
+  groups, groupMembers, groupMessages, groupEvents, groupEventAttendees, notifications,
   type User, type InsertUser, type Photo, type InsertPhoto,
   type Match, type InsertMatch, type Message, type InsertMessage,
   type BucketListItem, type InsertBucketList, type Ad, type InsertAd,
@@ -73,6 +73,11 @@ export interface IStorage {
   getGroupEvents(groupId: string): Promise<GroupEvent[]>;
   getGroupEvent(id: string): Promise<GroupEvent | undefined>;
   deleteGroupEvent(id: string): Promise<void>;
+
+  rsvpEvent(eventId: string, userId: string): Promise<void>;
+  unrsvpEvent(eventId: string, userId: string): Promise<void>;
+  getEventAttendees(eventId: string): Promise<{ userId: string; name: string; avatarUrl: string | null }[]>;
+  getUpcomingEvents(userId?: string): Promise<any[]>;
 
   createNotification(data: { userId: string; type: string; title: string; body?: string; data?: string }): Promise<Notification>;
   getNotificationsForUser(userId: string, limit?: number): Promise<Notification[]>;
@@ -348,6 +353,67 @@ export class DatabaseStorage implements IStorage {
 
   async deleteGroupEvent(id: string): Promise<void> {
     await db.delete(groupEvents).where(eq(groupEvents.id, id));
+  }
+
+  async rsvpEvent(eventId: string, userId: string): Promise<void> {
+    const existing = await db.select().from(groupEventAttendees)
+      .where(and(eq(groupEventAttendees.eventId, eventId), eq(groupEventAttendees.userId, userId)));
+    if (existing.length === 0) {
+      await db.insert(groupEventAttendees).values({ eventId, userId });
+    }
+  }
+
+  async unrsvpEvent(eventId: string, userId: string): Promise<void> {
+    await db.delete(groupEventAttendees)
+      .where(and(eq(groupEventAttendees.eventId, eventId), eq(groupEventAttendees.userId, userId)));
+  }
+
+  async getEventAttendees(eventId: string): Promise<{ userId: string; name: string; avatarUrl: string | null }[]> {
+    const rows = await db
+      .select({ userId: groupEventAttendees.userId, name: users.name, avatarUrl: users.avatarUrl })
+      .from(groupEventAttendees)
+      .innerJoin(users, eq(groupEventAttendees.userId, users.id))
+      .where(eq(groupEventAttendees.eventId, eventId));
+    return rows;
+  }
+
+  async getUpcomingEvents(userId?: string): Promise<any[]> {
+    const now = new Date();
+    const rows = await db
+      .select({ event: groupEvents, group: groups })
+      .from(groupEvents)
+      .innerJoin(groups, eq(groupEvents.groupId, groups.id))
+      .where(and(gt(groupEvents.startAt, now), eq(groups.isActive, true)))
+      .orderBy(groupEvents.startAt);
+
+    if (rows.length === 0) return [];
+
+    const eventIds = rows.map(r => r.event.id);
+    const allAttendees = await db
+      .select({ eventId: groupEventAttendees.eventId, userId: groupEventAttendees.userId, name: users.name, avatarUrl: users.avatarUrl })
+      .from(groupEventAttendees)
+      .innerJoin(users, eq(groupEventAttendees.userId, users.id))
+      .where(inArray(groupEventAttendees.eventId, eventIds));
+
+    let myGroupIds: string[] = [];
+    if (userId) {
+      const memberships = await db.select({ groupId: groupMembers.groupId })
+        .from(groupMembers)
+        .where(and(eq(groupMembers.userId, userId), eq(groupMembers.status, "approved")));
+      myGroupIds = memberships.map(m => m.groupId);
+    }
+
+    return rows.map(r => {
+      const attendees = allAttendees.filter(a => a.eventId === r.event.id);
+      return {
+        ...r.event,
+        group: { id: r.group.id, name: r.group.name, type: r.group.type, location: r.group.location, visibility: r.group.visibility, adventureTags: r.group.adventureTags },
+        rsvpCount: attendees.length,
+        attendeeFaces: attendees.slice(0, 3).map(a => ({ userId: a.userId, name: a.name, avatarUrl: a.avatarUrl })),
+        isRsvpd: userId ? attendees.some(a => a.userId === userId) : false,
+        isMember: userId ? myGroupIds.includes(r.group.id) : false,
+      };
+    });
   }
 
   async createNotification(data: { userId: string; type: string; title: string; body?: string; data?: string }): Promise<Notification> {

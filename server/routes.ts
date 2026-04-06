@@ -1329,6 +1329,33 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  // ─── Event RSVP ───────────────────────────────────────────────────────────
+
+  app.post("/api/events/:eventId/rsvp", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Unauthorised" });
+    await storage.rsvpEvent(req.params.eventId, userId);
+    res.json({ success: true });
+  });
+
+  app.delete("/api/events/:eventId/rsvp", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Unauthorised" });
+    await storage.unrsvpEvent(req.params.eventId, userId);
+    res.json({ success: true });
+  });
+
+  app.get("/api/events/upcoming", async (req, res) => {
+    const userId = req.session?.userId ?? undefined;
+    const events = await storage.getUpcomingEvents(userId);
+    res.json(events);
+  });
+
+  app.get("/api/events/:eventId/attendees", async (req, res) => {
+    const attendees = await storage.getEventAttendees(req.params.eventId);
+    res.json(attendees);
+  });
+
   // ─── Open to roaming toggle ───────────────────────────────────────────────
 
   app.patch("/api/users/:id/open-to-roaming", async (req, res) => {

@@ -25,7 +25,7 @@ I prefer concise and clear communication. When making changes, please explain th
 
 **Database**:
 - PostgreSQL is used with Drizzle ORM for schema definition and interaction.
-- Key tables include `users`, `photos`, `matches`, `messages`, `bucket_list`, `ads`, `groups`, `group_members`, `group_messages`, `group_events`, and `notifications`.
+- Key tables include `users`, `photos`, `matches`, `messages`, `bucket_list`, `ads`, `groups`, `group_members`, `group_messages`, `group_events`, `groupEventAttendees`, and `notifications`.
 
 **Authentication**:
 - Primary authentication is managed by Supabase Auth, using JWTs.
@@ -41,6 +41,9 @@ I prefer concise and clear communication. When making changes, please explain th
 - **Tiers**: "Explorer" (free with limitations), "Adventurer" (paid subscription with full features), and "Contributor" (free in exchange for photo licensing).
 - **Rate Limiting**: Implemented in-memory per-IP buckets for API endpoints to prevent abuse.
 - **Admin Dashboard**: Provides user management (tier changes, banning), ad metrics tracking, and an ad review portal. Access is restricted by `ADMIN_EMAILS` environment variable.
+- **What's On Feed**: Events discovery page at `/whats-on` showing upcoming group events with Today/This Week/Upcoming filters, smart relative datetime display, attendee faces, and RSVP capability. RSVP button states: not logged in → signup prompt; not group member → join group link; member → toggle RSVP. Group event cards also include RSVP + attendee count.
+- **Groups Events RSVP**: Group detail page Events tab shows RSVP button per event (approved members only), attendee avatars, and count. Endpoints: `POST/DELETE /api/events/:eventId/rsvp`, `GET /api/events/upcoming`, `GET /api/events/:eventId/attendees`.
+- **Side Nav Create Menu**: The "+" button in the side nav opens a quick-action popup with "Upload photos" and "Plan an event" options.
 
 **Security**:
 - Standard HTTP security headers are set.
