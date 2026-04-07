@@ -398,6 +398,44 @@ export default function Roamers() {
           )}
         </div>
 
+        <div className="px-5 pb-4">
+          <div className="rounded-2xl px-4 py-4 flex items-start gap-3.5"
+               style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.09)" }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                 style={{ background: "rgba(var(--roam-electric-rgb),0.12)", color: "var(--roam-electric)" }}>
+              <Users size={16} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-serif text-[14px] font-bold mb-0.5" style={{ color: "var(--roam-cream)" }}>
+                Find or start an adventure crew
+              </div>
+              <p className="font-mono text-[11px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                Squads, Crews, Communities and Organisers — join a group to RSVP events and meet people who actually show up. Lead one to plan adventures your way.
+              </p>
+              {user && eligibility?.eligible && (
+                <button onClick={() => setShowCreate(true)}
+                        className="mt-2.5 font-mono text-[11px] flex items-center gap-1.5"
+                        style={{ color: "var(--roam-electric)" }}
+                        data-testid="button-explainer-create">
+                  <Plus size={12} /> Start your own group →
+                </button>
+              )}
+              {user && eligibility && !eligibility.eligible && (
+                <p className="mt-2 font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
+                  Complete your profile to lead a group — or browse below to join one.
+                </p>
+              )}
+              {!user && (
+                <Link href="/login">
+                  <span className="mt-2 font-mono text-[11px] flex items-center gap-1" style={{ color: "var(--roam-electric)" }}>
+                    Sign in to join or start a group →
+                  </span>
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+
         <div className="px-5 flex flex-wrap gap-2 mb-5">
           {(["all", "squad", "crew", "community", "organiser"] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)}
@@ -418,17 +456,34 @@ export default function Roamers() {
             <div key={i} className="h-44 rounded-2xl animate-pulse" style={{ background: "rgba(var(--roam-cream-rgb),0.05)" }} />
           ))}
           {!isLoading && filtered.length === 0 && (
-            <div className="text-center py-16">
-              <div className="font-serif text-4xl mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.12)" }}>r.</div>
-              <p className="text-sm mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
-                {filter === "all" ? "No groups yet — be the first to start one." : `No ${filter} groups yet.`}
+            <div className="text-center py-12 px-4">
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                   style={{ background: "rgba(var(--roam-electric-rgb),0.08)", border: "1px solid rgba(var(--roam-electric-rgb),0.15)" }}>
+                <Users size={24} style={{ color: "rgba(var(--roam-electric-rgb),0.5)" }} />
+              </div>
+              <p className="font-serif text-[16px] font-bold mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
+                {filter === "all" ? "No groups yet" : `No ${filter} groups yet`}
+              </p>
+              <p className="font-mono text-[11px] mb-5 leading-relaxed max-w-[240px] mx-auto" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
+                {filter === "all"
+                  ? "Be the first to gather your adventure crew — Squads, Crews, Communities and Organisers welcome."
+                  : `No ${filter} groups exist yet. Try browsing all groups or start your own.`}
               </p>
               {user && eligibility?.eligible && (
                 <button onClick={() => setShowCreate(true)}
-                        className="font-mono text-[11px] px-4 py-2 rounded-xl"
-                        style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}>
-                  Start one →
+                        className="font-mono text-[11px] px-5 py-2.5 rounded-xl inline-flex items-center gap-1.5"
+                        style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
+                        data-testid="button-empty-create">
+                  <Plus size={12} /> Start a group →
                 </button>
+              )}
+              {!user && (
+                <Link href="/login">
+                  <span className="font-mono text-[11px] px-5 py-2.5 rounded-xl inline-flex items-center gap-1.5"
+                        style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)", color: "var(--roam-electric)" }}>
+                    Sign in to get started →
+                  </span>
+                </Link>
               )}
             </div>
           )}
