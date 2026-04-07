@@ -108,7 +108,7 @@ export default function AppNav() {
   return (
     <>
       <nav className="sticky top-0 z-50 backdrop-blur-xl"
-           style={{ background: `rgba(var(--roam-forest-rgb),0.12)`, borderBottom: `1px solid rgba(var(--roam-cream-rgb),0.06)` }}>
+           style={{ background: `rgba(var(--roam-forest-rgb),0.78)`, borderBottom: `1px solid rgba(var(--roam-cream-rgb),0.08)` }}>
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
           <Link href="/">
             <div className="cursor-pointer flex items-start gap-1.5 flex-shrink-0">
@@ -117,15 +117,15 @@ export default function AppNav() {
                 <span style={{ color: "var(--roam-electric)" }} className="font-serif text-[22px] font-black">.</span>
                 <div className="font-mono text-[8px] tracking-[2px] uppercase" style={{ color: `rgba(var(--roam-cream-rgb),0.32)` }}>adventure matching</div>
               </div>
-              <div className="flex items-center gap-1 mt-0.5" title={dotTitle}>
-                <div className="w-1.5 h-1.5 rounded-full transition-colors"
-                     style={{ background: dotColor, boxShadow: status === "online" ? `0 0 4px ${dotColor}` : "none" }} />
-                {status !== "online" && (
+              {status !== "online" && (
+                <div className="flex items-center gap-1 mt-0.5" title={dotTitle}>
+                  <div className="w-1.5 h-1.5 rounded-full"
+                       style={{ background: dotColor }} />
                   <span className="font-mono text-[8px] tracking-wider" style={{ color: dotColor }}>
                     {status === "offline" ? "offline" : "…"}
                   </span>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </Link>
 
@@ -179,7 +179,7 @@ export default function AppNav() {
       </nav>
 
       {/* Side nav */}
-      <div className="fixed right-3 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-1 py-2.5 px-1.5 rounded-[26px]"
+      <div className="fixed right-3 bottom-24 z-50 flex flex-col items-center gap-1 py-2.5 px-1.5 rounded-[26px]"
            style={{
              background: `rgba(var(--roam-forest-rgb),0.82)`,
              backdropFilter: "blur(24px)",
