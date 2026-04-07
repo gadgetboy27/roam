@@ -776,14 +776,15 @@ export async function registerRoutes(
   };
 
   app.post("/api/ads/submit", async (req, res) => {
-    const { advertiserName, advertiserEmail, advertiserCompany, tier, headline, tagline, ctaText, ctaUrl, imageUrl, videoUrl, contentType } = req.body;
+    const { advertiserName, advertiserEmail, advertiserCompany, tier, headline, tagline, ctaText, ctaUrl, imageUrl, videoUrl, contentType, adType, linkedGroupId, linkedEventId } = req.body;
     if (!advertiserName || !advertiserEmail || !tier || !headline) {
       return res.status(400).json({ message: "advertiserName, advertiserEmail, tier, and headline are required" });
     }
     const tierInfo = AD_TIERS[tier as string];
     if (!tierInfo) return res.status(400).json({ message: "Invalid tier. Must be explorer, trailblazer, or summit" });
+    const submittedByUserId = req.session?.userId ?? undefined;
 
-    const ad = await storage.createAd({ advertiserName, advertiserEmail, advertiserCompany, tier, headline, tagline, ctaText, ctaUrl, imageUrl, videoUrl, contentType: contentType || "image", status: "pending_payment" });
+    const ad = await storage.createAd({ advertiserName, advertiserEmail, advertiserCompany, tier, headline, tagline, ctaText, ctaUrl, imageUrl, videoUrl, contentType: contentType || "image", status: "pending_payment", adType: adType || "standard", submittedByUserId: submittedByUserId || null, linkedGroupId: linkedGroupId || null, linkedEventId: linkedEventId || null });
 
     try {
       const stripe = await getUncachableStripeClient();
@@ -911,6 +912,25 @@ export async function registerRoutes(
     const expiresAt = new Date(Date.now() + tierInfo.days * 24 * 3600 * 1000);
     const updated = await storage.updateAd(ad.id, { status: "approved", reviewedAt: new Date(), expiresAt, rejectionReason: null });
     console.log(`[ads] Admin approved ad ${ad.id} (${ad.advertiserName})`);
+
+    if ((ad as any).adType === "event" && (ad as any).submittedByUserId) {
+      try {
+        const matchedIds = await storage.getMatchedUserIds((ad as any).submittedByUserId);
+        await Promise.all(matchedIds.map(uid =>
+          storage.createNotification({
+            userId: uid,
+            type: "event_promotion",
+            title: "Your match is hosting an event",
+            body: ad.headline,
+            data: JSON.stringify({ adId: ad.id, groupId: (ad as any).linkedGroupId }),
+          })
+        ));
+        console.log(`[ads] Event ad ${ad.id} approved — notified ${matchedIds.length} matched users`);
+      } catch (e: any) {
+        console.error("[ads] Failed to notify matches:", e.message);
+      }
+    }
+
     return res.json(updated);
   });
 
@@ -1133,6 +1153,13 @@ export async function registerRoutes(
       return { ...g, memberCount: approvedCount };
     }));
     res.json(enriched);
+  });
+
+  app.get("/api/groups/my-led", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.json([]);
+    const led = await storage.getGroupsLedByUser(userId);
+    res.json(led);
   });
 
   app.get("/api/groups/:id", async (req, res) => {

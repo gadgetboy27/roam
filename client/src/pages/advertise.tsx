@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { Link } from "wouter";
-import { ArrowLeft, Megaphone, Image, Video, Zap, Star, Crown, ChevronRight, Loader2, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "wouter";
+import { ArrowLeft, Megaphone, Zap, Star, Crown, ChevronRight, Loader2, AlertCircle, CalendarDays, Users, Sparkles } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/lib/auth";
 
 const TIERS = [
   {
@@ -54,14 +55,25 @@ const GUIDELINES = [
 ];
 
 export default function Advertise() {
+  const { user } = useAuth();
+  const [, navigate] = useLocation();
+
+  const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+  const isEventMode = params.get("mode") === "event";
+  const prefillTitle = params.get("title") || "";
+  const prefillDesc = params.get("desc") || "";
+  const prefillGroupId = params.get("groupId") || "";
+  const prefillEventId = params.get("eventId") || "";
+  const prefillGroupName = params.get("groupName") || "";
+
   const [selectedTier, setSelectedTier] = useState("trailblazer");
   const [form, setForm] = useState({
     advertiserName: "",
     advertiserEmail: "",
     advertiserCompany: "",
-    headline: "",
-    tagline: "",
-    ctaText: "",
+    headline: prefillTitle,
+    tagline: prefillDesc,
+    ctaText: isEventMode ? "View event" : "",
     ctaUrl: "",
     imageUrl: "",
     videoUrl: "",
@@ -71,8 +83,17 @@ export default function Advertise() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const tier = TIERS.find(t => t.id === selectedTier)!;
+  useEffect(() => {
+    if (user) {
+      setForm(f => ({
+        ...f,
+        advertiserName: f.advertiserName || user.name || "",
+        advertiserEmail: f.advertiserEmail || (user as any).email || "",
+      }));
+    }
+  }, [user]);
 
+  const tier = TIERS.find(t => t.id === selectedTier)!;
   const set = (field: string, val: string | boolean) => setForm(f => ({ ...f, [field]: val }));
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -93,6 +114,9 @@ export default function Advertise() {
         imageUrl: form.imageUrl || null,
         videoUrl: form.videoUrl || null,
         contentType: form.contentType,
+        adType: isEventMode ? "event" : "standard",
+        linkedGroupId: prefillGroupId || null,
+        linkedEventId: prefillEventId || null,
       });
       const data = await res.json();
       if (data.checkoutUrl) {
@@ -119,27 +143,77 @@ export default function Advertise() {
       <div className="topo-bg" />
       <div className="relative z-10 max-w-2xl mx-auto px-4 py-8">
 
-        <Link href="/">
-          <button className="flex items-center gap-2 mb-8 font-mono text-[11px] tracking-wider uppercase transition-all"
-                  style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
-            <ArrowLeft size={13} />
-            Back to roam.
-          </button>
-        </Link>
+        <button onClick={() => navigate(isEventMode && prefillGroupId ? `/groups/${prefillGroupId}?tab=events` : "/")}
+                className="flex items-center gap-2 mb-8 font-mono text-[11px] tracking-wider uppercase transition-all"
+                style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+          <ArrowLeft size={13} />
+          {isEventMode ? `Back to ${prefillGroupName || "group"}` : "Back to roam."}
+        </button>
 
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-               style={{ background: "rgba(var(--roam-electric-rgb),0.12)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)" }}>
-            <Megaphone size={16} style={{ color: "var(--roam-electric)" }} />
-          </div>
-          <h1 className="font-serif text-[28px] font-black leading-tight">
-            Advertise on <span style={{ color: "var(--roam-electric)" }}>roam.</span>
-          </h1>
-        </div>
-        <p className="font-mono text-[11px] leading-relaxed mb-8"
-           style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
-          Reach adventure-minded people across New Zealand and beyond. Your ad appears as a native card in the discover feed — every 7 swipes.
-        </p>
+        {isEventMode ? (
+          <>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                   style={{ background: "rgba(var(--roam-sky-rgb),0.12)", border: "1px solid rgba(var(--roam-sky-rgb),0.25)" }}>
+                <CalendarDays size={16} style={{ color: "rgba(var(--roam-sky-rgb),0.9)" }} />
+              </div>
+              <h1 className="font-serif text-[28px] font-black leading-tight">
+                Promote your <span style={{ color: "rgba(var(--roam-sky-rgb),0.9)" }}>event</span>
+              </h1>
+            </div>
+            <p className="font-mono text-[11px] leading-relaxed mb-4"
+               style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+              Reach beyond your group — your event ad appears in the discover feed to all roam. users.
+            </p>
+
+            <div className="rounded-2xl px-5 py-4 mb-8 flex items-start gap-4"
+                 style={{ background: "rgba(var(--roam-sky-rgb),0.06)", border: "1px solid rgba(var(--roam-sky-rgb),0.15)" }}>
+              <Sparkles size={16} style={{ color: "rgba(var(--roam-sky-rgb),0.8)", flexShrink: 0, marginTop: 2 }} />
+              <div>
+                <div className="font-mono text-[11px] font-semibold mb-1" style={{ color: "rgba(var(--roam-sky-rgb),0.9)" }}>
+                  What happens when your event ad is approved
+                </div>
+                <ul className="space-y-1">
+                  {[
+                    "Your event card appears in the discover feed",
+                    "All your matches get a personal notification",
+                    "Anyone can RSVP from the What's On page",
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                      <ChevronRight size={10} style={{ color: "rgba(var(--roam-sky-rgb),0.6)", flexShrink: 0, marginTop: 2 }} />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div className="rounded-2xl px-5 py-4 mb-8 flex items-start gap-4"
+                 style={{ background: "rgba(var(--roam-cream-rgb),0.03)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
+              <Users size={14} style={{ color: "rgba(var(--roam-cream-rgb),0.3)", flexShrink: 0, marginTop: 2 }} />
+              <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+                <span className="font-semibold" style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>Group members get event notifications for free.</span>{" "}
+                Promoting reaches your matches and the wider roam. community — that's the paid difference.
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                   style={{ background: "rgba(var(--roam-electric-rgb),0.12)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)" }}>
+                <Megaphone size={16} style={{ color: "var(--roam-electric)" }} />
+              </div>
+              <h1 className="font-serif text-[28px] font-black leading-tight">
+                Advertise on <span style={{ color: "var(--roam-electric)" }}>roam.</span>
+              </h1>
+            </div>
+            <p className="font-mono text-[11px] leading-relaxed mb-8"
+               style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+              Reach adventure-minded people across New Zealand and beyond. Your ad appears as a native card in the discover feed — every 7 swipes.
+            </p>
+          </>
+        )}
 
         {/* Tier selection */}
         <div className="font-mono text-[10px] tracking-wider uppercase mb-3"
@@ -207,36 +281,48 @@ export default function Advertise() {
             </div>
           </div>
 
-          <div>
-            <label className="font-mono text-[9px] tracking-wider uppercase mb-1 block"
-                   style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Company / Organisation</label>
-            <input className={inputCls} style={inputStyle}
-                   value={form.advertiserCompany} onChange={e => set("advertiserCompany", e.target.value)}
-                   placeholder="Aotearoa Adventures Ltd" data-testid="input-advertiser-company" />
-          </div>
+          {!isEventMode && (
+            <div>
+              <label className="font-mono text-[9px] tracking-wider uppercase mb-1 block"
+                     style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Company / Organisation</label>
+              <input className={inputCls} style={inputStyle}
+                     value={form.advertiserCompany} onChange={e => set("advertiserCompany", e.target.value)}
+                     placeholder="Aotearoa Adventures Ltd" data-testid="input-advertiser-company" />
+            </div>
+          )}
 
           <div className="font-mono text-[10px] tracking-wider uppercase mt-6 mb-2"
-               style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>Ad content</div>
+               style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+            {isEventMode ? "Event details" : "Ad content"}
+          </div>
 
           <div>
             <label className="font-mono text-[9px] tracking-wider uppercase mb-1 block"
-                   style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Headline * (shown large on card)</label>
+                   style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+              {isEventMode ? "Event title *" : "Headline * (shown large on card)"}
+            </label>
             <input className={inputCls} style={inputStyle} required maxLength={60}
                    value={form.headline} onChange={e => set("headline", e.target.value)}
-                   placeholder="e.g. Summit the South Island this weekend" data-testid="input-headline" />
+                   placeholder={isEventMode ? "e.g. Sunrise hike — Mt Eden" : "e.g. Summit the South Island this weekend"}
+                   data-testid="input-headline" />
           </div>
 
           <div>
             <label className="font-mono text-[9px] tracking-wider uppercase mb-1 block"
-                   style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Tagline (optional, smaller text)</label>
+                   style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+              {isEventMode ? "Description (optional)" : "Tagline (optional, smaller text)"}
+            </label>
             <input className={inputCls} style={inputStyle} maxLength={100}
                    value={form.tagline} onChange={e => set("tagline", e.target.value)}
-                   placeholder="e.g. Guided hikes from Queenstown — all levels welcome" data-testid="input-tagline" />
+                   placeholder={isEventMode ? "What's happening, when, and where?" : "e.g. Guided hikes from Queenstown — all levels welcome"}
+                   data-testid="input-tagline" />
           </div>
 
           <div>
             <label className="font-mono text-[9px] tracking-wider uppercase mb-1 block"
-                   style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Image URL *</label>
+                   style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+              {isEventMode ? "Event image URL *" : "Image URL *"}
+            </label>
             <input className={inputCls} style={inputStyle} required
                    value={form.imageUrl} onChange={e => set("imageUrl", e.target.value)}
                    placeholder="https://... (landscape image, min 800×600px)" data-testid="input-image-url" />
@@ -249,7 +335,7 @@ export default function Advertise() {
                        style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>CTA button text</label>
                 <input className={inputCls} style={inputStyle}
                        value={form.ctaText} onChange={e => set("ctaText", e.target.value)}
-                       placeholder="Book now" data-testid="input-cta-text" />
+                       placeholder={isEventMode ? "View event" : "Book now"} data-testid="input-cta-text" />
               </div>
               <div>
                 <label className="font-mono text-[9px] tracking-wider uppercase mb-1 block"
@@ -302,9 +388,9 @@ export default function Advertise() {
                    data-testid="checkbox-agree-guidelines" />
             <label htmlFor="agree-guidelines" className="font-mono text-[10px] leading-relaxed cursor-pointer"
                    style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
-              I confirm this ad complies with the roam. content guidelines and our{" "}
+              I confirm this {isEventMode ? "event promotion" : "ad"} complies with the roam. content guidelines and our{" "}
               <Link href="/terms"><span className="underline" style={{ color: "var(--roam-electric)" }}>Terms of Service</span></Link>.
-              I understand all ads are reviewed before going live and may be rejected if they don't meet community standards.
+              I understand all submissions are reviewed before going live and may be rejected if they don't meet community standards.
             </label>
           </div>
 

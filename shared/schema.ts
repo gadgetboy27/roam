@@ -96,6 +96,10 @@ export const ads = pgTable("ads", {
   expiresAt: timestamp("expires_at"),
   impressions: integer("impressions").default(0),
   clicks: integer("clicks").default(0),
+  adType: text("ad_type").default("standard").notNull(),
+  submittedByUserId: varchar("submitted_by_user_id"),
+  linkedGroupId: varchar("linked_group_id"),
+  linkedEventId: varchar("linked_event_id"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

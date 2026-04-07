@@ -43,7 +43,12 @@ I prefer concise and clear communication. When making changes, please explain th
 - **Admin Dashboard**: Provides user management (tier changes, banning), ad metrics tracking, and an ad review portal. Access is restricted by `ADMIN_EMAILS` environment variable.
 - **What's On Feed**: Events discovery page at `/whats-on` showing upcoming group events with Today/This Week/Upcoming filters, smart relative datetime display, attendee faces, and RSVP capability. RSVP button states: not logged in → signup prompt; not group member → join group link; member → toggle RSVP. Group event cards also include RSVP + attendee count.
 - **Groups Events RSVP**: Group detail page Events tab shows RSVP button per event (approved members only), attendee avatars, and count. Endpoints: `POST/DELETE /api/events/:eventId/rsvp`, `GET /api/events/upcoming`, `GET /api/events/:eventId/attendees`.
-- **Side Nav Create Menu**: The "+" button in the side nav opens a quick-action popup with "Upload photos" and "Plan an event" options.
+- **Side Nav Create Menu**: The "+" button opens a quick-action popup. "Upload photos" → /upload. "Plan an event" uses smart routing: 1 led group → goes directly to that group's Events tab (?tab=events); multiple led groups → shows inline group picker; no groups led → /groups with guidance. Subtitle updates dynamically to reflect the user's state.
+- **Event Promotion**: Group leaders see a "Promote" button on each event card. Clicking it routes to /advertise in event mode (?mode=event) with the event title, description, group, and event ID pre-filled. The advertise page in event mode shows an "Event Promotion" heading, hides irrelevant fields (Company), shows a benefits box explaining the paid reach value, and auto-fills name/email from the logged-in user. The ad type is stored as "event" with submittedByUserId and linkedGroupId/linkedEventId.
+- **Match Notifications on Event Ad Approval**: When admin approves an ad with adType="event" and a submittedByUserId, all matched users receive an in-app notification ("Your match is hosting an event").
+- **Ads Schema**: Added adType, submittedByUserId, linkedGroupId, linkedEventId columns to the ads table.
+- **New Storage Methods**: getMatchedUserIds(userId), getGroupsLedByUser(userId).
+- **New Endpoint**: GET /api/groups/my-led — returns active groups led by the logged-in user (used for nav smart routing).
 
 **Security**:
 - Standard HTTP security headers are set.

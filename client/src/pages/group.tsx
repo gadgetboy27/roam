@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useLocation, useParams } from "wouter";
+import { useLocation, useParams, useSearch } from "wouter";
 import AppNav from "@/components/app-nav";
 import { useAuth } from "@/lib/auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { io as ioClient } from "socket.io-client";
 import {
   ArrowLeft, MapPin, Users, Lock, Globe, Send, Calendar, Plus,
-  Trash2, CheckCircle, XCircle, LogOut, Crown, UserPlus, CalendarPlus, Check,
+  Trash2, CheckCircle, XCircle, LogOut, Crown, UserPlus, CalendarPlus, Check, Megaphone,
 } from "lucide-react";
 
 function addToCalendar(ev: any, groupName: string) {
@@ -59,6 +59,7 @@ function formatDatetime(d: string | Date | null | undefined) {
 function GroupEventCard({ ev, group, isLeader, isApproved, userId, deleteEventMutation }: {
   ev: any; group: any; isLeader: boolean; isApproved: boolean; userId?: string; deleteEventMutation: any;
 }) {
+  const [, navigate] = useLocation();
   const { toast } = useToast();
   const { data: attendees = [] } = useQuery<any[]>({
     queryKey: ["/api/events", ev.id, "attendees"],
@@ -142,19 +143,41 @@ function GroupEventCard({ ev, group, isLeader, isApproved, userId, deleteEventMu
             <span className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>No RSVPs yet</span>
           )}
         </div>
-        {isApproved && userId && (
-          <button
-            onClick={() => rsvpMutation.mutate()}
-            disabled={rsvpMutation.isPending}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-[10px] tracking-wider font-medium transition-all"
-            style={isRsvpd
-              ? { background: "rgba(var(--roam-electric-rgb),0.12)", color: "var(--roam-electric)", border: "1px solid rgba(var(--roam-electric-rgb),0.35)" }
-              : { background: "var(--roam-electric)", color: "var(--roam-forest)" }}
-            data-testid={`button-rsvp-${ev.id}`}>
-            {isRsvpd && <Check size={10} />}
-            {rsvpMutation.isPending ? "…" : isRsvpd ? "Going ✓" : "RSVP"}
-          </button>
-        )}
+        <div className="flex items-center gap-1.5">
+          {isLeader && (
+            <button
+              onClick={() => {
+                const params = new URLSearchParams({
+                  mode: "event",
+                  title: ev.title,
+                  desc: ev.description || "",
+                  groupId: group.id,
+                  eventId: ev.id,
+                  groupName: group.name,
+                });
+                navigate(`/advertise?${params.toString()}`);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-[10px] tracking-wider font-medium transition-all"
+              style={{ background: "rgba(var(--roam-sky-rgb),0.1)", color: "rgba(var(--roam-sky-rgb),0.8)", border: "1px solid rgba(var(--roam-sky-rgb),0.2)" }}
+              data-testid={`button-promote-event-${ev.id}`}>
+              <Megaphone size={10} />
+              Promote
+            </button>
+          )}
+          {isApproved && userId && (
+            <button
+              onClick={() => rsvpMutation.mutate()}
+              disabled={rsvpMutation.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-[10px] tracking-wider font-medium transition-all"
+              style={isRsvpd
+                ? { background: "rgba(var(--roam-electric-rgb),0.12)", color: "var(--roam-electric)", border: "1px solid rgba(var(--roam-electric-rgb),0.35)" }
+                : { background: "var(--roam-electric)", color: "var(--roam-forest)" }}
+              data-testid={`button-rsvp-${ev.id}`}>
+              {isRsvpd && <Check size={10} />}
+              {rsvpMutation.isPending ? "…" : isRsvpd ? "Going ✓" : "RSVP"}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -163,9 +186,13 @@ function GroupEventCard({ ev, group, isLeader, isApproved, userId, deleteEventMu
 export default function GroupPage() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
+  const search = useSearch();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [tab, setTab] = useState<"about" | "campsite" | "events">("about");
+  const initialTab = new URLSearchParams(search).get("tab");
+  const [tab, setTab] = useState<"about" | "campsite" | "events">(
+    initialTab === "events" ? "events" : "about"
+  );
   const [message, setMessage] = useState("");
   const [localMessages, setLocalMessages] = useState<any[]>([]);
   const socketRef = useRef<any>(null);

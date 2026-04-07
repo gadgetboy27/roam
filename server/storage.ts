@@ -84,6 +84,9 @@ export interface IStorage {
   getUnreadNotificationCount(userId: string): Promise<number>;
   markNotificationRead(id: number): Promise<void>;
   markAllNotificationsRead(userId: string): Promise<void>;
+
+  getMatchedUserIds(userId: string): Promise<string[]>;
+  getGroupsLedByUser(userId: string): Promise<Group[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -440,6 +443,20 @@ export class DatabaseStorage implements IStorage {
 
   async markAllNotificationsRead(userId: string): Promise<void> {
     await db.update(notifications).set({ isRead: true }).where(eq(notifications.userId, userId));
+  }
+
+  async getMatchedUserIds(userId: string): Promise<string[]> {
+    const rows = await db.select().from(matches).where(
+      and(
+        or(eq(matches.userAId, userId), eq(matches.userBId, userId)),
+        eq(matches.status, "matched")
+      )
+    );
+    return rows.map(m => m.userAId === userId ? m.userBId : m.userAId);
+  }
+
+  async getGroupsLedByUser(userId: string): Promise<Group[]> {
+    return db.select().from(groups).where(and(eq(groups.leaderId, userId), eq(groups.isActive, true)));
   }
 }
 

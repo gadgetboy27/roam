@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation, Link } from "wouter";
-import { Compass, MessageCircle, Plus, User, Palette, Check, Users, CalendarDays, Camera, X } from "lucide-react";
+import { Compass, MessageCircle, Plus, User, Palette, Check, Users, CalendarDays, Camera, X, ChevronRight } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useConnectionStatus } from "@/lib/useConnectionStatus";
 import { useTheme, THEMES } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
@@ -21,8 +22,14 @@ export default function AppNav() {
   const { user } = useAuth();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [groupPickerOpen, setGroupPickerOpen] = useState(false);
   const paletteRef = useRef<HTMLDivElement>(null);
   const createRef = useRef<HTMLDivElement>(null);
+
+  const { data: ledGroups = [] } = useQuery<any[]>({
+    queryKey: ["/api/groups/my-led"],
+    enabled: !!user,
+  });
 
   const dotColor = status === "online"
     ? "var(--roam-electric)"
@@ -32,11 +39,26 @@ export default function AppNav() {
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (paletteRef.current && !paletteRef.current.contains(e.target as Node)) setPaletteOpen(false);
-      if (createRef.current && !createRef.current.contains(e.target as Node)) setCreateOpen(false);
+      if (createRef.current && !createRef.current.contains(e.target as Node)) {
+        setCreateOpen(false);
+        setGroupPickerOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  const handlePlanEvent = () => {
+    if (ledGroups.length === 1) {
+      setCreateOpen(false);
+      navigate(`/groups/${ledGroups[0].id}?tab=events`);
+    } else if (ledGroups.length > 1) {
+      setGroupPickerOpen(true);
+    } else {
+      setCreateOpen(false);
+      navigate("/groups");
+    }
+  };
 
   return (
     <>
@@ -165,7 +187,7 @@ export default function AppNav() {
               background: createOpen ? "rgba(var(--roam-electric-rgb),0.8)" : "var(--roam-electric)",
               boxShadow: `0 2px 14px rgba(var(--roam-electric-rgb),0.45)`,
             }}
-            onClick={() => setCreateOpen(o => !o)}
+            onClick={() => { setCreateOpen(o => !o); setGroupPickerOpen(false); }}
             data-testid="nav-post">
             {createOpen
               ? <X size={16} strokeWidth={2.5} style={{ color: "var(--roam-forest)" }} />
@@ -173,38 +195,72 @@ export default function AppNav() {
           </button>
 
           {createOpen && (
-            <div className="absolute right-12 bottom-0 w-44 rounded-2xl overflow-hidden shadow-2xl animate-fade-up"
+            <div className="absolute right-12 bottom-0 w-52 rounded-2xl overflow-hidden shadow-2xl animate-fade-up"
                  style={{ background: "var(--roam-surface)", border: "1px solid rgba(var(--roam-cream-rgb),0.1)" }}>
-              <div className="p-1">
-                <button
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left"
-                  style={{ color: "var(--roam-cream)" }}
-                  onClick={() => { setCreateOpen(false); navigate("/upload"); }}
-                  data-testid="create-upload-photos">
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                       style={{ background: "rgba(var(--roam-electric-rgb),0.12)" }}>
-                    <Camera size={15} style={{ color: "var(--roam-electric)" }} />
+              {!groupPickerOpen ? (
+                <div className="p-1">
+                  <button
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left hover:bg-white/5"
+                    style={{ color: "var(--roam-cream)" }}
+                    onClick={() => { setCreateOpen(false); navigate("/upload"); }}
+                    data-testid="create-upload-photos">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                         style={{ background: "rgba(var(--roam-electric-rgb),0.12)" }}>
+                      <Camera size={15} style={{ color: "var(--roam-electric)" }} />
+                    </div>
+                    <div>
+                      <div className="text-[13px] font-medium leading-tight">Upload photos</div>
+                      <div className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Share your adventure</div>
+                    </div>
+                  </button>
+
+                  <button
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left hover:bg-white/5"
+                    style={{ color: "var(--roam-cream)" }}
+                    onClick={handlePlanEvent}
+                    data-testid="create-plan-event">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                         style={{ background: "rgba(var(--roam-electric-rgb),0.12)" }}>
+                      <CalendarDays size={15} style={{ color: "var(--roam-electric)" }} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-[13px] font-medium leading-tight">Plan an event</div>
+                      <div className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+                        {ledGroups.length === 0 ? "Join or start a group" : ledGroups.length === 1 ? ledGroups[0].name : "Pick your group"}
+                      </div>
+                    </div>
+                    {ledGroups.length > 1 && <ChevronRight size={12} style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }} />}
+                  </button>
+                </div>
+              ) : (
+                <div className="p-1">
+                  <div className="px-3 pt-2 pb-1">
+                    <div className="font-mono text-[9px] tracking-wider uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+                      Choose group
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-[13px] font-medium leading-tight">Upload photos</div>
-                    <div className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Share your adventure</div>
-                  </div>
-                </button>
-                <button
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left"
-                  style={{ color: "var(--roam-cream)" }}
-                  onClick={() => { setCreateOpen(false); navigate("/groups"); }}
-                  data-testid="create-plan-event">
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                       style={{ background: "rgba(var(--roam-electric-rgb),0.12)" }}>
-                    <CalendarDays size={15} style={{ color: "var(--roam-electric)" }} />
-                  </div>
-                  <div>
-                    <div className="text-[13px] font-medium leading-tight">Plan an event</div>
-                    <div className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Via your group</div>
-                  </div>
-                </button>
-              </div>
+                  {ledGroups.map((g: any) => (
+                    <button
+                      key={g.id}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left hover:bg-white/5"
+                      style={{ color: "var(--roam-cream)" }}
+                      onClick={() => { setCreateOpen(false); setGroupPickerOpen(false); navigate(`/groups/${g.id}?tab=events`); }}
+                      data-testid={`create-pick-group-${g.id}`}>
+                      <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 text-[9px] font-bold"
+                           style={{ background: "rgba(var(--roam-electric-rgb),0.12)", color: "var(--roam-electric)" }}>
+                        {g.name[0]}
+                      </div>
+                      <span className="text-[13px] font-medium">{g.name}</span>
+                    </button>
+                  ))}
+                  <button
+                    className="w-full px-3 py-2 text-[10px] font-mono text-left hover:bg-white/5 rounded-xl"
+                    style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}
+                    onClick={() => setGroupPickerOpen(false)}>
+                    ← Back
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
