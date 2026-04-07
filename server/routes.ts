@@ -776,7 +776,7 @@ export async function registerRoutes(
   };
 
   app.post("/api/ads/submit", async (req, res) => {
-    const { advertiserName, advertiserEmail, advertiserCompany, tier, headline, tagline, ctaText, ctaUrl, imageUrl, videoUrl, contentType, adType, linkedGroupId, linkedEventId } = req.body;
+    const { advertiserName, advertiserEmail, advertiserCompany, tier, headline, tagline, ctaText, ctaUrl, imageUrl, videoUrl, contentType, adType, linkedGroupId, linkedEventId, eventStartAt, eventLocation } = req.body;
     if (!advertiserName || !advertiserEmail || !tier || !headline) {
       return res.status(400).json({ message: "advertiserName, advertiserEmail, tier, and headline are required" });
     }
@@ -784,7 +784,7 @@ export async function registerRoutes(
     if (!tierInfo) return res.status(400).json({ message: "Invalid tier. Must be explorer, trailblazer, or summit" });
     const submittedByUserId = req.session?.userId ?? undefined;
 
-    const ad = await storage.createAd({ advertiserName, advertiserEmail, advertiserCompany, tier, headline, tagline, ctaText, ctaUrl, imageUrl, videoUrl, contentType: contentType || "image", status: "pending_payment", adType: adType || "standard", submittedByUserId: submittedByUserId || null, linkedGroupId: linkedGroupId || null, linkedEventId: linkedEventId || null });
+    const ad = await storage.createAd({ advertiserName, advertiserEmail, advertiserCompany, tier, headline, tagline, ctaText, ctaUrl, imageUrl, videoUrl, contentType: contentType || "image", status: "pending_payment", adType: adType || "standard", submittedByUserId: submittedByUserId || null, linkedGroupId: linkedGroupId || null, linkedEventId: linkedEventId || null, eventStartAt: eventStartAt ? new Date(eventStartAt) : null, eventLocation: eventLocation || null });
 
     try {
       const stripe = await getUncachableStripeClient();
@@ -1377,6 +1377,11 @@ export async function registerRoutes(
   app.get("/api/events/upcoming", async (req, res) => {
     const userId = req.session?.userId ?? undefined;
     const events = await storage.getUpcomingEvents(userId);
+    res.json(events);
+  });
+
+  app.get("/api/events/public", async (req, res) => {
+    const events = await storage.getPublicEventAds();
     res.json(events);
   });
 

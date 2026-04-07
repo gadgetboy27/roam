@@ -43,6 +43,7 @@ export interface IStorage {
   getAllAds(): Promise<Ad[]>;
   getAdsByStatus(status: string): Promise<Ad[]>;
   getLiveAd(): Promise<Ad | undefined>;
+  getPublicEventAds(): Promise<Ad[]>;
   updateAd(id: string, data: Partial<InsertAd & { reviewedAt: Date | null; expiresAt: Date | null; impressions: number }>): Promise<Ad | undefined>;
 
   createAdmin(data: { username: string; passwordHash: string; displayName?: string; createdBy?: string }): Promise<AdminUser>;
@@ -215,6 +216,14 @@ export class DatabaseStorage implements IStorage {
     const valid = liveAds.filter(a => !a.expiresAt || a.expiresAt > now);
     if (valid.length === 0) return undefined;
     return valid[Math.floor(Math.random() * valid.length)];
+  }
+
+  async getPublicEventAds(): Promise<Ad[]> {
+    const now = new Date();
+    const rows = await db.select().from(ads)
+      .where(and(eq(ads.status, "approved"), eq(ads.adType as any, "event")))
+      .orderBy((ads as any).eventStartAt);
+    return rows.filter(a => !a.eventStartAt || new Date(a.eventStartAt) > now);
   }
 
   async updateAd(id: string, data: Partial<InsertAd & { reviewedAt: Date | null; expiresAt: Date | null; impressions: number }>): Promise<Ad | undefined> {

@@ -66,6 +66,8 @@ export default function Advertise() {
   const prefillEventId = params.get("eventId") || "";
   const prefillGroupName = params.get("groupName") || "";
 
+  const isStandaloneEvent = isEventMode && !prefillEventId;
+
   const [selectedTier, setSelectedTier] = useState("trailblazer");
   const [form, setForm] = useState({
     advertiserName: "",
@@ -73,11 +75,13 @@ export default function Advertise() {
     advertiserCompany: "",
     headline: prefillTitle,
     tagline: prefillDesc,
-    ctaText: isEventMode ? "View event" : "",
+    ctaText: isEventMode ? (isStandaloneEvent ? "Get Tickets" : "View event") : "",
     ctaUrl: "",
     imageUrl: "",
     videoUrl: "",
     contentType: "image",
+    eventStartAt: "",
+    eventLocation: "",
     agreedToTerms: false,
   });
   const [loading, setLoading] = useState(false);
@@ -117,6 +121,8 @@ export default function Advertise() {
         adType: isEventMode ? "event" : "standard",
         linkedGroupId: prefillGroupId || null,
         linkedEventId: prefillEventId || null,
+        eventStartAt: form.eventStartAt || null,
+        eventLocation: form.eventLocation || null,
       });
       const data = await res.json();
       if (data.checkoutUrl) {
@@ -143,11 +149,11 @@ export default function Advertise() {
       <div className="topo-bg" />
       <div className="relative z-10 max-w-2xl mx-auto px-4 py-8">
 
-        <button onClick={() => navigate(isEventMode && prefillGroupId ? `/groups/${prefillGroupId}?tab=events` : "/")}
+        <button onClick={() => navigate(isEventMode && prefillGroupId ? `/groups/${prefillGroupId}?tab=events` : isStandaloneEvent ? "/whats-on" : "/")}
                 className="flex items-center gap-2 mb-8 font-mono text-[11px] tracking-wider uppercase transition-all"
                 style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
           <ArrowLeft size={13} />
-          {isEventMode ? `Back to ${prefillGroupName || "group"}` : "Back to roam."}
+          {isStandaloneEvent ? "Back to What's On" : isEventMode ? `Back to ${prefillGroupName || "group"}` : "Back to roam."}
         </button>
 
         {isEventMode ? (
@@ -158,12 +164,14 @@ export default function Advertise() {
                 <CalendarDays size={16} style={{ color: "rgba(var(--roam-sky-rgb),0.9)" }} />
               </div>
               <h1 className="font-serif text-[28px] font-black leading-tight">
-                Promote your <span style={{ color: "rgba(var(--roam-sky-rgb),0.9)" }}>event</span>
+                {isStandaloneEvent ? <>List your <span style={{ color: "rgba(var(--roam-sky-rgb),0.9)" }}>event</span></> : <>Promote your <span style={{ color: "rgba(var(--roam-sky-rgb),0.9)" }}>event</span></>}
               </h1>
             </div>
             <p className="font-mono text-[11px] leading-relaxed mb-4"
                style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
-              Reach beyond your group — your event ad appears in the discover feed to all roam. users.
+              {isStandaloneEvent
+                ? "List a public, ticketed, or open event on roam. — no group required. Appears in the What's On feed for all adventure-minded users."
+                : "Reach beyond your group — your event ad appears in the discover feed to all roam. users."}
             </p>
 
             <div className="rounded-2xl px-5 py-4 mb-8 flex items-start gap-4"
@@ -171,14 +179,21 @@ export default function Advertise() {
               <Sparkles size={16} style={{ color: "rgba(var(--roam-sky-rgb),0.8)", flexShrink: 0, marginTop: 2 }} />
               <div>
                 <div className="font-mono text-[11px] font-semibold mb-1" style={{ color: "rgba(var(--roam-sky-rgb),0.9)" }}>
-                  What happens when your event ad is approved
+                  {isStandaloneEvent ? "What happens after approval" : "What happens when your event ad is approved"}
                 </div>
                 <ul className="space-y-1">
-                  {[
-                    "Your event card appears in the discover feed",
-                    "All your matches get a personal notification",
-                    "Anyone can RSVP from the What's On page",
-                  ].map((item, i) => (
+                  {(isStandaloneEvent
+                    ? [
+                        "Your event listing appears in the What's On feed",
+                        "Shown to all roam. users — no group membership needed",
+                        "Users can click through to your ticket or booking link",
+                      ]
+                    : [
+                        "Your event card appears in the discover feed",
+                        "All your matches get a personal notification",
+                        "Anyone can RSVP from the What's On page",
+                      ]
+                  ).map((item, i) => (
                     <li key={i} className="flex items-start gap-2 font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
                       <ChevronRight size={10} style={{ color: "rgba(var(--roam-sky-rgb),0.6)", flexShrink: 0, marginTop: 2 }} />
                       {item}
@@ -188,14 +203,16 @@ export default function Advertise() {
               </div>
             </div>
 
-            <div className="rounded-2xl px-5 py-4 mb-8 flex items-start gap-4"
-                 style={{ background: "rgba(var(--roam-cream-rgb),0.03)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
-              <Users size={14} style={{ color: "rgba(var(--roam-cream-rgb),0.3)", flexShrink: 0, marginTop: 2 }} />
-              <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
-                <span className="font-semibold" style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>Group members get event notifications for free.</span>{" "}
-                Promoting reaches your matches and the wider roam. community — that's the paid difference.
+            {!isStandaloneEvent && (
+              <div className="rounded-2xl px-5 py-4 mb-8 flex items-start gap-4"
+                   style={{ background: "rgba(var(--roam-cream-rgb),0.03)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
+                <Users size={14} style={{ color: "rgba(var(--roam-cream-rgb),0.3)", flexShrink: 0, marginTop: 2 }} />
+                <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+                  <span className="font-semibold" style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>Group members get event notifications for free.</span>{" "}
+                  Promoting reaches your matches and the wider roam. community — that's the paid difference.
+                </div>
               </div>
-            </div>
+            )}
           </>
         ) : (
           <>
@@ -303,18 +320,38 @@ export default function Advertise() {
             </label>
             <input className={inputCls} style={inputStyle} required maxLength={60}
                    value={form.headline} onChange={e => set("headline", e.target.value)}
-                   placeholder={isEventMode ? "e.g. Sunrise hike — Mt Eden" : "e.g. Summit the South Island this weekend"}
+                   placeholder={isEventMode ? "e.g. Sunrise Hike — Mt Eden" : "e.g. Summit the South Island this weekend"}
                    data-testid="input-headline" />
           </div>
+
+          {isStandaloneEvent && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="font-mono text-[9px] tracking-wider uppercase mb-1 block"
+                       style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Date &amp; time *</label>
+                <input className={inputCls} style={inputStyle} type="datetime-local" required
+                       value={form.eventStartAt} onChange={e => set("eventStartAt", e.target.value)}
+                       data-testid="input-event-start-at" />
+              </div>
+              <div>
+                <label className="font-mono text-[9px] tracking-wider uppercase mb-1 block"
+                       style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Location *</label>
+                <input className={inputCls} style={inputStyle} required
+                       value={form.eventLocation} onChange={e => set("eventLocation", e.target.value)}
+                       placeholder="e.g. Mission Bay, Auckland"
+                       data-testid="input-event-location" />
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="font-mono text-[9px] tracking-wider uppercase mb-1 block"
                    style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
-              {isEventMode ? "Description (optional)" : "Tagline (optional, smaller text)"}
+              {isEventMode ? "Description" : "Tagline (optional, smaller text)"}
             </label>
-            <input className={inputCls} style={inputStyle} maxLength={100}
+            <input className={inputCls} style={inputStyle} maxLength={140}
                    value={form.tagline} onChange={e => set("tagline", e.target.value)}
-                   placeholder={isEventMode ? "What's happening, when, and where?" : "e.g. Guided hikes from Queenstown — all levels welcome"}
+                   placeholder={isEventMode ? "A short description of the event, what to expect, who it's for…" : "e.g. Guided hikes from Queenstown — all levels welcome"}
                    data-testid="input-tagline" />
           </div>
 
@@ -328,21 +365,21 @@ export default function Advertise() {
                    placeholder="https://... (landscape image, min 800×600px)" data-testid="input-image-url" />
           </div>
 
-          {(tier.id === "trailblazer" || tier.id === "summit") && (
+          {(isStandaloneEvent || tier.id === "trailblazer" || tier.id === "summit") && (
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="font-mono text-[9px] tracking-wider uppercase mb-1 block"
-                       style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>CTA button text</label>
+                       style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Button label</label>
                 <input className={inputCls} style={inputStyle}
                        value={form.ctaText} onChange={e => set("ctaText", e.target.value)}
-                       placeholder={isEventMode ? "View event" : "Book now"} data-testid="input-cta-text" />
+                       placeholder={isStandaloneEvent ? "Get Tickets" : isEventMode ? "View event" : "Book now"} data-testid="input-cta-text" />
               </div>
               <div>
                 <label className="font-mono text-[9px] tracking-wider uppercase mb-1 block"
-                       style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>CTA link URL</label>
-                <input className={inputCls} style={inputStyle}
+                       style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>{isStandaloneEvent ? "Ticket / booking URL *" : "Link URL"}</label>
+                <input className={inputCls} style={inputStyle} required={isStandaloneEvent}
                        value={form.ctaUrl} onChange={e => set("ctaUrl", e.target.value)}
-                       placeholder="https://yoursite.co.nz" data-testid="input-cta-url" />
+                       placeholder="https://tickets.co.nz/..." data-testid="input-cta-url" />
               </div>
             </div>
           )}

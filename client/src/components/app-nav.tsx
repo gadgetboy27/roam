@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import {
   Compass, MessageCircle, Plus, User, Palette, Check, Users, CalendarDays,
-  Camera, X, ChevronRight, Tent, Ship, Mountain, Building2, ArrowRight,
+  Camera, X, ChevronRight, Tent, Ship, Mountain, Building2, ArrowRight, Megaphone,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -258,6 +258,22 @@ export default function AppNav() {
                       <div className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>{planEventSubtitle}</div>
                     </div>
                     {ledGroups.length > 1 && <ChevronRight size={12} style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }} />}
+                  </button>
+
+                  <div className="mx-3 my-0.5 h-px" style={{ background: "rgba(var(--roam-cream-rgb),0.06)" }} />
+
+                  <button className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left hover:bg-white/5"
+                          style={{ color: "var(--roam-cream)" }}
+                          onClick={() => { setCreateOpen(false); navigate("/advertise?mode=event"); }}
+                          data-testid="create-promote-event">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                         style={{ background: "rgba(var(--roam-sky-rgb),0.12)" }}>
+                      <Megaphone size={15} style={{ color: "rgba(var(--roam-sky-rgb),0.9)" }} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-[13px] font-medium leading-tight">Promote an event</div>
+                      <div className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Paid · public listing</div>
+                    </div>
                   </button>
                 </div>
               )}

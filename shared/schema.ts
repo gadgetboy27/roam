@@ -100,6 +100,8 @@ export const ads = pgTable("ads", {
   submittedByUserId: varchar("submitted_by_user_id"),
   linkedGroupId: varchar("linked_group_id"),
   linkedEventId: varchar("linked_event_id"),
+  eventStartAt: timestamp("event_start_at"),
+  eventLocation: text("event_location"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
