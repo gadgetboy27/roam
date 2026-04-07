@@ -1,10 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation, Link } from "wouter";
-import { Compass, MessageCircle, Plus, User, Palette, Check, Users, CalendarDays, Camera, X, ChevronRight } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import {
+  Compass, MessageCircle, Plus, User, Palette, Check, Users, CalendarDays,
+  Camera, X, ChevronRight, Tent, Ship, Mountain, Building2, ArrowRight,
+} from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useConnectionStatus } from "@/lib/useConnectionStatus";
 import { useTheme, THEMES } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
 import NotificationBell from "@/components/notification-bell";
 
 const NAV_ITEMS = [
@@ -15,14 +20,23 @@ const NAV_ITEMS = [
   { path: "/profile",  label: "Profile",     icon: User },
 ];
 
+const QUICK_TYPES = [
+  { id: "squad", label: "Squad", icon: <Tent size={13} />, range: "2–5", desc: "Tight-knit crew" },
+  { id: "crew", label: "Crew", icon: <Ship size={13} />, range: "6–20", desc: "Social group" },
+  { id: "community", label: "Community", icon: <Mountain size={13} />, range: "20–100", desc: "Open community" },
+  { id: "organiser", label: "Organiser", icon: <Building2 size={13} />, range: "∞", desc: "Business / events" },
+];
+
 export default function AppNav() {
   const [location, navigate] = useLocation();
   const status = useConnectionStatus();
   const { theme, setTheme } = useTheme();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const [groupPickerOpen, setGroupPickerOpen] = useState(false);
+  const [createView, setCreateView] = useState<"menu" | "group-picker" | "quick-create">("menu");
+  const [quickForm, setQuickForm] = useState({ name: "", type: "" });
   const paletteRef = useRef<HTMLDivElement>(null);
   const createRef = useRef<HTMLDivElement>(null);
 
@@ -31,9 +45,30 @@ export default function AppNav() {
     enabled: !!user,
   });
 
-  const dotColor = status === "online"
-    ? "var(--roam-electric)"
-    : status === "offline" ? "var(--roam-ember)" : "#f59e0b";
+  const { data: eligibility } = useQuery<{ eligible: boolean }>({
+    queryKey: ["/api/groups/eligibility/check"],
+    enabled: !!user,
+  });
+
+  const quickCreateMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/groups", {
+      name: quickForm.name.trim(),
+      type: quickForm.type,
+    }),
+    onSuccess: async (res) => {
+      const group = await res.json();
+      queryClient.invalidateQueries({ queryKey: ["/api/groups/my-led"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
+      setCreateOpen(false);
+      setCreateView("menu");
+      setQuickForm({ name: "", type: "" });
+      toast({ description: `${group.name} created! Plan your first event.` });
+      navigate(`/groups/${group.id}?tab=events`);
+    },
+    onError: (e: any) => toast({ variant: "destructive", description: e.message || "Could not create group" }),
+  });
+
+  const dotColor = status === "online" ? "var(--roam-electric)" : status === "offline" ? "var(--roam-ember)" : "#f59e0b";
   const dotTitle = status === "online" ? "Connected" : status === "offline" ? "Offline" : "Connecting…";
 
   useEffect(() => {
@@ -41,7 +76,7 @@ export default function AppNav() {
       if (paletteRef.current && !paletteRef.current.contains(e.target as Node)) setPaletteOpen(false);
       if (createRef.current && !createRef.current.contains(e.target as Node)) {
         setCreateOpen(false);
-        setGroupPickerOpen(false);
+        setCreateView("menu");
       }
     }
     document.addEventListener("mousedown", handleClick);
@@ -51,31 +86,36 @@ export default function AppNav() {
   const handlePlanEvent = () => {
     if (ledGroups.length === 1) {
       setCreateOpen(false);
+      setCreateView("menu");
       navigate(`/groups/${ledGroups[0].id}?tab=events`);
     } else if (ledGroups.length > 1) {
-      setGroupPickerOpen(true);
+      setCreateView("group-picker");
+    } else if (eligibility?.eligible) {
+      setCreateView("quick-create");
     } else {
       setCreateOpen(false);
       navigate("/groups");
     }
   };
 
+  const planEventSubtitle =
+    !user ? "Sign in first"
+    : ledGroups.length === 1 ? ledGroups[0].name
+    : ledGroups.length > 1 ? "Pick your group"
+    : eligibility?.eligible ? "Quick-create a group"
+    : "See requirements";
+
   return (
     <>
       <nav className="sticky top-0 z-50 backdrop-blur-xl"
-           style={{
-             background: `rgba(var(--roam-forest-rgb),0.12)`,
-             borderBottom: `1px solid rgba(var(--roam-cream-rgb),0.06)`,
-           }}>
+           style={{ background: `rgba(var(--roam-forest-rgb),0.12)`, borderBottom: `1px solid rgba(var(--roam-cream-rgb),0.06)` }}>
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
           <Link href="/">
             <div className="cursor-pointer flex items-start gap-1.5 flex-shrink-0">
               <div>
                 <span className="font-serif text-[22px] font-black tracking-tight leading-none" style={{ color: "var(--roam-cream)" }}>roam</span>
                 <span style={{ color: "var(--roam-electric)" }} className="font-serif text-[22px] font-black">.</span>
-                <div className="font-mono text-[8px] tracking-[2px] uppercase" style={{ color: `rgba(var(--roam-cream-rgb),0.32)` }}>
-                  adventure matching
-                </div>
+                <div className="font-mono text-[8px] tracking-[2px] uppercase" style={{ color: `rgba(var(--roam-cream-rgb),0.32)` }}>adventure matching</div>
               </div>
               <div className="flex items-center gap-1 mt-0.5" title={dotTitle}>
                 <div className="w-1.5 h-1.5 rounded-full transition-colors"
@@ -106,15 +146,9 @@ export default function AppNav() {
 
               {paletteOpen && (
                 <div className="absolute right-0 top-10 rounded-2xl p-3 z-[60] min-w-[172px] animate-fade-up shadow-2xl"
-                     style={{
-                       background: "var(--roam-surface)",
-                       border: `1px solid rgba(var(--roam-cream-rgb),0.10)`,
-                     }}
+                     style={{ background: "var(--roam-surface)", border: `1px solid rgba(var(--roam-cream-rgb),0.10)` }}
                      data-testid="palette-dropdown">
-                  <p className="font-mono text-[8px] tracking-[1.5px] uppercase mb-2.5"
-                     style={{ color: `rgba(var(--roam-cream-rgb),0.35)` }}>
-                    Colour palette
-                  </p>
+                  <p className="font-mono text-[8px] tracking-[1.5px] uppercase mb-2.5" style={{ color: `rgba(var(--roam-cream-rgb),0.35)` }}>Colour palette</p>
                   <div className="flex flex-col gap-1.5">
                     {THEMES.map(t => (
                       <button key={t.id}
@@ -126,10 +160,8 @@ export default function AppNav() {
                               onClick={() => { setTheme(t.id); setPaletteOpen(false); }}
                               data-testid={`theme-${t.id}`}>
                         <div className="flex items-center gap-1 flex-shrink-0">
-                          <div className="w-4 h-4 rounded-full border-2"
-                               style={{ background: t.swatch, borderColor: `rgba(var(--roam-cream-rgb),0.2)` }} />
-                          <div className="w-3 h-3 rounded-full"
-                               style={{ background: t.accentSwatch }} />
+                          <div className="w-4 h-4 rounded-full border-2" style={{ background: t.swatch, borderColor: `rgba(var(--roam-cream-rgb),0.2)` }} />
+                          <div className="w-3 h-3 rounded-full" style={{ background: t.accentSwatch }} />
                         </div>
                         <span className="font-mono text-[10px] tracking-wider flex-1"
                               style={{ color: theme === t.id ? "var(--roam-electric)" : `rgba(var(--roam-cream-rgb),0.7)` }}>
@@ -146,6 +178,7 @@ export default function AppNav() {
         </div>
       </nav>
 
+      {/* Side nav */}
       <div className="fixed right-3 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-1 py-2.5 px-1.5 rounded-[26px]"
            style={{
              background: `rgba(var(--roam-forest-rgb),0.82)`,
@@ -159,14 +192,13 @@ export default function AppNav() {
           const active = location === item.path || (item.path === "/groups" && location.startsWith("/groups/"));
           return (
             <Link key={item.path} href={item.path}>
-              <button
-                title={item.label}
-                className="relative w-10 h-10 rounded-[18px] flex items-center justify-center transition-all"
-                style={{
-                  background: active ? `rgba(var(--roam-electric-rgb),0.14)` : "transparent",
-                  color: active ? "var(--roam-electric)" : `rgba(var(--roam-cream-rgb),0.38)`,
-                }}
-                data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}>
+              <button title={item.label}
+                      className="relative w-10 h-10 rounded-[18px] flex items-center justify-center transition-all"
+                      style={{
+                        background: active ? `rgba(var(--roam-electric-rgb),0.14)` : "transparent",
+                        color: active ? "var(--roam-electric)" : `rgba(var(--roam-cream-rgb),0.38)`,
+                      }}
+                      data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}>
                 <item.icon size={18} strokeWidth={1.8} />
                 {active && (
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
@@ -180,30 +212,29 @@ export default function AppNav() {
         <div className="w-5 h-px my-0.5" style={{ background: `rgba(var(--roam-cream-rgb),0.1)` }} />
 
         <div className="relative" ref={createRef}>
-          <button
-            title="Create"
-            className="w-10 h-10 rounded-[18px] flex items-center justify-center transition-all hover:opacity-90 active:scale-95"
-            style={{
-              background: createOpen ? "rgba(var(--roam-electric-rgb),0.8)" : "var(--roam-electric)",
-              boxShadow: `0 2px 14px rgba(var(--roam-electric-rgb),0.45)`,
-            }}
-            onClick={() => { setCreateOpen(o => !o); setGroupPickerOpen(false); }}
-            data-testid="nav-post">
+          <button title="Create"
+                  className="w-10 h-10 rounded-[18px] flex items-center justify-center transition-all hover:opacity-90 active:scale-95"
+                  style={{
+                    background: createOpen ? "rgba(var(--roam-electric-rgb),0.8)" : "var(--roam-electric)",
+                    boxShadow: `0 2px 14px rgba(var(--roam-electric-rgb),0.45)`,
+                  }}
+                  onClick={() => { setCreateOpen(o => !o); if (createOpen) setCreateView("menu"); }}
+                  data-testid="nav-post">
             {createOpen
               ? <X size={16} strokeWidth={2.5} style={{ color: "var(--roam-forest)" }} />
               : <Plus size={18} strokeWidth={2.5} style={{ color: "var(--roam-forest)" }} />}
           </button>
 
           {createOpen && (
-            <div className="absolute right-12 bottom-0 w-52 rounded-2xl overflow-hidden shadow-2xl animate-fade-up"
+            <div className="absolute right-12 bottom-0 w-56 rounded-2xl overflow-hidden shadow-2xl animate-fade-up"
                  style={{ background: "var(--roam-surface)", border: "1px solid rgba(var(--roam-cream-rgb),0.1)" }}>
-              {!groupPickerOpen ? (
+
+              {createView === "menu" && (
                 <div className="p-1">
-                  <button
-                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left hover:bg-white/5"
-                    style={{ color: "var(--roam-cream)" }}
-                    onClick={() => { setCreateOpen(false); navigate("/upload"); }}
-                    data-testid="create-upload-photos">
+                  <button className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left hover:bg-white/5"
+                          style={{ color: "var(--roam-cream)" }}
+                          onClick={() => { setCreateOpen(false); navigate("/upload"); }}
+                          data-testid="create-upload-photos">
                     <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
                          style={{ background: "rgba(var(--roam-electric-rgb),0.12)" }}>
                       <Camera size={15} style={{ color: "var(--roam-electric)" }} />
@@ -214,38 +245,34 @@ export default function AppNav() {
                     </div>
                   </button>
 
-                  <button
-                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left hover:bg-white/5"
-                    style={{ color: "var(--roam-cream)" }}
-                    onClick={handlePlanEvent}
-                    data-testid="create-plan-event">
+                  <button className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left hover:bg-white/5"
+                          style={{ color: "var(--roam-cream)" }}
+                          onClick={handlePlanEvent}
+                          data-testid="create-plan-event">
                     <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
                          style={{ background: "rgba(var(--roam-electric-rgb),0.12)" }}>
                       <CalendarDays size={15} style={{ color: "var(--roam-electric)" }} />
                     </div>
                     <div className="flex-1">
                       <div className="text-[13px] font-medium leading-tight">Plan an event</div>
-                      <div className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
-                        {ledGroups.length === 0 ? "Join or start a group" : ledGroups.length === 1 ? ledGroups[0].name : "Pick your group"}
-                      </div>
+                      <div className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>{planEventSubtitle}</div>
                     </div>
                     {ledGroups.length > 1 && <ChevronRight size={12} style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }} />}
                   </button>
                 </div>
-              ) : (
+              )}
+
+              {createView === "group-picker" && (
                 <div className="p-1">
                   <div className="px-3 pt-2 pb-1">
-                    <div className="font-mono text-[9px] tracking-wider uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
-                      Choose group
-                    </div>
+                    <div className="font-mono text-[9px] tracking-wider uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Your groups</div>
                   </div>
                   {ledGroups.map((g: any) => (
-                    <button
-                      key={g.id}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left hover:bg-white/5"
-                      style={{ color: "var(--roam-cream)" }}
-                      onClick={() => { setCreateOpen(false); setGroupPickerOpen(false); navigate(`/groups/${g.id}?tab=events`); }}
-                      data-testid={`create-pick-group-${g.id}`}>
+                    <button key={g.id}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left hover:bg-white/5"
+                            style={{ color: "var(--roam-cream)" }}
+                            onClick={() => { setCreateOpen(false); setCreateView("menu"); navigate(`/groups/${g.id}?tab=events`); }}
+                            data-testid={`create-pick-group-${g.id}`}>
                       <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 text-[9px] font-bold"
                            style={{ background: "rgba(var(--roam-electric-rgb),0.12)", color: "var(--roam-electric)" }}>
                         {g.name[0]}
@@ -253,11 +280,55 @@ export default function AppNav() {
                       <span className="text-[13px] font-medium">{g.name}</span>
                     </button>
                   ))}
+                  <button className="w-full px-3 py-2 text-[10px] font-mono text-left hover:bg-white/5 rounded-xl"
+                          style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}
+                          onClick={() => setCreateView("menu")}>← Back</button>
+                </div>
+              )}
+
+              {createView === "quick-create" && (
+                <div className="p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-mono text-[9px] tracking-wider uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>New group</div>
+                    <button onClick={() => setCreateView("menu")} className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>← back</button>
+                  </div>
+                  <input
+                    value={quickForm.name}
+                    onChange={e => setQuickForm(f => ({ ...f, name: e.target.value }))}
+                    placeholder="Group name"
+                    maxLength={60}
+                    className="w-full px-3 py-2.5 rounded-xl font-mono text-[12px] outline-none mb-2"
+                    style={{ background: "rgba(var(--roam-cream-rgb),0.06)", border: "1px solid rgba(var(--roam-cream-rgb),0.12)", color: "rgba(var(--roam-cream-rgb),0.85)" }}
+                    data-testid="input-quick-group-name"
+                  />
+                  <div className="grid grid-cols-2 gap-1.5 mb-3">
+                    {QUICK_TYPES.map(t => (
+                      <button key={t.id}
+                              onClick={() => setQuickForm(f => ({ ...f, type: t.id }))}
+                              className="flex flex-col gap-0.5 px-2.5 py-2 rounded-xl text-left transition-all"
+                              style={{
+                                background: quickForm.type === t.id ? "rgba(var(--roam-electric-rgb),0.12)" : "rgba(var(--roam-cream-rgb),0.05)",
+                                border: `1px solid ${quickForm.type === t.id ? "rgba(var(--roam-electric-rgb),0.35)" : "rgba(var(--roam-cream-rgb),0.08)"}`,
+                              }}
+                              data-testid={`quick-type-${t.id}`}>
+                        <div className="flex items-center gap-1" style={{ color: quickForm.type === t.id ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.5)" }}>
+                          {t.icon}
+                          <span className="font-mono text-[10px] font-semibold">{t.label}</span>
+                        </div>
+                        <span className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>{t.desc}</span>
+                      </button>
+                    ))}
+                  </div>
                   <button
-                    className="w-full px-3 py-2 text-[10px] font-mono text-left hover:bg-white/5 rounded-xl"
-                    style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}
-                    onClick={() => setGroupPickerOpen(false)}>
-                    ← Back
+                    onClick={() => quickCreateMutation.mutate()}
+                    disabled={!quickForm.name.trim() || !quickForm.type || quickCreateMutation.isPending}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-mono text-[11px] font-semibold transition-all"
+                    style={{
+                      background: quickForm.name.trim() && quickForm.type ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.08)",
+                      color: quickForm.name.trim() && quickForm.type ? "var(--roam-forest)" : "rgba(var(--roam-cream-rgb),0.3)",
+                    }}
+                    data-testid="button-quick-create-group">
+                    {quickCreateMutation.isPending ? "Creating…" : <>Create & plan <ArrowRight size={12} /></>}
                   </button>
                 </div>
               )}

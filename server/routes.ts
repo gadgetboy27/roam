@@ -1126,21 +1126,23 @@ export async function registerRoutes(
   });
 
   // ─── Group eligibility helper ─────────────────────────────────────────────
-  async function checkGroupLeaderEligibility(userId: string): Promise<{ eligible: boolean; reason?: string }> {
+  async function checkGroupLeaderEligibility(userId: string): Promise<{ eligible: boolean; reason?: string; checks?: Record<string, boolean> }> {
     const user = await storage.getUser(userId);
     if (!user) return { eligible: false, reason: "User not found" };
-    if (user.tier !== "contributor") return { eligible: false, reason: "Contributor tier required to create groups" };
-    if (!user.identityVerified) return { eligible: false, reason: "Identity verification required" };
-    const heroPhoto = await storage.getHeroPhoto(userId);
-    if (!heroPhoto || heroPhoto.status !== "approved") return { eligible: false, reason: "Approved hero photo required" };
-    if (!user.location) return { eligible: false, reason: "Location required" };
-    if (!user.tagline) return { eligible: false, reason: "Tagline required" };
+    const photos = await storage.getPhotosByUser(userId);
+    const hasApprovedPhoto = photos.some(p => p.verdict === "approved");
     const tags = user.adventureTags ?? [];
-    if (tags.length < 3) return { eligible: false, reason: "At least 3 adventure tags required" };
-    if (!user.createdAt) return { eligible: false, reason: "Account age unknown" };
-    const ageMs = Date.now() - new Date(user.createdAt).getTime();
-    if (ageMs < 30 * 24 * 60 * 60 * 1000) return { eligible: false, reason: "Account must be at least 30 days old" };
-    return { eligible: true };
+    const checks = {
+      tier: user.tier === "adventurer" || user.tier === "contributor",
+      photo: hasApprovedPhoto,
+      tagline: !!user.tagline,
+      tags: tags.length >= 3,
+    };
+    if (!checks.tier) return { eligible: false, reason: "Adventurer or Contributor tier required", checks };
+    if (!checks.photo) return { eligible: false, reason: "At least one approved adventure photo required", checks };
+    if (!checks.tagline) return { eligible: false, reason: "Add a tagline to your profile", checks };
+    if (!checks.tags) return { eligible: false, reason: "Add at least 3 adventure tags to your profile", checks };
+    return { eligible: true, checks };
   }
 
   // ─── Groups REST API ──────────────────────────────────────────────────────
@@ -1177,7 +1179,7 @@ export async function registerRoutes(
     if (!eligibility.eligible) return res.status(403).json({ error: eligibility.reason });
     const { name, description, type, location, adventureTags, coverImageUrl, visibility } = req.body;
     if (!name || !type) return res.status(400).json({ error: "name and type are required" });
-    const maxSizeMap: Record<string, number> = { squad: 5, crew: 20, community: 100 };
+    const maxSizeMap: Record<string, number> = { squad: 5, crew: 20, community: 100, organiser: 1000 };
     const group = await storage.createGroup({
       name,
       description: description ?? null,
