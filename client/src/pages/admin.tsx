@@ -7,7 +7,7 @@ import {
   Users, BarChart2, Shield, ArrowLeft, Trash2, ChevronDown,
   Loader2, RefreshCw, CheckCircle2, Clock, MousePointerClick,
   Eye, TrendingUp, Megaphone, Plus, LogOut, UserCog, KeyRound,
-  MapPin, Globe, Lock,
+  MapPin, Globe, Lock, Gift, Star,
 } from "lucide-react";
 import type { Ad } from "@shared/schema";
 
@@ -22,6 +22,8 @@ type SafeUser = {
   createdAt: string;
   location: string | null;
   avatarUrl: string | null;
+  isFoundingMember: boolean;
+  isTierGifted: boolean;
 };
 
 const TIER_COLORS: Record<string, string> = {
@@ -58,10 +60,11 @@ function timeAgo(date: string) {
   return `${months}mo ago`;
 }
 
-function UserRow({ user, onTierChange, onDelete, isSelf }: {
+function UserRow({ user, onTierChange, onDelete, onGiftToggle, isSelf }: {
   user: SafeUser;
   onTierChange: (id: string, tier: string) => void;
   onDelete: (id: string, name: string) => void;
+  onGiftToggle: (id: string, gifted: boolean) => void;
   isSelf: boolean;
 }) {
   const [showTierMenu, setShowTierMenu] = useState(false);
@@ -69,7 +72,14 @@ function UserRow({ user, onTierChange, onDelete, isSelf }: {
 
   return (
     <div className="rounded-2xl px-4 py-3.5 flex items-center gap-3"
-         style={{ background: "rgba(var(--roam-cream-rgb),0.03)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}
+         style={{
+           background: user.isFoundingMember
+             ? "rgba(var(--roam-electric-rgb),0.04)"
+             : "rgba(var(--roam-cream-rgb),0.03)",
+           border: user.isFoundingMember
+             ? "1px solid rgba(var(--roam-electric-rgb),0.14)"
+             : "1px solid rgba(var(--roam-cream-rgb),0.07)"
+         }}
          data-testid={`user-row-${user.id}`}>
 
       {user.avatarUrl ? (
@@ -90,6 +100,20 @@ function UserRow({ user, onTierChange, onDelete, isSelf }: {
           </span>
           {user.identityVerified && (
             <CheckCircle2 size={10} style={{ color: "var(--roam-electric)", flexShrink: 0 }} />
+          )}
+          {user.isFoundingMember && (
+            <span className="flex items-center gap-0.5 font-mono text-[8px] px-1.5 py-0.5 rounded-full"
+                  style={{ background: "rgba(var(--roam-electric-rgb),0.12)", color: "var(--roam-electric)" }}
+                  title="Founding member — free Adventurer tier">
+              <Star size={7} /> founding
+            </span>
+          )}
+          {user.isTierGifted && (
+            <span className="flex items-center gap-0.5 font-mono text-[8px] px-1.5 py-0.5 rounded-full"
+                  style={{ background: "rgba(var(--roam-sky-rgb),0.12)", color: "rgba(var(--roam-sky-rgb),0.9)" }}
+                  title="Gifted Adventurer tier by admin">
+              <Gift size={7} /> gifted
+            </span>
           )}
           {isSelf && (
             <span className="font-mono text-[8px] px-1.5 py-0.5 rounded-full"
@@ -134,6 +158,20 @@ function UserRow({ user, onTierChange, onDelete, isSelf }: {
             </div>
           )}
         </div>
+
+        {!user.isFoundingMember && (
+          <button
+            onClick={() => onGiftToggle(user.id, !user.isTierGifted)}
+            className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:opacity-80"
+            style={{
+              background: user.isTierGifted ? "rgba(var(--roam-sky-rgb),0.15)" : "rgba(var(--roam-cream-rgb),0.05)",
+              border: `1px solid ${user.isTierGifted ? "rgba(var(--roam-sky-rgb),0.3)" : "rgba(var(--roam-cream-rgb),0.1)"}`,
+            }}
+            title={user.isTierGifted ? "Remove gifted Adventurer" : "Gift free Adventurer tier"}
+            data-testid={`gift-btn-${user.id}`}>
+            <Gift size={11} style={{ color: user.isTierGifted ? "rgba(var(--roam-sky-rgb),0.9)" : "rgba(var(--roam-cream-rgb),0.3)" }} />
+          </button>
+        )}
 
         {!isSelf && (
           confirmDelete ? (
@@ -333,6 +371,16 @@ export default function Admin() {
     onError: (e: any) => showToast(e.message || "Delete failed", "err"),
   });
 
+  const giftMutation = useMutation({
+    mutationFn: ({ id, gifted }: { id: string; gifted: boolean }) =>
+      apiRequest("PATCH", `/api/admin/users/${id}`, { isTierGifted: gifted }),
+    onSuccess: (_, { gifted }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      showToast(gifted ? "Adventurer gifted ✓" : "Gift removed");
+    },
+    onError: (e: any) => showToast(e.message || "Update failed", "err"),
+  });
+
   const createAdminMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/admin/accounts", {
       username: newAdminUsername.trim(),
@@ -366,6 +414,10 @@ export default function Admin() {
   const tierCounts = tiers.reduce((acc, t) => ({ ...acc, [t]: users.filter(u => u.tier === t).length }), {} as Record<string, number>);
   const filteredUsers = tierFilter === "all" ? users : users.filter(u => u.tier === tierFilter);
   const openToRoamingCount = users.filter(u => (u as any).openToRoaming).length;
+  const FOUNDING_LIMIT = 50;
+  const foundingCount = users.filter(u => u.isFoundingMember).length;
+  const giftedCount = users.filter(u => u.isTierGifted).length;
+  const foundingSlotsLeft = Math.max(0, FOUNDING_LIMIT - foundingCount);
 
   const totalImpressions = allAds.reduce((s, a) => s + (a.impressions ?? 0), 0);
   const totalClicks = allAds.reduce((s, a) => s + (a.clicks ?? 0), 0);
@@ -441,11 +493,23 @@ export default function Admin() {
             </div>
           ))}
         </div>
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          {[
+            { value: `${foundingCount}/${FOUNDING_LIMIT}`, label: "Founding", color: "rgba(var(--roam-electric-rgb),0.85)" },
+            { value: giftedCount, label: "Gifted",  color: "rgba(var(--roam-sky-rgb),0.9)" },
+            { value: foundingSlotsLeft, label: "Slots Left",      color: foundingSlotsLeft === 0 ? "rgba(var(--roam-ember-rgb),0.8)" : "rgba(var(--roam-cream-rgb),0.4)" },
+          ].map(s => (
+            <div key={s.label} className="rounded-2xl px-3 py-3 text-center" style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
+              <div className="font-mono text-[20px] font-black" style={{ color: s.color }}>{s.value}</div>
+              <div className="font-mono text-[8px] tracking-wider uppercase mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
         <div className="grid grid-cols-3 gap-2 mb-6">
           {[
             { value: allGroups.length, label: "Active Groups", color: "rgba(var(--roam-electric-rgb),0.85)" },
-            { value: openToRoamingCount, label: "Open to Roam",  color: "rgba(var(--roam-sky-rgb),0.9)" },
-            { value: liveAds.length, label: "Live Ads",      color: "rgba(var(--roam-ember-rgb),0.9)" },
+            { value: openToRoamingCount, label: "Open to Roam", color: "rgba(var(--roam-sky-rgb),0.9)" },
+            { value: liveAds.length, label: "Live Ads", color: "rgba(var(--roam-ember-rgb),0.9)" },
           ].map(s => (
             <div key={s.label} className="rounded-2xl px-3 py-3 text-center" style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
               <div className="font-mono text-[20px] font-black" style={{ color: s.color }}>{s.value}</div>
@@ -519,6 +583,7 @@ export default function Admin() {
                     isSelf={false}
                     onTierChange={(id, tier) => tierMutation.mutate({ id, tier })}
                     onDelete={(id) => deleteMutation.mutate(id)}
+                    onGiftToggle={(id, gifted) => giftMutation.mutate({ id, gifted })}
                   />
                 ))}
               </div>

@@ -316,6 +316,10 @@ export async function registerRoutes(
       const { name, dob, gender, ethnicity, location, tagline, tier, photoLicenseAgreed } = req.body;
       if (!name) return res.status(400).json({ message: "Name is required" });
 
+      const FOUNDING_MEMBER_LIMIT = 50;
+      const allUsers = await storage.getAllUsers();
+      const isFoundingMember = allUsers.length < FOUNDING_MEMBER_LIMIT;
+
       const newUser = await storage.createUser({
         name,
         email: sbUser.email,
@@ -325,9 +329,14 @@ export async function registerRoutes(
         ethnicity: ethnicity || null,
         location: location || null,
         tagline: tagline || null,
-        tier: tier || "free",
+        tier: isFoundingMember ? "adventurer" : (tier || "free"),
         photoLicenseAgreed: !!photoLicenseAgreed,
+        isFoundingMember,
+        isTierGifted: false,
       });
+      if (isFoundingMember) {
+        console.log(`[founding] ${sbUser.email} is founding member #${allUsers.length + 1}/${FOUNDING_MEMBER_LIMIT}`);
+      }
 
       const { password: _, ...safe } = newUser;
       res.status(201).json(safe);
@@ -839,14 +848,25 @@ export async function registerRoutes(
     if (!(await isAdminAuthenticated(req))) {
       return res.status(401).json({ message: "Admin authentication required" });
     }
-    const { tier } = req.body;
+    const { tier, isTierGifted } = req.body;
     if (tier && !["free", "adventurer", "contributor"].includes(tier)) {
       return res.status(400).json({ message: "Invalid tier" });
     }
-    const updated = await storage.updateUser(req.params.id, { ...(tier ? { tier } : {}) });
+    const updateData: Record<string, any> = {};
+    if (tier !== undefined) updateData.tier = tier;
+    if (isTierGifted !== undefined) {
+      updateData.isTierGifted = isTierGifted;
+      if (isTierGifted) updateData.tier = "adventurer";
+      else {
+        const current = await storage.getUser(req.params.id);
+        if (current && !current.isFoundingMember) updateData.tier = "free";
+      }
+    }
+    const updated = await storage.updateUser(req.params.id, updateData);
     if (!updated) return res.status(404).json({ message: "User not found" });
     const { password: _, ...safe } = updated;
-    console.log(`[admin] User ${req.params.id} tier changed to ${tier}`);
+    if (tier) console.log(`[admin] User ${req.params.id} tier → ${tier}`);
+    if (isTierGifted !== undefined) console.log(`[admin] User ${req.params.id} gift tier → ${isTierGifted}`);
     return res.json(safe);
   });
 

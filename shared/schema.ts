@@ -28,6 +28,8 @@ export const users = pgTable("users", {
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   openToRoaming: boolean("open_to_roaming").default(false),
+  isFoundingMember: boolean("is_founding_member").default(false),
+  isTierGifted: boolean("is_tier_gifted").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
