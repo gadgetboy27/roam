@@ -27,6 +27,7 @@ import Admin from "@/pages/admin";
 import AdminLogin from "@/pages/admin-login";
 import Roamers from "@/pages/roamers";
 import GroupPage from "@/pages/group";
+import InvitePage from "@/pages/invite";
 import WhatsOn from "@/pages/whats-on";
 import FeedbackWidget from "@/components/feedback-widget";
 
@@ -57,6 +58,7 @@ function Router() {
       <Route path="/whats-on" component={WhatsOn} />
       <Route path="/groups" component={Roamers} />
       <Route path="/roamers" component={Roamers} />
+      <Route path="/invite/:token" component={InvitePage} />
       <Route path="/groups/:id">
         {(params) => <GroupPage />}
       </Route>

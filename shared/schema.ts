@@ -159,6 +159,21 @@ export const groupEventAttendees = pgTable("group_event_attendees", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const groupInvites = pgTable("group_invites", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  groupId: varchar("group_id").notNull(),
+  invitedEmail: text("invited_email").notNull(),
+  invitedByUserId: varchar("invited_by_user_id").notNull(),
+  token: varchar("token").notNull().unique(),
+  status: text("status").notNull().default("pending"),
+  message: text("message"),
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
+export type GroupInvite = typeof groupInvites.$inferSelect;
+export type InsertGroupInvite = typeof groupInvites.$inferInsert;
+
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull(),

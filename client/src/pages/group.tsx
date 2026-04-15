@@ -9,6 +9,7 @@ import { io as ioClient } from "socket.io-client";
 import {
   ArrowLeft, MapPin, Users, Lock, Globe, Send, Calendar, Plus,
   Trash2, CheckCircle, XCircle, LogOut, Crown, UserPlus, CalendarPlus, Check, Megaphone,
+  Mail, Copy, CheckCheck, Camera, Tag, MessageSquare,
 } from "lucide-react";
 
 function addToCalendar(ev: any, groupName: string) {
@@ -303,6 +304,10 @@ export default function GroupPage() {
 
   const [showEventForm, setShowEventForm] = useState(false);
   const [eventForm, setEventForm] = useState({ title: "", description: "", location: "", startAt: "", endAt: "" });
+  const [showInviteForm, setShowInviteForm] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteMessage, setInviteMessage] = useState("");
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
   const createEventMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/groups/${id}/events`, eventForm),
@@ -319,6 +324,37 @@ export default function GroupPage() {
     mutationFn: (eventId: string) => apiRequest("DELETE", `/api/groups/${id}/events/${eventId}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/groups", id, "events"] }),
   });
+
+  const { data: groupInvites = [] } = useQuery<any[]>({
+    queryKey: ["/api/groups", id, "invites"],
+    enabled: isLeader && tab === "about",
+    retry: false,
+  });
+
+  const sendInviteMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/groups/${id}/invites`, { email: inviteEmail, message: inviteMessage }),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/groups", id, "invites"] });
+      setInviteEmail("");
+      setInviteMessage("");
+      setShowInviteForm(false);
+      if (data.inviteUrl) {
+        navigator.clipboard.writeText(data.inviteUrl).catch(() => {});
+        toast({ title: "Invite sent!", description: process.env.RESEND_API_KEY ? "Email sent + link copied to clipboard" : "Invite link copied to clipboard" });
+      } else {
+        toast({ title: "Invite created!" });
+      }
+    },
+    onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
+  });
+
+  function copyInviteLink(token: string) {
+    const url = `${window.location.origin}/invite/${token}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedToken(token);
+      setTimeout(() => setCopiedToken(null), 2000);
+    });
+  }
 
   function sendMessage() {
     if (!message.trim() || !user || !socketRef.current) return;
@@ -534,35 +570,118 @@ export default function GroupPage() {
                     Pending requests ({pendingMembers.length})
                   </div>
                   <div className="space-y-2">
-                    {pendingMembers.map((m: any) => (
-                      <div key={m.id} className="flex items-center justify-between p-3 rounded-xl"
-                           style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.06)" }}>
-                        <div className="flex items-center gap-3">
-                          {m.user?.avatarUrl ? (
-                            <img src={m.user.avatarUrl} alt={m.user?.name ?? ""} className="w-8 h-8 rounded-full object-cover" />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-                                 style={{ background: "rgba(var(--roam-cream-rgb),0.1)", color: "var(--roam-cream)" }}>
-                              {(m.user?.name ?? "?")[0]}
+                    {pendingMembers.map((m: any) => {
+                      const hasPhoto = !!m.user?.avatarUrl;
+                      const hasTagline = !!m.user?.tagline;
+                      const completedChecks = [hasPhoto, hasTagline].filter(Boolean).length;
+                      return (
+                        <div key={m.id} className="p-3 rounded-xl"
+                             style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.06)" }}>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              {m.user?.avatarUrl ? (
+                                <img src={m.user.avatarUrl} alt={m.user?.name ?? ""} className="w-8 h-8 rounded-full object-cover" />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                                     style={{ background: "rgba(var(--roam-cream-rgb),0.1)", color: "var(--roam-cream)" }}>
+                                  {(m.user?.name ?? "?")[0]}
+                                </div>
+                              )}
+                              <div>
+                                <div className="text-sm font-medium" style={{ color: "var(--roam-cream)" }}>{m.user?.name ?? "Unknown"}</div>
+                                <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+                                  {completedChecks}/2 profile checks complete
+                                </div>
+                              </div>
                             </div>
-                          )}
-                          <div className="text-sm font-medium" style={{ color: "var(--roam-cream)" }}>{m.user?.name ?? "Unknown"}</div>
+                            <div className="flex gap-2">
+                              <button onClick={() => approveMutation.mutate(m.userId)}
+                                      className="p-1.5 rounded-lg" style={{ color: "var(--roam-electric)" }}
+                                      data-testid={`button-approve-${m.userId}`}>
+                                <CheckCircle size={18} />
+                              </button>
+                              <button onClick={() => rejectMutation.mutate(m.userId)}
+                                      className="p-1.5 rounded-lg" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}
+                                      data-testid={`button-reject-${m.userId}`}>
+                                <XCircle size={18} />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="flex gap-3 mt-1">
+                            <div className="flex items-center gap-1">
+                              {hasPhoto ? <Check size={9} style={{ color: "var(--roam-electric)" }} /> : <XCircle size={9} style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }} />}
+                              <span className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>photo</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {hasTagline ? <Check size={9} style={{ color: "var(--roam-electric)" }} /> : <XCircle size={9} style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }} />}
+                              <span className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>tagline</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex gap-2">
-                          <button onClick={() => approveMutation.mutate(m.userId)}
-                                  className="p-1.5 rounded-lg" style={{ color: "var(--roam-electric)" }}
-                                  data-testid={`button-approve-${m.userId}`}>
-                            <CheckCircle size={18} />
-                          </button>
-                          <button onClick={() => rejectMutation.mutate(m.userId)}
-                                  className="p-1.5 rounded-lg" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}
-                                  data-testid={`button-reject-${m.userId}`}>
-                            <XCircle size={18} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
+                </div>
+              )}
+
+              {isLeader && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+                      Invite by email
+                    </div>
+                    <button onClick={() => setShowInviteForm(v => !v)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-[10px]"
+                            style={{ background: "rgba(var(--roam-electric-rgb),0.1)", color: "var(--roam-electric)", border: "1px solid rgba(var(--roam-electric-rgb),0.2)" }}
+                            data-testid="button-toggle-invite-form">
+                      <Mail size={11} /> {showInviteForm ? "Cancel" : "Send invite"}
+                    </button>
+                  </div>
+
+                  {showInviteForm && (
+                    <div className="rounded-2xl p-4 mb-3 space-y-3"
+                         style={{ background: "rgba(var(--roam-cream-rgb),0.03)", border: "1px solid rgba(var(--roam-cream-rgb),0.08)" }}>
+                      <input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
+                             type="email" placeholder="their@email.com"
+                             className="w-full px-3 py-2.5 rounded-xl font-mono text-[11px] outline-none"
+                             style={{ background: "rgba(var(--roam-cream-rgb),0.05)", border: "1px solid rgba(var(--roam-cream-rgb),0.12)", color: "var(--roam-cream)" }}
+                             data-testid="input-invite-email" />
+                      <textarea value={inviteMessage} onChange={e => setInviteMessage(e.target.value)}
+                                placeholder="Add a personal note… (optional)"
+                                rows={2}
+                                className="w-full px-3 py-2.5 rounded-xl font-mono text-[11px] outline-none resize-none"
+                                style={{ background: "rgba(var(--roam-cream-rgb),0.05)", border: "1px solid rgba(var(--roam-cream-rgb),0.12)", color: "var(--roam-cream)" }}
+                                data-testid="input-invite-message" />
+                      <button onClick={() => sendInviteMutation.mutate()}
+                              disabled={!inviteEmail.trim() || sendInviteMutation.isPending}
+                              className="w-full py-2.5 rounded-xl font-mono text-[11px] font-semibold flex items-center justify-center gap-2"
+                              style={{ background: inviteEmail.trim() ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.06)", color: inviteEmail.trim() ? "var(--roam-bg)" : "rgba(var(--roam-cream-rgb),0.3)" }}
+                              data-testid="button-send-invite">
+                        {sendInviteMutation.isPending ? "Sending…" : <><Mail size={12} /> Send invite &amp; copy link</>}
+                      </button>
+                    </div>
+                  )}
+
+                  {groupInvites.filter((i: any) => i.status === "pending").length > 0 && (
+                    <div className="space-y-2">
+                      {groupInvites.filter((i: any) => i.status === "pending").map((inv: any) => (
+                        <div key={inv.id} className="flex items-center justify-between px-3 py-2 rounded-xl"
+                             style={{ background: "rgba(var(--roam-cream-rgb),0.03)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}
+                             data-testid={`invite-row-${inv.id}`}>
+                          <div>
+                            <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>{inv.invitedEmail}</div>
+                            <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>invited · pending response</div>
+                          </div>
+                          <button onClick={() => copyInviteLink(inv.token)}
+                                  className="p-2 rounded-lg"
+                                  style={{ color: copiedToken === inv.token ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.35)" }}
+                                  data-testid={`button-copy-invite-${inv.id}`}>
+                            {copiedToken === inv.token ? <CheckCheck size={13} /> : <Copy size={13} />}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

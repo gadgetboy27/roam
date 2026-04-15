@@ -7,7 +7,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
   MapPin, Users, Lock, Globe, Plus, Tent, Ship, Mountain, Building2,
-  Check, X, ChevronRight, ArrowRight,
+  Check, X, ChevronRight, ArrowRight, Star, Calendar, MessageSquare, Shield,
 } from "lucide-react";
 
 const GROUP_TYPES = [
@@ -53,7 +53,7 @@ const GROUP_TYPE_RANGE: Record<string, string> = {
 };
 
 const ELIGIBILITY_ITEMS = [
-  { key: "tier", label: "Adventurer or Contributor account", action: "/profile", actionLabel: "Upgrade →" },
+  { key: "tier", label: "Adventurer tier (or Founding Member)", action: "/profile", actionLabel: "Upgrade →" },
   { key: "photo", label: "At least one approved adventure photo", action: "/upload", actionLabel: "Upload →" },
   { key: "tagline", label: "Profile tagline set", action: "/profile", actionLabel: "Edit profile →" },
   { key: "tags", label: "3+ adventure tags on profile", action: "/profile", actionLabel: "Edit profile →" },
@@ -398,42 +398,64 @@ export default function Roamers() {
           )}
         </div>
 
-        <div className="px-5 pb-4">
-          <div className="rounded-2xl px-4 py-4 flex items-start gap-3.5"
+        <div className="px-5 pb-4 space-y-3">
+          <div className="rounded-2xl p-4"
                style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.09)" }}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                 style={{ background: "rgba(var(--roam-electric-rgb),0.12)", color: "var(--roam-electric)" }}>
-              <Users size={16} />
+            <div className="font-serif text-[14px] font-bold mb-3" style={{ color: "var(--roam-cream)" }}>
+              What is a Group?
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-serif text-[14px] font-bold mb-0.5" style={{ color: "var(--roam-cream)" }}>
-                Find or start an adventure crew
-              </div>
-              <p className="font-mono text-[11px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
-                Squads, Crews, Communities and Organisers — join a group to RSVP events and meet people who actually show up. Lead one to plan adventures your way.
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              {[
+                { icon: Calendar, label: "Plan real events", desc: "RSVP to hikes, surf days, climbs and more" },
+                { icon: MessageSquare, label: "Campsite chat", desc: "A private crew chat for approved members" },
+                { icon: Users, label: "Find your people", desc: "Connect with verified adventurers near you" },
+                { icon: Shield, label: "Verified members", desc: "Every member is reviewed before approval" },
+              ].map(b => (
+                <div key={b.label} className="rounded-xl p-2.5"
+                     style={{ background: "rgba(var(--roam-cream-rgb),0.03)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
+                  <b.icon size={12} className="mb-1.5" style={{ color: "var(--roam-electric)" }} />
+                  <div className="font-mono text-[10px] font-semibold mb-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.75)" }}>{b.label}</div>
+                  <div className="font-mono text-[9px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>{b.desc}</div>
+                </div>
+              ))}
+            </div>
+            <div className="font-mono text-[10px] leading-relaxed mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+              Choose your size — <strong style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>Squad</strong> (2–5), <strong style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>Crew</strong> (6–20), <strong style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>Community</strong> (20–100), or <strong style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>Organiser</strong> for businesses and event series. Open groups anyone can join. Closed groups require leader approval.
+            </div>
+            {user && eligibility?.eligible && (
+              <button onClick={() => setShowCreate(true)}
+                      className="font-mono text-[11px] flex items-center gap-1.5"
+                      style={{ color: "var(--roam-electric)" }}
+                      data-testid="button-explainer-create">
+                <Plus size={12} /> Start your own group →
+              </button>
+            )}
+            {user && eligibility && !eligibility.eligible && (
+              <p className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
+                Complete your profile to lead a group — or browse below to join one.
               </p>
-              {user && eligibility?.eligible && (
-                <button onClick={() => setShowCreate(true)}
-                        className="mt-2.5 font-mono text-[11px] flex items-center gap-1.5"
-                        style={{ color: "var(--roam-electric)" }}
-                        data-testid="button-explainer-create">
-                  <Plus size={12} /> Start your own group →
-                </button>
-              )}
-              {user && eligibility && !eligibility.eligible && (
-                <p className="mt-2 font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
-                  Complete your profile to lead a group — or browse below to join one.
-                </p>
-              )}
-              {!user && (
-                <Link href="/login">
-                  <span className="mt-2 font-mono text-[11px] flex items-center gap-1" style={{ color: "var(--roam-electric)" }}>
-                    Sign in to join or start a group →
-                  </span>
-                </Link>
-              )}
-            </div>
+            )}
+            {!user && (
+              <Link href="/login">
+                <span className="font-mono text-[11px] flex items-center gap-1" style={{ color: "var(--roam-electric)" }}>
+                  Sign in to join or start a group →
+                </span>
+              </Link>
+            )}
           </div>
+
+          {user && (user as any).isFoundingMember && eligibility?.eligible && (
+            <div className="rounded-2xl px-4 py-3 flex items-center gap-3"
+                 style={{ background: "rgba(var(--roam-electric-rgb),0.06)", border: "1px solid rgba(var(--roam-electric-rgb),0.2)" }}>
+              <Star size={14} style={{ color: "var(--roam-electric)", flexShrink: 0 }} />
+              <div>
+                <div className="font-mono text-[10px] font-semibold" style={{ color: "var(--roam-electric)" }}>Founding Leader</div>
+                <div className="font-mono text-[9px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                  As one of our first 50 members, you can lead groups and invite people directly — even before upgrading your subscription.
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="px-5 flex flex-wrap gap-2 mb-5">

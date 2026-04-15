@@ -2,13 +2,14 @@ import { eq, and, or, desc, inArray, gt } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, photos, matches, messages, bucketList, ads, adminUsers,
-  groups, groupMembers, groupMessages, groupEvents, groupEventAttendees, notifications,
+  groups, groupMembers, groupMessages, groupEvents, groupEventAttendees, groupInvites, notifications,
   type User, type InsertUser, type Photo, type InsertPhoto,
   type Match, type InsertMatch, type Message, type InsertMessage,
   type BucketListItem, type InsertBucketList, type Ad, type InsertAd,
   type AdminUser, type InsertAdminUser,
   type Group, type InsertGroup, type GroupMember, type InsertGroupMember,
   type GroupMessage, type GroupEvent, type InsertGroupEvent,
+  type GroupInvite, type InsertGroupInvite,
   type Notification,
 } from "@shared/schema";
 
@@ -88,6 +89,11 @@ export interface IStorage {
 
   getMatchedUserIds(userId: string): Promise<string[]>;
   getGroupsLedByUser(userId: string): Promise<Group[]>;
+
+  createGroupInvite(data: InsertGroupInvite): Promise<GroupInvite>;
+  getGroupInviteByToken(token: string): Promise<GroupInvite | undefined>;
+  getGroupInvitesByGroup(groupId: string): Promise<GroupInvite[]>;
+  updateGroupInviteStatus(id: string, status: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -466,6 +472,26 @@ export class DatabaseStorage implements IStorage {
 
   async getGroupsLedByUser(userId: string): Promise<Group[]> {
     return db.select().from(groups).where(and(eq(groups.leaderId, userId), eq(groups.isActive, true)));
+  }
+
+  async createGroupInvite(data: InsertGroupInvite): Promise<GroupInvite> {
+    const [created] = await db.insert(groupInvites).values(data).returning();
+    return created;
+  }
+
+  async getGroupInviteByToken(token: string): Promise<GroupInvite | undefined> {
+    const [invite] = await db.select().from(groupInvites).where(eq(groupInvites.token, token));
+    return invite;
+  }
+
+  async getGroupInvitesByGroup(groupId: string): Promise<GroupInvite[]> {
+    return db.select().from(groupInvites)
+      .where(eq(groupInvites.groupId, groupId))
+      .orderBy(desc(groupInvites.createdAt));
+  }
+
+  async updateGroupInviteStatus(id: string, status: string): Promise<void> {
+    await db.update(groupInvites).set({ status }).where(eq(groupInvites.id, id));
   }
 }
 
