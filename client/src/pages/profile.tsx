@@ -4,7 +4,8 @@ import AppNav from "@/components/app-nav";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, Camera, Edit3, Settings, Star, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2, Trash2, Megaphone } from "lucide-react";
+import { MapPin, Camera, Edit3, Settings, Star, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2, Trash2, Megaphone, Download } from "lucide-react";
+import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { computeVibeWord } from "@/lib/fingerprint";
 
 const FALLBACK_HERO = "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&q=80&fit=crop";
@@ -74,6 +75,7 @@ function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () 
 
 export default function Profile() {
   const { user, logout, refresh } = useAuth();
+  const { canInstall, triggerInstall, isIos } = usePwaInstall();
   const [, navigate] = useLocation();
   const [editOpen, setEditOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -964,6 +966,29 @@ export default function Profile() {
               {user?.email}
             </div>
           </div>
+          {canInstall && (
+            <div className="pt-1">
+              <button className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all mb-2"
+                      style={{ background: "rgba(var(--roam-electric-rgb),0.06)", border: "1px solid rgba(var(--roam-electric-rgb),0.18)" }}
+                      onClick={isIos ? undefined : triggerInstall}
+                      data-testid="button-install-pwa">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                     style={{ background: "rgba(var(--roam-electric-rgb),0.12)" }}>
+                  <Download size={15} style={{ color: "var(--roam-electric)" }} />
+                </div>
+                <div>
+                  <div className="text-sm font-medium" style={{ color: "var(--roam-electric)" }}>
+                    {isIos ? "Add to Home Screen" : "Install roam. app"}
+                  </div>
+                  {isIos && (
+                    <div className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-electric-rgb),0.6)" }}>
+                      Tap Share → Add to Home Screen
+                    </div>
+                  )}
+                </div>
+              </button>
+            </div>
+          )}
           <div className="pt-1">
             <button className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all"
                     style={{ background: "rgba(232,98,26,0.06)", border: "1px solid rgba(232,98,26,0.15)" }}
