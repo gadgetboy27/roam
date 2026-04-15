@@ -7,7 +7,7 @@ import {
   Users, BarChart2, Shield, ArrowLeft, Trash2, ChevronDown,
   Loader2, RefreshCw, CheckCircle2, Clock, MousePointerClick,
   Eye, TrendingUp, Megaphone, Plus, LogOut, UserCog, KeyRound,
-  MapPin, Globe, Lock, Gift, Star,
+  MapPin, Globe, Lock, Gift, Star, MessageSquarePlus,
 } from "lucide-react";
 import type { Ad } from "@shared/schema";
 
@@ -305,7 +305,7 @@ type AdminAccount = {
 export default function Admin() {
   const [, navigate] = useLocation();
   const { admin, isLoading: authLoading, logout } = useAdminAuth();
-  const [tab, setTab] = useState<"users" | "ads" | "groups" | "admins">("users");
+  const [tab, setTab] = useState<"users" | "ads" | "groups" | "admins" | "feedback">("users");
   const [tierFilter, setTierFilter] = useState<string>("all");
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
 
@@ -340,6 +340,12 @@ export default function Admin() {
   const { data: allGroups = [], isLoading: groupsLoading, refetch: refetchGroups, isRefetching: groupsRefetching } = useQuery<any[]>({
     queryKey: ["/api/admin/groups"],
     enabled: !!admin,
+    retry: false,
+  });
+
+  const { data: allFeedback = [], isLoading: feedbackLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/feedback"],
+    enabled: !!admin && tab === "feedback",
     retry: false,
   });
 
@@ -520,10 +526,11 @@ export default function Admin() {
 
         <div className="flex flex-wrap gap-2 mb-6">
           {[
-            { key: "users",  label: "Users",      icon: Users },
-            { key: "ads",    label: "Ad Metrics", icon: BarChart2 },
-            { key: "groups", label: "Groups",      icon: Users },
-            { key: "admins", label: "Admins",      icon: UserCog },
+            { key: "users",    label: "Users",      icon: Users },
+            { key: "ads",      label: "Ad Metrics", icon: BarChart2 },
+            { key: "groups",   label: "Groups",     icon: Users },
+            { key: "admins",   label: "Admins",     icon: UserCog },
+            { key: "feedback", label: "Feedback",   icon: MessageSquarePlus },
           ].map(t => (
             <button key={t.key}
                     onClick={() => setTab(t.key as any)}
@@ -730,6 +737,63 @@ export default function Admin() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === "feedback" && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="font-mono text-[11px] tracking-wider uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+                  {allFeedback.length} submission{allFeedback.length !== 1 ? "s" : ""}
+                </p>
+              </div>
+            </div>
+            {feedbackLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 size={20} className="animate-spin" style={{ color: "var(--roam-electric)" }} />
+              </div>
+            ) : allFeedback.length === 0 ? (
+              <div className="text-center py-20">
+                <MessageSquarePlus size={24} className="mx-auto mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.2)" }} />
+                <p className="font-mono text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>No feedback yet</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {allFeedback.map((f: any) => (
+                  <div key={f.id} className="rounded-2xl px-4 py-3.5"
+                       style={{ background: "rgba(var(--roam-cream-rgb),0.03)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}
+                       data-testid={`feedback-row-${f.id}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <span className="font-mono text-[11px] font-semibold" style={{ color: "rgba(var(--roam-cream-rgb),0.8)" }}>
+                          {f.user_name || "Anonymous"}
+                        </span>
+                        {f.user_email && (
+                          <span className="font-mono text-[9px] ml-2" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
+                            {f.user_email}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {f.page && (
+                          <span className="font-mono text-[8px] px-1.5 py-0.5 rounded-full"
+                                style={{ background: "rgba(var(--roam-electric-rgb),0.08)", color: "rgba(var(--roam-electric-rgb),0.6)" }}>
+                            {f.page}
+                          </span>
+                        )}
+                        <span className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}>
+                          {timeAgo(f.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="font-mono text-[11px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
+                      {f.message}
+                    </p>
+                  </div>
+                ))}
               </div>
             )}
           </div>

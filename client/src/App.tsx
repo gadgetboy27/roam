@@ -28,6 +28,7 @@ import AdminLogin from "@/pages/admin-login";
 import Roamers from "@/pages/roamers";
 import GroupPage from "@/pages/group";
 import WhatsOn from "@/pages/whats-on";
+import FeedbackWidget from "@/components/feedback-widget";
 
 function Router() {
   return (
@@ -76,6 +77,7 @@ function App() {
             <AdminAuthProvider>
               <Toaster />
               <Router />
+              <FeedbackWidget />
             </AdminAuthProvider>
           </AuthProvider>
         </TooltipProvider>

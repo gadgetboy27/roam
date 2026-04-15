@@ -1450,6 +1450,46 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  // ─── Feedback ──────────────────────────────────────────────────────────────
+
+  app.post("/api/feedback", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      const { message, page } = req.body;
+      if (!message?.trim()) return res.status(400).json({ message: "Message is required" });
+      let userName: string | null = null;
+      let userEmail: string | null = null;
+      if (userId) {
+        const u = await storage.getUser(userId);
+        if (u) { userName = u.name; userEmail = u.email; }
+      }
+      const { Pool } = await import("pg");
+      const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+      await pool.query(
+        "INSERT INTO feedback (user_id, user_name, user_email, message, page) VALUES ($1,$2,$3,$4,$5)",
+        [userId || null, userName, userEmail, message.trim(), page || null]
+      );
+      await pool.end();
+      console.log(`[feedback] ${userEmail || "anonymous"}: ${message.trim().substring(0, 60)}`);
+      return res.json({ ok: true });
+    } catch (err: any) {
+      return res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/admin/feedback", async (req, res) => {
+    if (!(await isAdminAuthenticated(req))) return res.status(401).json({ message: "Admin authentication required" });
+    try {
+      const { Pool } = await import("pg");
+      const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+      const { rows } = await pool.query("SELECT * FROM feedback ORDER BY created_at DESC LIMIT 200");
+      await pool.end();
+      return res.json(rows);
+    } catch (err: any) {
+      return res.status(500).json({ message: err.message });
+    }
+  });
+
   // ─── Extend Socket.io for group campsite chat ─────────────────────────────
 
   io.on("connection", (socket) => {
