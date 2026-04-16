@@ -1751,6 +1751,33 @@ export async function registerRoutes(
       );
       await pool.end();
       console.log(`[feedback] ${userEmail || "anonymous"}: ${message.trim().substring(0, 60)}`);
+
+      // ── Email notification to admin ──────────────────────────────────────
+      const adminEmails = process.env.ADMIN_EMAILS;
+      const resendKey  = process.env.RESEND_API_KEY;
+      if (adminEmails && resendKey) {
+        const recipients = adminEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
+        const senderLabel = userName ? `${userName}${userEmail ? ` <${userEmail}>` : ""}` : (userEmail || "Anonymous user");
+        const pageLabel   = page ? ` on <strong>${page}</strong>` : "";
+        const emailBody   = `
+          <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+            <h2 style="color:#1a1a1a;margin-bottom:4px">New roam. feedback</h2>
+            <p style="color:#666;font-size:13px;margin-top:0">From ${senderLabel}${pageLabel}</p>
+            <div style="background:#f5f5f5;border-radius:8px;padding:16px 20px;margin:16px 0;white-space:pre-wrap;font-size:15px;color:#222">${message.trim()}</div>
+            <p style="color:#999;font-size:12px">View all feedback in the <a href="https://letsroam.life/admin" style="color:#7ecb35">admin dashboard → Feedback tab</a></p>
+          </div>`;
+        fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${resendKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            from: "roam. <noreply@letsroam.life>",
+            to: recipients,
+            subject: `💬 New feedback from ${userName || userEmail || "a roamer"}`,
+            html: emailBody,
+          }),
+        }).catch((e: Error) => console.warn("[feedback-email] send failed:", e.message));
+      }
+
       return res.json({ ok: true });
     } catch (err: any) {
       return res.status(500).json({ message: err.message });
