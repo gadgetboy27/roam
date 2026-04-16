@@ -30,7 +30,6 @@ import Plans from "@/pages/plans";
 import GroupPage from "@/pages/group";
 import InvitePage from "@/pages/invite";
 import WhatsOn from "@/pages/whats-on";
-import FeedbackWidget from "@/components/feedback-widget";
 
 function Router() {
   return (
@@ -81,7 +80,6 @@ function App() {
             <AdminAuthProvider>
               <Toaster />
               <Router />
-              <FeedbackWidget />
             </AdminAuthProvider>
           </AuthProvider>
         </TooltipProvider>

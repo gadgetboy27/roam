@@ -3,6 +3,7 @@ import { useLocation, Link } from "wouter";
 import {
   Compass, MessageCircle, Plus, User, Palette, Check, Users, CalendarDays,
   Camera, X, ChevronRight, Tent, Ship, Mountain, Building2, ArrowRight, Megaphone, Zap,
+  MessageSquarePlus, Send, CheckCircle2,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -37,6 +38,10 @@ export default function AppNav() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createView, setCreateView] = useState<"menu" | "group-picker" | "quick-create">("menu");
   const [quickForm, setQuickForm] = useState({ name: "", type: "" });
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackMsg, setFeedbackMsg] = useState("");
+  const [feedbackSending, setFeedbackSending] = useState(false);
+  const [feedbackDone, setFeedbackDone] = useState(false);
   const paletteRef = useRef<HTMLDivElement>(null);
   const createRef = useRef<HTMLDivElement>(null);
 
@@ -71,12 +76,30 @@ export default function AppNav() {
   const dotColor = status === "online" ? "var(--roam-electric)" : status === "offline" ? "var(--roam-ember)" : "#f59e0b";
   const dotTitle = status === "online" ? "Connected" : status === "offline" ? "Offline" : "Connecting…";
 
+  const handleFeedbackSubmit = async () => {
+    if (!feedbackMsg.trim() || feedbackSending) return;
+    setFeedbackSending(true);
+    try {
+      await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ message: feedbackMsg.trim(), page: location }),
+      });
+      setFeedbackDone(true);
+      setFeedbackMsg("");
+      setTimeout(() => { setFeedbackDone(false); setFeedbackOpen(false); }, 2200);
+    } catch {}
+    finally { setFeedbackSending(false); }
+  };
+
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (paletteRef.current && !paletteRef.current.contains(e.target as Node)) setPaletteOpen(false);
       if (createRef.current && !createRef.current.contains(e.target as Node)) {
         setCreateOpen(false);
         setCreateView("menu");
+        setFeedbackOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClick);
@@ -222,6 +245,22 @@ export default function AppNav() {
               <Zap size={17} strokeWidth={1.8} />
             </button>
           </Link>
+          {user && (
+            <>
+              <div style={{ width: 20, height: 1, background: "rgba(var(--roam-cream-rgb),0.12)", flexShrink: 0, margin: "1px 0" }} />
+              <button
+                title="Send feedback"
+                onClick={() => { setFeedbackOpen(o => !o); if (feedbackDone) { setFeedbackDone(false); } }}
+                className="w-10 h-10 rounded-[14px] flex items-center justify-center transition-all"
+                style={{
+                  background: feedbackOpen ? "rgba(var(--roam-electric-rgb),0.15)" : "transparent",
+                  color: feedbackOpen ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.55)",
+                }}
+                data-testid="nav-feedback">
+                <MessageSquarePlus size={17} strokeWidth={1.8} />
+              </button>
+            </>
+          )}
           <div style={{ width: 20, height: 1, background: "rgba(var(--roam-cream-rgb),0.12)", flexShrink: 0, margin: "1px 0" }} />
           <button title="Create"
                   className="w-10 h-10 rounded-[14px] flex items-center justify-center transition-all hover:opacity-90 active:scale-95"
@@ -236,6 +275,74 @@ export default function AppNav() {
               : <Plus size={18} strokeWidth={2.5} style={{ color: "var(--roam-forest)" }} />}
           </button>
         </div>
+        {feedbackOpen && user && (
+          <div className="absolute right-14 bottom-0 w-[272px] rounded-2xl overflow-hidden shadow-2xl animate-fade-up"
+               style={{ background: "var(--roam-surface)", border: "1px solid rgba(var(--roam-cream-rgb),0.1)" }}>
+            {feedbackDone ? (
+              <div className="px-5 py-6 flex flex-col items-center text-center gap-3">
+                <div className="w-11 h-11 rounded-full flex items-center justify-center"
+                     style={{ background: "rgba(var(--roam-electric-rgb),0.12)", border: "1.5px solid var(--roam-electric)" }}>
+                  <CheckCircle2 size={20} style={{ color: "var(--roam-electric)" }} />
+                </div>
+                <div>
+                  <p className="font-serif text-[15px] font-black" style={{ color: "var(--roam-cream)" }}>Feedback received</p>
+                  <p className="font-mono text-[11px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.72)" }}>
+                    Thank you, {user.name?.split(" ")[0] || "explorer"} 🙏
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between px-4 py-3"
+                     style={{ borderBottom: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
+                  <div>
+                    <p className="font-serif text-[15px] font-black" style={{ color: "var(--roam-cream)" }}>Share feedback</p>
+                    <p className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>From {user.name}</p>
+                  </div>
+                  <button onClick={() => setFeedbackOpen(false)}
+                          className="w-7 h-7 rounded-full flex items-center justify-center"
+                          style={{ background: "rgba(var(--roam-cream-rgb),0.07)" }}
+                          data-testid="button-close-feedback">
+                    <X size={13} style={{ color: "rgba(var(--roam-cream-rgb),0.72)" }} />
+                  </button>
+                </div>
+                <div className="px-4 py-4">
+                  <textarea
+                    autoFocus
+                    className="w-full rounded-2xl p-3 text-[12px] font-mono leading-relaxed resize-none outline-none"
+                    style={{
+                      background: "rgba(var(--roam-cream-rgb),0.05)",
+                      border: "1px solid rgba(var(--roam-cream-rgb),0.1)",
+                      color: "var(--roam-cream)",
+                      minHeight: "88px",
+                    }}
+                    placeholder="What's on your mind? Bugs, ideas, anything…"
+                    value={feedbackMsg}
+                    onChange={e => setFeedbackMsg(e.target.value)}
+                    data-testid="input-feedback-message"
+                  />
+                  <button
+                    onClick={handleFeedbackSubmit}
+                    disabled={!feedbackMsg.trim() || feedbackSending}
+                    className="w-full mt-3 py-2.5 rounded-2xl font-mono text-[11px] tracking-wider uppercase font-semibold flex items-center justify-center gap-2 disabled:opacity-40"
+                    style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
+                    data-testid="button-submit-feedback">
+                    {feedbackSending ? (
+                      <div className="flex gap-1">
+                        {[0,1,2].map(i => (
+                          <div key={i} className="w-1.5 h-1.5 rounded-full"
+                               style={{ background: "var(--roam-forest)", animation: `bounce-dot 0.9s ${i*0.15}s infinite` }} />
+                        ))}
+                      </div>
+                    ) : (
+                      <><Send size={12} /> Send feedback</>
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
         {createOpen && (
           <div className="absolute right-14 bottom-0 w-56 rounded-2xl overflow-hidden shadow-2xl animate-fade-up"
                style={{ background: "var(--roam-surface)", border: "1px solid rgba(var(--roam-cream-rgb),0.1)" }}>
