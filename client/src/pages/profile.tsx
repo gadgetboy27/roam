@@ -370,7 +370,7 @@ export default function Profile() {
           <div className="px-4 pt-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <span className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                <span className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.75)" }}>
                   Your tier
                 </span>
                 <span className="font-mono text-[9px] tracking-wider uppercase py-0.5 px-2 rounded-lg"
@@ -392,7 +392,7 @@ export default function Profile() {
               {user?.tier === "adventurer" && user?.stripeCustomerId && (
                 <button onClick={handleManageSubscription}
                         className="font-mono text-[10px] tracking-wider"
-                        style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}
+                        style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}
                         data-testid="button-manage-subscription">
                   Manage subscription →
                 </button>
@@ -459,7 +459,7 @@ export default function Profile() {
                     </div>
                     <div className="text-right flex-shrink-0">
                       <div className="font-serif text-[22px] font-bold" style={{ color: "var(--roam-cream)" }}>$4.99</div>
-                      <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>NZD / mo</div>
+                      <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>NZD / mo</div>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1 mb-3">
@@ -481,7 +481,7 @@ export default function Profile() {
                           data-testid="button-upgrade-adventurer">
                     {upgrading ? "Redirecting…" : "Upgrade to Adventurer →"}
                   </button>
-                  <div className="text-center mt-2 font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}>
+                  <div className="text-center mt-2 font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
                     Powered by Stripe · Cancel anytime
                   </div>
                 </div>
@@ -503,7 +503,7 @@ export default function Profile() {
                     </div>
                     <div className="text-right flex-shrink-0">
                       <div className="font-serif text-[20px] font-bold" style={{ color: "var(--roam-cream)" }}>$19.99</div>
-                      <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>NZD · one-time</div>
+                      <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>NZD · one-time</div>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1 mb-3">
@@ -519,7 +519,7 @@ export default function Profile() {
                           data-testid="button-upgrade-organiser">
                     {organisingUp ? "Redirecting…" : "Unlock Squad Leader →"}
                   </button>
-                  <div className="text-center mt-2 font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.2)" }}>
+                  <div className="text-center mt-2 font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
                     Pay once · no subscription · create your first group today
                   </div>
                 </div>
@@ -531,14 +531,14 @@ export default function Profile() {
               <div className="px-4 py-3 flex items-center justify-between">
                 <div>
                   <div className="font-serif text-[14px] font-black mb-0.5" style={{ color: "var(--roam-cream)" }}>⚡ Boost your profile</div>
-                  <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                  <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.7)" }}>
                     Appear at the top of discovery for 24 hours
                   </div>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
                   <div className="text-right">
                     <div className="font-serif text-[16px] font-bold" style={{ color: "var(--roam-cream)" }}>$1</div>
-                    <div className="font-mono text-[8px]" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>NZD</div>
+                    <div className="font-mono text-[8px]" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>NZD</div>
                   </div>
                   <button onClick={handleBoost} disabled={boosting}
                           className="py-2 px-4 rounded-xl font-mono text-[10px] tracking-wider uppercase font-semibold transition-all flex-shrink-0"
@@ -557,7 +557,7 @@ export default function Profile() {
                   <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
                        style={{ background: "rgba(var(--roam-electric-rgb),0.08)", border: "1px solid rgba(var(--roam-electric-rgb),0.2)" }}
                        data-testid="badge-vibe-word">
-                    <span className="font-mono text-[9px] tracking-widest uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Vibe</span>
+                    <span className="font-mono text-[9px] tracking-widest uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>Vibe</span>
                     <span className="font-mono text-[10px] tracking-wider" style={{ color: "var(--roam-electric)" }}>{vibeWord}</span>
                   </div>
                   {user?.identityVerified && (
@@ -588,11 +588,11 @@ export default function Profile() {
                     <div className="font-mono text-[11px] tracking-wider font-semibold mb-1" style={{ color: "var(--roam-electric)" }}>
                       Identity Verified
                     </div>
-                    <div className="font-mono text-[10px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
+                    <div className="font-mono text-[10px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.78)" }}>
                       Government ID + selfie confirmed. You're a verified real person.
                     </div>
                     {user.identityVerifiedAt && (
-                      <div className="font-mono text-[9px] mt-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
+                      <div className="font-mono text-[9px] mt-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.58)" }}>
                         Verified {new Date(user.identityVerifiedAt).toLocaleDateString("en-NZ", { day: "numeric", month: "long", year: "numeric" })}
                       </div>
                     )}
@@ -616,7 +616,7 @@ export default function Profile() {
                          style={{ color: verifyTimedOut ? "rgba(var(--roam-ember-rgb),0.85)" : "rgba(var(--roam-cream-rgb),0.7)" }}>
                       {verifyTimedOut ? "Verification is taking longer than expected" : "Verification in progress"}
                     </div>
-                    <div className="font-mono text-[10px] leading-relaxed mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                    <div className="font-mono text-[10px] leading-relaxed mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.72)" }}>
                       {verifyTimedOut
                         ? "This sometimes happens when documents take a moment to process. You can wait or start again."
                         : "We're confirming your identity. This usually takes less than a minute."}
@@ -644,7 +644,7 @@ export default function Profile() {
                     <div className="font-mono text-[11px] tracking-wider font-semibold mb-1" style={{ color: "var(--roam-electric)" }}>
                       Verification submitted
                     </div>
-                    <div className="font-mono text-[10px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                    <div className="font-mono text-[10px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.75)" }}>
                       Your documents are being reviewed. You'll get your ✓ badge shortly — usually under a minute.
                     </div>
                   </div>
@@ -660,13 +660,13 @@ export default function Profile() {
                       <div className="font-mono text-[11px] tracking-wider font-semibold mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.7)" }}>
                         Verify your identity
                       </div>
-                      <div className="font-mono text-[10px] leading-relaxed mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.42)" }}>
+                      <div className="font-mono text-[10px] leading-relaxed mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.72)" }}>
                         Takes 2 minutes. Upload a government ID + selfie. Your documents go directly to Stripe's secure servers — we never see or store them.
                       </div>
                       <div className="flex flex-wrap gap-1.5 mb-3">
                         {["Driver's licence", "Passport", "Selfie liveness check"].map(item => (
                           <span key={item} className="font-mono text-[8px] tracking-wider px-2 py-0.5 rounded-lg"
-                                style={{ background: "rgba(var(--roam-cream-rgb),0.06)", border: "1px solid rgba(var(--roam-cream-rgb),0.1)", color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                                style={{ background: "rgba(var(--roam-cream-rgb),0.06)", border: "1px solid rgba(var(--roam-cream-rgb),0.1)", color: "rgba(var(--roam-cream-rgb),0.72)" }}>
                             {item}
                           </span>
                         ))}
@@ -692,7 +692,7 @@ export default function Profile() {
                   </div>
                   <div className="px-4 py-2.5 flex items-center gap-2"
                        style={{ borderTop: "1px solid rgba(var(--roam-cream-rgb),0.06)", background: "rgba(var(--roam-cream-rgb),0.02)" }}>
-                    <span className="font-mono text-[8px]" style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}>
+                    <span className="font-mono text-[8px]" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
                       Powered by Stripe Identity · Documents never stored on roam. servers
                     </span>
                   </div>
@@ -702,7 +702,7 @@ export default function Profile() {
 
             <div className="mb-5">
               <div className="flex items-center justify-between mb-3">
-                <div className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+                <div className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
                   Adventure DNA
                 </div>
                 <button className="flex items-center gap-1 font-mono text-[9px] tracking-wider uppercase py-1 px-2.5 rounded-lg transition-all"
@@ -725,7 +725,7 @@ export default function Profile() {
             {myGroups.length > 0 && (
               <div className="mb-5">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+                  <div className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
                     My groups
                   </div>
                   <Link href="/groups">
@@ -745,12 +745,12 @@ export default function Profile() {
                           </div>
                           <div>
                             <div className="text-sm font-medium" style={{ color: "var(--roam-cream)" }}>{g.name}</div>
-                            <div className="text-[10px] font-mono" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+                            <div className="text-[10px] font-mono" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
                               {g.type} · {g.memberCount ?? 0} members
                             </div>
                           </div>
                         </div>
-                        <ChevronRight size={14} style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }} />
+                        <ChevronRight size={14} style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }} />
                       </div>
                     </Link>
                   ))}
@@ -759,7 +759,7 @@ export default function Profile() {
             )}
 
             <div className="mb-5">
-              <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+              <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
                 Your photos
               </div>
               <div className="grid grid-cols-3 gap-1.5">
@@ -789,7 +789,7 @@ export default function Profile() {
                 <Star size={14} style={{ color: "var(--roam-electric)" }} />
                 <span className="font-mono text-[10px] tracking-wider uppercase" style={{ color: "var(--roam-electric)" }}>Profile tip</span>
               </div>
-              <p className="text-xs leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+              <p className="text-xs leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.75)" }}>
                 Photos with you in them get 3x more matches. Add more adventure shots where you're visible — the AI
                 prioritizes photos that show the real you in real places.
               </p>
@@ -904,7 +904,7 @@ export default function Profile() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
+              <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
                 Name
               </label>
               <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={inputStyle}
@@ -913,7 +913,7 @@ export default function Profile() {
                      data-testid="input-edit-name" />
             </div>
             <div>
-              <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
+              <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
                 Age
               </label>
               <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none"
@@ -924,7 +924,7 @@ export default function Profile() {
           </div>
 
           <div>
-            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
+            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
               Tagline
             </label>
             <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={inputStyle}
@@ -932,13 +932,13 @@ export default function Profile() {
                    placeholder="e.g. Chasing summits and night markets"
                    onChange={e => setEditForm(f => ({ ...f, tagline: e.target.value }))}
                    data-testid="input-edit-tagline" />
-            <p className="text-[10px] font-mono mt-1 text-right" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
+            <p className="text-[10px] font-mono mt-1 text-right" style={{ color: "rgba(var(--roam-cream-rgb),0.58)" }}>
               {60 - editForm.tagline.length} left
             </p>
           </div>
 
           <div>
-            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
+            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
               Base location
             </label>
             <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={inputStyle}
@@ -949,10 +949,10 @@ export default function Profile() {
           </div>
 
           <div>
-            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
+            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
               Adventure DNA — tap to select your activities
             </label>
-            <p className="text-[11px] mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
+            <p className="text-[11px] mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
               These are also auto-detected from your photos. Your manual picks always show first.
             </p>
             <div className="flex flex-wrap gap-1.5" data-testid="dna-selector">
@@ -964,7 +964,7 @@ export default function Profile() {
                           style={{
                             background: active ? "rgba(var(--roam-electric-rgb),0.15)" : "rgba(var(--roam-cream-rgb),0.04)",
                             border: active ? "1px solid rgba(var(--roam-electric-rgb),0.45)" : "1px solid rgba(var(--roam-cream-rgb),0.1)",
-                            color: active ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.45)",
+                            color: active ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.72)",
                           }}
                           onClick={() => toggleDnaTag(tag)}
                           data-testid={`dna-tag-${tag.replace(/[\s/]+/g, "-")}`}>
@@ -1001,14 +1001,14 @@ export default function Profile() {
 
       <Sheet open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Settings">
         <div className="space-y-2">
-          <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+          <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
             Groups
           </div>
           <div className="flex items-center justify-between p-4 rounded-2xl mb-4"
                style={{ background: "var(--roam-moss)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
             <div>
               <div className="text-sm font-medium">Open to roaming</div>
-              <div className="text-[11px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+              <div className="text-[11px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
                 Show an <span className="font-serif font-black" style={{ color: "var(--roam-electric)" }}>r.</span> badge on your discover card
               </div>
             </div>
@@ -1024,7 +1024,7 @@ export default function Profile() {
             </button>
           </div>
 
-          <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+          <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
             Notifications
           </div>
 
@@ -1037,7 +1037,7 @@ export default function Profile() {
                  style={{ background: "var(--roam-moss)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
               <div>
                 <div className="text-sm font-medium">{item.label}</div>
-                <div className="text-[11px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>{item.desc}</div>
+                <div className="text-[11px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>{item.desc}</div>
               </div>
               <button className="w-11 h-6 rounded-full relative transition-all flex-shrink-0"
                       style={{ background: notifications[item.key] ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.12)" }}
@@ -1050,7 +1050,7 @@ export default function Profile() {
           ))}
 
           <div className="pt-4">
-            <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+            <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
               Account
             </div>
             <div className="space-y-2">
@@ -1064,23 +1064,23 @@ export default function Profile() {
                         data-testid={`settings-item-${i}`}>
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
                        style={{ background: "rgba(var(--roam-cream-rgb),0.06)" }}>
-                    <item.icon size={15} style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }} />
+                    <item.icon size={15} style={{ color: "rgba(var(--roam-cream-rgb),0.72)" }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium">{item.label}</div>
-                    <div className="text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>{item.desc}</div>
+                    <div className="text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>{item.desc}</div>
                   </div>
-                  <ChevronRight size={15} style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }} />
+                  <ChevronRight size={15} style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }} />
                 </button>
               ))}
             </div>
           </div>
 
           <div className="pt-2 pb-1">
-            <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-2 pt-2" style={{ color: "rgba(var(--roam-cream-rgb),0.35)", borderTop: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
+            <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-2 pt-2" style={{ color: "rgba(var(--roam-cream-rgb),0.62)", borderTop: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
               Signed in as
             </div>
-            <div className="font-mono text-[11px] mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+            <div className="font-mono text-[11px] mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.75)" }}>
               {user?.email}
             </div>
           </div>
@@ -1141,7 +1141,7 @@ export default function Profile() {
               <div className="font-serif text-[30px] font-black leading-[1.05] mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.95)" }}>
                 What a <span style={{ color: "var(--roam-electric)", fontStyle: "italic" }}>year</span><br />on the road.
               </div>
-              <div className="font-mono text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
+              <div className="font-mono text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
                 {profileData.name.toLowerCase().replace(/\s/g, "")} on roam.
               </div>
             </div>
@@ -1169,7 +1169,7 @@ export default function Profile() {
               ].map((s, i) => (
                 <div key={i} className="p-4" style={{ background: "var(--roam-moss)" }}>
                   <div className="font-serif text-[28px] font-black leading-none mb-1" style={{ color: "var(--roam-electric)" }}>{s.val}</div>
-                  <div className="font-mono text-[9px] tracking-[0.8px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>{s.label}</div>
+                  <div className="font-mono text-[9px] tracking-[0.8px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>{s.label}</div>
                 </div>
               ))}
             </div>
@@ -1179,9 +1179,9 @@ export default function Profile() {
                 <img src="https://images.unsplash.com/photo-1551632811-561732d1e306?w=96&q=80&fit=crop" alt="Top match" className="w-full h-full object-cover" />
               </div>
               <div className="flex-1">
-                <div className="font-mono text-[9px] tracking-[0.8px] uppercase mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>Top match of the year</div>
+                <div className="font-mono text-[9px] tracking-[0.8px] uppercase mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>Top match of the year</div>
                 <div className="text-[15px] font-semibold mb-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.92)" }}>Mia</div>
-                <div className="text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.42)" }}>78% adventure overlap · Franz Josef almost-met</div>
+                <div className="text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>78% adventure overlap · Franz Josef almost-met</div>
               </div>
               <div className="font-serif text-[26px] font-black flex-shrink-0" style={{ color: "var(--roam-electric)" }}>78%</div>
             </div>

@@ -82,7 +82,7 @@ export default function NotificationBell() {
       <button
         onClick={() => { setOpen(o => !o); }}
         className="relative p-2 rounded-xl transition-all"
-        style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}
+        style={{ color: "rgba(var(--roam-cream-rgb),0.7)" }}
         data-testid="button-notifications"
         aria-label="Notifications"
       >
@@ -106,13 +106,13 @@ export default function NotificationBell() {
               {count > 0 && (
                 <button onClick={() => markAllMutation.mutate()}
                         className="text-[11px] font-mono"
-                        style={{ color: "rgba(var(--roam-electric-rgb),0.8)" }}
+                        style={{ color: "rgba(var(--roam-electric-rgb),0.85)" }}
                         data-testid="button-mark-all-read">
                   Mark all read
                 </button>
               )}
               <button onClick={() => setOpen(false)}
-                      style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+                      style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
                 <X size={14} />
               </button>
             </div>
@@ -120,7 +120,7 @@ export default function NotificationBell() {
 
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 && (
-              <div className="py-10 text-center text-sm" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+              <div className="py-10 text-center text-sm" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
                 No notifications yet
               </div>
             )}
@@ -139,11 +139,11 @@ export default function NotificationBell() {
                       {n.title}
                     </div>
                     {n.body && (
-                      <div className="text-[11px] mt-0.5 line-clamp-2" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                      <div className="text-[11px] mt-0.5 line-clamp-2" style={{ color: "rgba(var(--roam-cream-rgb),0.75)" }}>
                         {n.body}
                       </div>
                     )}
-                    <div className="text-[10px] mt-1 font-mono" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
+                    <div className="text-[10px] mt-1 font-mono" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
                       {timeAgo(n.createdAt)}
                     </div>
                   </div>

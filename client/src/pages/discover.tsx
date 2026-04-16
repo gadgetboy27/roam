@@ -364,7 +364,7 @@ export default function Discover() {
         <div className="absolute inset-0 flex items-center justify-center z-10">
           <div className="flex flex-col items-center gap-3">
             <Compass size={32} style={{ color: "var(--roam-electric)", opacity: 0.5, animation: "spin 2s linear infinite" }} />
-            <div className="font-mono text-[11px] tracking-wider" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Finding adventurers…</div>
+            <div className="font-mono text-[11px] tracking-wider" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>Finding adventurers…</div>
           </div>
         </div>
       )}
@@ -375,7 +375,7 @@ export default function Discover() {
           <div className="font-serif text-[26px] font-black mb-3 leading-tight" style={{ color: "rgba(var(--roam-cream-rgb),0.95)" }}>
             {noUsersYet ? "You're first here!" : "All caught up"}
           </div>
-          <div className="font-mono text-[11px] leading-relaxed max-w-[260px]" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+          <div className="font-mono text-[11px] leading-relaxed max-w-[260px]" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
             {noUsersYet
               ? "No other adventurers yet — share roam. to grow the community and discover your first match"
               : "You've seen everyone for now. More adventurers are joining every day — check back soon."}
@@ -504,10 +504,10 @@ export default function Discover() {
                      data-testid="tooltip-pioneer">
                   <div className="font-mono text-[8px] tracking-[1px] uppercase mb-1.5" style={{ color: "var(--roam-electric)" }}>🏔️ Regional Pioneer</div>
                   <div className="text-[13px] font-semibold mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.95)" }}>{profile.pioneerBadge.place}</div>
-                  <div className="text-[11px] leading-relaxed mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                  <div className="text-[11px] leading-relaxed mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.75)" }}>
                     First to consistently tag this location — most posts from any single adventurer here.
                   </div>
-                  <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+                  <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
                     {profile.pioneerBadge.tagCount} posts · {profile.pioneerBadge.location}
                   </div>
                 </div>

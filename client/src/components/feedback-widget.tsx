@@ -34,7 +34,6 @@ export default function FeedbackWidget() {
         setOpen(false);
       }, 2200);
     } catch {
-      // silent fallback
     } finally {
       setSending(false);
     }
@@ -72,7 +71,7 @@ export default function FeedbackWidget() {
                   <p className="font-serif text-[16px] font-black" style={{ color: "var(--roam-cream)" }}>
                     Feedback received
                   </p>
-                  <p className="font-mono text-[11px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                  <p className="font-mono text-[11px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.72)" }}>
                     Thank you, {user.name?.split(" ")[0] || "explorer"} 🙏
                   </p>
                 </div>
@@ -87,7 +86,7 @@ export default function FeedbackWidget() {
                     <p className="font-serif text-[15px] font-black" style={{ color: "var(--roam-cream)" }}>
                       Share feedback
                     </p>
-                    <p className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+                    <p className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
                       From {user.name}
                     </p>
                   </div>
@@ -97,7 +96,7 @@ export default function FeedbackWidget() {
                     style={{ background: "rgba(var(--roam-cream-rgb),0.07)" }}
                     data-testid="button-close-feedback"
                   >
-                    <X size={13} style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }} />
+                    <X size={13} style={{ color: "rgba(var(--roam-cream-rgb),0.72)" }} />
                   </button>
                 </div>
 
@@ -150,7 +149,7 @@ export default function FeedbackWidget() {
           title="Share feedback"
           data-testid="button-open-feedback"
         >
-          <MessageSquarePlus size={18} style={{ color: open ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.45)" }} />
+          <MessageSquarePlus size={18} style={{ color: open ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.7)" }} />
         </button>
       </div>
     </>

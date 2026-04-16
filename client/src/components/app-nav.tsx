@@ -148,7 +148,7 @@ export default function AppNav() {
                 <div className="absolute right-0 top-10 rounded-2xl p-3 z-[60] min-w-[172px] animate-fade-up shadow-2xl"
                      style={{ background: "var(--roam-surface)", border: `1px solid rgba(var(--roam-cream-rgb),0.10)` }}
                      data-testid="palette-dropdown">
-                  <p className="font-mono text-[8px] tracking-[1.5px] uppercase mb-2.5" style={{ color: `rgba(var(--roam-cream-rgb),0.35)` }}>Colour palette</p>
+                  <p className="font-mono text-[8px] tracking-[1.5px] uppercase mb-2.5" style={{ color: `rgba(var(--roam-cream-rgb),0.62)` }}>Colour palette</p>
                   <div className="flex flex-col gap-1.5">
                     {THEMES.map(t => (
                       <button key={t.id}
@@ -252,7 +252,7 @@ export default function AppNav() {
                     </div>
                     <div>
                       <div className="text-[13px] font-medium leading-tight">Upload photos</div>
-                      <div className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Share your adventure</div>
+                      <div className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>Share your adventure</div>
                     </div>
                   </button>
 
@@ -266,9 +266,9 @@ export default function AppNav() {
                     </div>
                     <div className="flex-1">
                       <div className="text-[13px] font-medium leading-tight">Plan an event</div>
-                      <div className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>{planEventSubtitle}</div>
+                      <div className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>{planEventSubtitle}</div>
                     </div>
-                    {ledGroups.length > 1 && <ChevronRight size={12} style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }} />}
+                    {ledGroups.length > 1 && <ChevronRight size={12} style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }} />}
                   </button>
 
                   <div className="mx-3 my-0.5 h-px" style={{ background: "rgba(var(--roam-cream-rgb),0.06)" }} />
@@ -283,7 +283,7 @@ export default function AppNav() {
                     </div>
                     <div className="flex-1">
                       <div className="text-[13px] font-medium leading-tight">Promote an event</div>
-                      <div className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Paid · public listing</div>
+                      <div className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>Paid · public listing</div>
                     </div>
                   </button>
                 </div>
@@ -292,7 +292,7 @@ export default function AppNav() {
               {createView === "group-picker" && (
                 <div className="p-1">
                   <div className="px-3 pt-2 pb-1">
-                    <div className="font-mono text-[9px] tracking-wider uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Your groups</div>
+                    <div className="font-mono text-[9px] tracking-wider uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>Your groups</div>
                   </div>
                   {ledGroups.map((g: any) => (
                     <button key={g.id}
@@ -308,7 +308,7 @@ export default function AppNav() {
                     </button>
                   ))}
                   <button className="w-full px-3 py-2 text-[10px] font-mono text-left hover:bg-white/5 rounded-xl"
-                          style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}
+                          style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}
                           onClick={() => setCreateView("menu")}>← Back</button>
                 </div>
               )}
@@ -316,8 +316,8 @@ export default function AppNav() {
               {createView === "quick-create" && (
                 <div className="p-3">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="font-mono text-[9px] tracking-wider uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>New group</div>
-                    <button onClick={() => setCreateView("menu")} className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>← back</button>
+                    <div className="font-mono text-[9px] tracking-wider uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.75)" }}>New group</div>
+                    <button onClick={() => setCreateView("menu")} className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>← back</button>
                   </div>
                   <input
                     value={quickForm.name}
@@ -338,11 +338,11 @@ export default function AppNav() {
                                 border: `1px solid ${quickForm.type === t.id ? "rgba(var(--roam-electric-rgb),0.35)" : "rgba(var(--roam-cream-rgb),0.08)"}`,
                               }}
                               data-testid={`quick-type-${t.id}`}>
-                        <div className="flex items-center gap-1" style={{ color: quickForm.type === t.id ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.5)" }}>
+                        <div className="flex items-center gap-1" style={{ color: quickForm.type === t.id ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.72)" }}>
                           {t.icon}
                           <span className="font-mono text-[10px] font-semibold">{t.label}</span>
                         </div>
-                        <span className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>{t.desc}</span>
+                        <span className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>{t.desc}</span>
                       </button>
                     ))}
                   </div>
@@ -352,7 +352,7 @@ export default function AppNav() {
                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-mono text-[11px] font-semibold transition-all"
                     style={{
                       background: quickForm.name.trim() && quickForm.type ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.08)",
-                      color: quickForm.name.trim() && quickForm.type ? "var(--roam-forest)" : "rgba(var(--roam-cream-rgb),0.3)",
+                      color: quickForm.name.trim() && quickForm.type ? "var(--roam-forest)" : "rgba(var(--roam-cream-rgb),0.55)",
                     }}
                     data-testid="button-quick-create-group">
                     {quickCreateMutation.isPending ? "Creating…" : <>Create & plan <ArrowRight size={12} /></>}

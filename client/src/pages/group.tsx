@@ -101,11 +101,11 @@ function GroupEventCard({ ev, group, isLeader, isApproved, userId, deleteEventMu
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex-1">
           <div className="font-medium" style={{ color: "var(--roam-cream)" }}>{ev.title}</div>
-          <div className="text-[11px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+          <div className="text-[11px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.72)" }}>
             {formatDatetime(ev.startAt)}{ev.endAt ? ` → ${formatDatetime(ev.endAt)}` : ""}
           </div>
           {ev.location && (
-            <div className="flex items-center gap-1 text-[11px] mt-1" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+            <div className="flex items-center gap-1 text-[11px] mt-1" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
               <MapPin size={10} /> {ev.location}
             </div>
           )}
@@ -129,7 +129,7 @@ function GroupEventCard({ ev, group, isLeader, isApproved, userId, deleteEventMu
           </button>
           {isLeader && (
             <button onClick={() => deleteEventMutation.mutate(ev.id)}
-                    className="p-1.5 rounded-lg" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}
+                    className="p-1.5 rounded-lg" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}
                     data-testid={`button-delete-event-${ev.id}`}>
               <Trash2 size={13} />
             </button>
@@ -155,12 +155,12 @@ function GroupEventCard({ ev, group, isLeader, isApproved, userId, deleteEventMu
                   </div>
                 ))}
               </div>
-              <span className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+              <span className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.72)" }}>
                 {attendees.length} going
               </span>
             </>
           ) : (
-            <span className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>No RSVPs yet</span>
+            <span className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.58)" }}>No RSVPs yet</span>
           )}
         </div>
         <div className="flex items-center gap-1.5">
@@ -456,19 +456,19 @@ export default function GroupPage() {
                 {group.name}
               </h1>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
-                <span className="text-[11px] font-mono" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                <span className="text-[11px] font-mono" style={{ color: "rgba(var(--roam-cream-rgb),0.72)" }}>
                   {GROUP_TYPE_LABEL[group.type]} · {GROUP_TYPE_RANGE[group.type]}
                 </span>
-                <span className="flex items-center gap-1 text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                <span className="flex items-center gap-1 text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.72)" }}>
                   {group.visibility === "closed" ? <Lock size={10} /> : <Globe size={10} />}
                   {group.visibility === "closed" ? "Closed" : "Open"}
                 </span>
                 {group.location && (
-                  <span className="flex items-center gap-1 text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+                  <span className="flex items-center gap-1 text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
                     <MapPin size={10} /> {group.location}
                   </span>
                 )}
-                <span className="flex items-center gap-1 text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+                <span className="flex items-center gap-1 text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
                   <Users size={10} /> {group.memberCount ?? 0} / {group.maxSize}
                 </span>
               </div>
@@ -498,7 +498,7 @@ export default function GroupPage() {
             )}
             {isLeader && (
               <span className="flex items-center gap-1 text-[11px] font-mono flex-shrink-0 mt-1"
-                    style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                    style={{ color: "rgba(var(--roam-cream-rgb),0.7)" }}>
                 <Crown size={12} style={{ color: "rgba(var(--roam-electric-rgb),0.8)" }} /> leader
               </span>
             )}
@@ -509,7 +509,7 @@ export default function GroupPage() {
               <button key={t} onClick={() => setTab(t)}
                       className="px-4 py-2 text-[12px] font-mono tracking-wider capitalize transition-all"
                       style={{
-                        color: tab === t ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.4)",
+                        color: tab === t ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.65)",
                         borderBottom: tab === t ? "2px solid var(--roam-electric)" : "2px solid transparent",
                         marginBottom: "-1px",
                       }}
@@ -531,7 +531,7 @@ export default function GroupPage() {
 
               {(group.adventureTags ?? []).length > 0 && (
                 <div>
-                  <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+                  <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
                     Adventure DNA
                   </div>
                   <div className="flex flex-wrap gap-1.5">
@@ -546,7 +546,7 @@ export default function GroupPage() {
               )}
 
               <div>
-                <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+                <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
                   Members ({approvedMembers.length})
                 </div>
                 <div className="space-y-2">
@@ -566,7 +566,7 @@ export default function GroupPage() {
                         <div>
                           <div className="text-sm font-medium" style={{ color: "var(--roam-cream)" }}>{m.user?.name ?? "Unknown"}</div>
                           {m.user?.location && (
-                            <div className="text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>{m.user.location}</div>
+                            <div className="text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>{m.user.location}</div>
                           )}
                         </div>
                       </div>
@@ -577,7 +577,7 @@ export default function GroupPage() {
                         {isLeader && m.userId !== user?.id && (
                           <button onClick={() => removeMutation.mutate(m.userId)}
                                   className="p-1 rounded-lg transition-all"
-                                  style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}
+                                  style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}
                                   data-testid={`button-remove-${m.userId}`}>
                             <XCircle size={14} />
                           </button>
@@ -590,7 +590,7 @@ export default function GroupPage() {
 
               {isLeader && pendingMembers.length > 0 && (
                 <div>
-                  <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+                  <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
                     Pending requests ({pendingMembers.length})
                   </div>
                   <div className="space-y-2">
@@ -613,7 +613,7 @@ export default function GroupPage() {
                               )}
                               <div>
                                 <div className="text-sm font-medium" style={{ color: "var(--roam-cream)" }}>{m.user?.name ?? "Unknown"}</div>
-                                <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+                                <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
                                   {completedChecks}/2 profile checks complete
                                 </div>
                               </div>
@@ -625,7 +625,7 @@ export default function GroupPage() {
                                 <CheckCircle size={18} />
                               </button>
                               <button onClick={() => rejectMutation.mutate(m.userId)}
-                                      className="p-1.5 rounded-lg" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}
+                                      className="p-1.5 rounded-lg" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}
                                       data-testid={`button-reject-${m.userId}`}>
                                 <XCircle size={18} />
                               </button>
@@ -633,12 +633,12 @@ export default function GroupPage() {
                           </div>
                           <div className="flex gap-3 mt-1">
                             <div className="flex items-center gap-1">
-                              {hasPhoto ? <Check size={9} style={{ color: "var(--roam-electric)" }} /> : <XCircle size={9} style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }} />}
-                              <span className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>photo</span>
+                              {hasPhoto ? <Check size={9} style={{ color: "var(--roam-electric)" }} /> : <XCircle size={9} style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }} />}
+                              <span className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>photo</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              {hasTagline ? <Check size={9} style={{ color: "var(--roam-electric)" }} /> : <XCircle size={9} style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }} />}
-                              <span className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>tagline</span>
+                              {hasTagline ? <Check size={9} style={{ color: "var(--roam-electric)" }} /> : <XCircle size={9} style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }} />}
+                              <span className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>tagline</span>
                             </div>
                           </div>
                         </div>
@@ -651,7 +651,7 @@ export default function GroupPage() {
               {isLeader && (
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <div className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+                    <div className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
                       Invite by email
                     </div>
                     <button onClick={() => setShowInviteForm(v => !v)}
@@ -679,7 +679,7 @@ export default function GroupPage() {
                       <button onClick={() => sendInviteMutation.mutate()}
                               disabled={!inviteEmail.trim() || sendInviteMutation.isPending}
                               className="w-full py-2.5 rounded-xl font-mono text-[11px] font-semibold flex items-center justify-center gap-2"
-                              style={{ background: inviteEmail.trim() ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.06)", color: inviteEmail.trim() ? "var(--roam-bg)" : "rgba(var(--roam-cream-rgb),0.3)" }}
+                              style={{ background: inviteEmail.trim() ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.06)", color: inviteEmail.trim() ? "var(--roam-bg)" : "rgba(var(--roam-cream-rgb),0.58)" }}
                               data-testid="button-send-invite">
                         {sendInviteMutation.isPending ? "Sending…" : <><Mail size={12} /> Send invite &amp; copy link</>}
                       </button>
@@ -693,12 +693,12 @@ export default function GroupPage() {
                              style={{ background: "rgba(var(--roam-cream-rgb),0.03)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}
                              data-testid={`invite-row-${inv.id}`}>
                           <div>
-                            <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>{inv.invitedEmail}</div>
-                            <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>invited · pending response</div>
+                            <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.82)" }}>{inv.invitedEmail}</div>
+                            <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.58)" }}>invited · pending response</div>
                           </div>
                           <button onClick={() => copyInviteLink(inv.token)}
                                   className="p-2 rounded-lg"
-                                  style={{ color: copiedToken === inv.token ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.35)" }}
+                                  style={{ color: copiedToken === inv.token ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.62)" }}
                                   data-testid={`button-copy-invite-${inv.id}`}>
                             {copiedToken === inv.token ? <CheckCheck size={13} /> : <Copy size={13} />}
                           </button>
@@ -716,7 +716,7 @@ export default function GroupPage() {
               {!isApproved ? (
                 <div className="flex-1 flex flex-col items-center justify-center gap-3 px-5 text-center">
                   <div className="text-3xl" style={{ color: "rgba(var(--roam-cream-rgb),0.12)" }}>🏕</div>
-                  <p className="text-sm" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+                  <p className="text-sm" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
                     {myMembership?.status === "pending"
                       ? "Your join request is pending approval."
                       : "Join the group to access the campsite chat."}
@@ -727,7 +727,7 @@ export default function GroupPage() {
                   <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
                     {localMessages.length === 0 && (
                       <div className="text-center py-10">
-                        <p className="text-sm" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+                        <p className="text-sm" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
                           No messages yet. Say hello to the crew!
                         </p>
                       </div>
@@ -752,7 +752,7 @@ export default function GroupPage() {
                           <div className={`max-w-[72%] ${isMe ? "items-end" : "items-start"} flex flex-col gap-0.5`}>
                             {!isMe && msg.sender && (
                               <span className="text-[10px] font-mono px-1"
-                                    style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+                                    style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
                                 {msg.sender.name}
                               </span>
                             )}
@@ -783,7 +783,7 @@ export default function GroupPage() {
                     />
                     <button onClick={sendMessage} disabled={!message.trim()}
                             className="p-2.5 rounded-xl flex-shrink-0 transition-opacity"
-                            style={{ background: message.trim() ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.08)", color: message.trim() ? "var(--roam-bg)" : "rgba(var(--roam-cream-rgb),0.3)" }}
+                            style={{ background: message.trim() ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.08)", color: message.trim() ? "var(--roam-bg)" : "rgba(var(--roam-cream-rgb),0.55)" }}
                             data-testid="button-send-message">
                       <Send size={16} />
                     </button>
@@ -807,7 +807,7 @@ export default function GroupPage() {
                   ) : (
                     <div className="p-4 rounded-2xl space-y-3"
                          style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.08)" }}>
-                      <div className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>New event</div>
+                      <div className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>New event</div>
                       {[
                         { key: "title", label: "Title *", type: "text", placeholder: "Event title" },
                         { key: "location", label: "Location", type: "text", placeholder: "Where?" },
@@ -815,7 +815,7 @@ export default function GroupPage() {
                         { key: "endAt", label: "Ends", type: "datetime-local", placeholder: "" },
                       ].map(f => (
                         <div key={f.key}>
-                          <label className="text-[11px] font-mono block mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>{f.label}</label>
+                          <label className="text-[11px] font-mono block mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>{f.label}</label>
                           <input
                             type={f.type}
                             value={(eventForm as any)[f.key]}
@@ -837,7 +837,7 @@ export default function GroupPage() {
                         data-testid="input-event-description"
                       />
                       <div>
-                        <label className="text-[11px] font-mono block mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Ticket price (NZD) — optional</label>
+                        <label className="text-[11px] font-mono block mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>Ticket price (NZD) — optional</label>
                         <input
                           type="number"
                           min="0"
@@ -851,7 +851,7 @@ export default function GroupPage() {
                         />
                         {eventForm.ticketPriceNzd && parseFloat(eventForm.ticketPriceNzd) > 0 && (
                           <div className="mt-1.5 px-2.5 py-1.5 rounded-lg font-mono text-[9px]"
-                               style={{ background: "rgba(var(--roam-ember-rgb),0.07)", border: "1px solid rgba(var(--roam-ember-rgb),0.2)", color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                               style={{ background: "rgba(var(--roam-ember-rgb),0.07)", border: "1px solid rgba(var(--roam-ember-rgb),0.2)", color: "rgba(var(--roam-cream-rgb),0.75)" }}>
                             Attendees pay <span style={{ color: "var(--roam-cream)" }}>${(parseFloat(eventForm.ticketPriceNzd) * 1.10).toFixed(2)} NZD</span> — includes 10% roam. platform fee. You receive <span style={{ color: "var(--roam-cream)" }}>${parseFloat(eventForm.ticketPriceNzd).toFixed(2)} NZD</span> per ticket.
                           </div>
                         )}
@@ -859,7 +859,7 @@ export default function GroupPage() {
                       <div className="flex gap-2">
                         <button onClick={() => setShowEventForm(false)}
                                 className="flex-1 py-2 rounded-xl text-sm"
-                                style={{ background: "rgba(var(--roam-cream-rgb),0.07)", color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                                style={{ background: "rgba(var(--roam-cream-rgb),0.07)", color: "rgba(var(--roam-cream-rgb),0.75)" }}>
                           Cancel
                         </button>
                         <button onClick={() => createEventMutation.mutate()}
@@ -878,7 +878,7 @@ export default function GroupPage() {
               {events.length === 0 && (
                 <div className="text-center py-10">
                   <Calendar size={28} className="mx-auto mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.12)" }} />
-                  <p className="text-sm" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>No events planned yet.</p>
+                  <p className="text-sm" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>No events planned yet.</p>
                 </div>
               )}
 

@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import AppNav from "@/components/app-nav";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
-import { Zap, Users, Ticket, Megaphone, ChevronRight, Check } from "lucide-react";
+import { Zap, Ticket, Megaphone, ChevronRight, Check } from "lucide-react";
 
 const inputStyle = "w-full py-3.5 rounded-xl font-mono text-[11px] tracking-wider uppercase font-semibold transition-all";
 
@@ -24,12 +24,12 @@ function PlanCard({ title, badge, price, period, features, buttonLabel, buttonSt
           </div>
           <div className="text-right flex-shrink-0">
             <div className="font-serif text-[26px] font-bold leading-none" style={{ color: "var(--roam-cream)" }}>{price}</div>
-            <div className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>{period}</div>
+            <div className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>{period}</div>
           </div>
         </div>
         <div className="grid grid-cols-1 gap-y-1.5 mb-4">
           {features.map(f => (
-            <div key={f} className="flex items-center gap-2 font-mono text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
+            <div key={f} className="flex items-center gap-2 font-mono text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.82)" }}>
               <span style={{ color: `var(--${accentVar})` }}>✓</span> {f}
             </div>
           ))}
@@ -78,26 +78,26 @@ export default function Plans() {
         <div className="max-w-lg mx-auto px-4 pb-16 pt-4 pr-14">
 
           <div className="mb-6">
-            <div className="font-mono text-[10px] tracking-[2px] uppercase mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>
+            <div className="font-mono text-[10px] tracking-[2px] uppercase mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
               Membership &amp; Perks
             </div>
             <h1 className="font-serif text-3xl font-black mb-1" style={{ color: "var(--roam-cream)" }}>
               roam. plans
             </h1>
-            <p className="font-mono text-[11px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+            <p className="font-mono text-[11px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.72)" }}>
               Roaming is free. Pay for what you actually want.
             </p>
           </div>
 
           <div className="mb-5 px-4 py-3 rounded-2xl"
                style={{ border: "1px solid rgba(var(--roam-cream-rgb),0.08)", background: "rgba(var(--roam-cream-rgb),0.03)" }}>
-            <div className="font-mono text-[9px] tracking-wider uppercase mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
+            <div className="font-mono text-[9px] tracking-wider uppercase mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.58)" }}>
               Explorer · Always free
             </div>
             <div className="grid grid-cols-2 gap-x-3 gap-y-1">
               {["Discover &amp; browse people", "Receive connection requests", "Join 2 groups", "Browse all events", "View what's on"].map(f => (
-                <div key={f} className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
-                  <Check size={10} style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }} /> <span dangerouslySetInnerHTML={{ __html: f }} />
+                <div key={f} className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.75)" }}>
+                  <Check size={10} style={{ color: "rgba(var(--roam-cream-rgb),0.58)" }} /> <span dangerouslySetInnerHTML={{ __html: f }} />
                 </div>
               ))}
             </div>
@@ -123,7 +123,7 @@ export default function Plans() {
               onAction={() => startCheckout("/api/checkout/start", setLoadingAdventurer)}
               loading={loadingAdventurer}
             >
-              <div className="mb-3 font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}>
+              <div className="mb-3 font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.52)" }}>
                 Powered by Stripe · Cancel anytime from your profile
               </div>
             </PlanCard>
@@ -147,7 +147,7 @@ export default function Plans() {
                 </div>
                 <div>
                   <div className="font-serif text-[15px] font-black mb-0.5" style={{ color: "var(--roam-cream)" }}>Profile Boost</div>
-                  <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                  <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.7)" }}>
                     Top of discovery for 24 hours
                   </div>
                 </div>
@@ -155,7 +155,7 @@ export default function Plans() {
               <div className="flex items-center gap-3 flex-shrink-0">
                 <div className="text-right">
                   <div className="font-serif text-[18px] font-bold" style={{ color: "var(--roam-cream)" }}>$1</div>
-                  <div className="font-mono text-[8px]" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>NZD</div>
+                  <div className="font-mono text-[8px]" style={{ color: "rgba(var(--roam-cream-rgb),0.58)" }}>NZD</div>
                 </div>
                 <button
                   onClick={() => startCheckout("/api/checkout/boost", setLoadingBoost)}
@@ -169,7 +169,7 @@ export default function Plans() {
             </div>
             <div className="px-5 pb-3 grid grid-cols-2 gap-1">
               {["Appear first in discover", "Any user can boost", "Stacks with Adventurer", "Pay per use"].map(f => (
-                <div key={f} className="flex items-center gap-1.5 font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+                <div key={f} className="flex items-center gap-1.5 font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
                   <span style={{ color: "var(--roam-electric)" }}>·</span> {f}
                 </div>
               ))}
@@ -196,7 +196,7 @@ export default function Plans() {
               onAction={() => startCheckout("/api/checkout/organiser", setLoadingOrganiser)}
               loading={loadingOrganiser}
             >
-              <div className="mb-3 font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}>
+              <div className="mb-3 font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.52)" }}>
                 Pay once · no recurring fee · access never expires
               </div>
             </PlanCard>
@@ -215,18 +215,18 @@ export default function Plans() {
             <div className="px-5 pt-4 pb-2 flex items-start gap-3">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
                    style={{ background: "rgba(var(--roam-sky-rgb),0.12)", border: "1px solid rgba(var(--roam-sky-rgb),0.25)" }}>
-                <Ticket size={16} style={{ color: "rgba(var(--roam-sky-rgb),0.8)" }} />
+                <Ticket size={16} style={{ color: "rgba(var(--roam-sky-rgb),0.9)" }} />
               </div>
               <div className="flex-1">
                 <div className="font-serif text-[15px] font-black mb-0.5" style={{ color: "var(--roam-cream)" }}>Event Ticketing</div>
-                <div className="font-mono text-[10px] mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                <div className="font-mono text-[10px] mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.72)" }}>
                   Charge entry for your group events. roam. handles payment and takes a 10% platform fee — you keep the rest.
                 </div>
                 <div className="font-mono text-[9px] px-3 py-2 rounded-xl mb-2"
-                     style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.08)" }}>
+                     style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.08)", color: "rgba(var(--roam-cream-rgb),0.78)" }}>
                   Example: You set $20 entry → attendees pay $22 → you receive $20
                 </div>
-                <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
+                <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.58)" }}>
                   Requires Squad Leader plan · Available when creating group events
                 </div>
               </div>
@@ -239,11 +239,11 @@ export default function Plans() {
             <div className="px-5 pt-4 pb-4 flex items-start gap-3">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
                    style={{ background: "rgba(var(--roam-sky-rgb),0.1)", border: "1px solid rgba(var(--roam-sky-rgb),0.2)" }}>
-                <Megaphone size={16} style={{ color: "rgba(var(--roam-sky-rgb),0.7)" }} />
+                <Megaphone size={16} style={{ color: "rgba(var(--roam-sky-rgb),0.85)" }} />
               </div>
               <div className="flex-1">
                 <div className="font-serif text-[15px] font-black mb-0.5" style={{ color: "var(--roam-cream)" }}>Sponsored Listings</div>
-                <div className="font-mono text-[10px] mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                <div className="font-mono text-[10px] mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.72)" }}>
                   Local businesses, tour operators, and brands can reach the roam. community directly. Three placement tiers available.
                 </div>
                 <div className="grid grid-cols-3 gap-2 mb-3">
@@ -254,15 +254,15 @@ export default function Plans() {
                   ].map(t => (
                     <div key={t.name} className="p-2 rounded-xl text-center"
                          style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
-                      <div className="font-mono text-[8px] tracking-wider uppercase mb-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>{t.name}</div>
+                      <div className="font-mono text-[8px] tracking-wider uppercase mb-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>{t.name}</div>
                       <div className="font-serif text-[14px] font-bold" style={{ color: "var(--roam-cream)" }}>{t.price}</div>
-                      <div className="font-mono text-[8px]" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>{t.days}</div>
+                      <div className="font-mono text-[8px]" style={{ color: "rgba(var(--roam-cream-rgb),0.58)" }}>{t.days}</div>
                     </div>
                   ))}
                 </div>
                 <Link href="/advertise">
                   <div className="flex items-center gap-1 font-mono text-[10px] tracking-wider"
-                       style={{ color: "rgba(var(--roam-sky-rgb),0.7)" }}
+                       style={{ color: "var(--roam-sky)" }}
                        data-testid="link-advertise">
                     Learn more &amp; get started <ChevronRight size={12} />
                   </div>
