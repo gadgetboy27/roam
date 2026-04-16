@@ -179,56 +179,55 @@ export default function AppNav() {
       </nav>
 
       {/* Side nav */}
-      <div className="fixed right-3 bottom-24 z-50 flex flex-col items-center gap-1 py-2.5 px-1.5 rounded-[26px]"
-           style={{
-             background: `rgba(var(--roam-forest-rgb),0.82)`,
-             backdropFilter: "blur(24px)",
-             WebkitBackdropFilter: "blur(24px)",
-             border: `1px solid rgba(var(--roam-cream-rgb),0.08)`,
-             boxShadow: "0 4px 32px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.04)",
-           }}
-           data-testid="side-nav">
-        {NAV_ITEMS.map(item => {
-          const active = location === item.path || (item.path === "/groups" && location.startsWith("/groups/"));
-          return (
-            <Link key={item.path} href={item.path}>
-              <button title={item.label}
-                      className="relative w-10 h-10 rounded-[18px] flex items-center justify-center transition-all"
-                      style={{
-                        background: active ? `rgba(var(--roam-electric-rgb),0.14)` : "transparent",
-                        color: active ? "var(--roam-electric)" : `rgba(var(--roam-cream-rgb),0.38)`,
-                      }}
-                      data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}>
-                <item.icon size={18} strokeWidth={1.8} />
-                {active && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
-                       style={{ background: "var(--roam-electric)" }} />
-                )}
-              </button>
-            </Link>
-          );
-        })}
-
-        <div className="w-5 h-px my-0.5" style={{ background: `rgba(var(--roam-cream-rgb),0.1)` }} />
-
-        <Link href="/plans">
-          <button title="Plans & pricing"
-                  className="w-10 h-10 rounded-[18px] flex items-center justify-center transition-all"
-                  style={{
-                    background: location === "/plans" ? "rgba(var(--roam-electric-rgb),0.14)" : "transparent",
-                    color: location === "/plans" ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.38)",
-                  }}
-                  data-testid="nav-plans">
-            <Zap size={18} strokeWidth={1.8} />
-          </button>
-        </Link>
-
-        <div className="relative" ref={createRef}>
+      <div className="fixed right-3 top-1/2 -translate-y-1/2 z-50" ref={createRef} data-testid="side-nav">
+        {/* Unified pill — all nav + utility + create icons in one background */}
+        <div className="flex flex-col items-center py-3 px-2 rounded-2xl"
+             style={{
+               gap: "3px",
+               background: "rgba(var(--roam-forest-rgb),0.92)",
+               backdropFilter: "blur(20px)",
+               WebkitBackdropFilter: "blur(20px)",
+               border: "1px solid rgba(var(--roam-cream-rgb),0.1)",
+               boxShadow: "0 4px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)",
+             }}>
+          {NAV_ITEMS.map(item => {
+            const active = location === item.path || (item.path === "/groups" && location.startsWith("/groups/"));
+            return (
+              <Link key={item.path} href={item.path}>
+                <button title={item.label}
+                        className="relative w-10 h-10 rounded-[14px] flex items-center justify-center transition-all"
+                        style={{
+                          background: active ? "rgba(var(--roam-electric-rgb),0.15)" : "transparent",
+                          color: active ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.4)",
+                        }}
+                        data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}>
+                  <item.icon size={18} strokeWidth={1.8} />
+                  {active && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
+                         style={{ background: "var(--roam-electric)" }} />
+                  )}
+                </button>
+              </Link>
+            );
+          })}
+          <div style={{ width: 20, height: 1, background: "rgba(var(--roam-cream-rgb),0.12)", flexShrink: 0, margin: "1px 0" }} />
+          <Link href="/plans">
+            <button title="Plans & pricing"
+                    className="w-10 h-10 rounded-[14px] flex items-center justify-center transition-all"
+                    style={{
+                      background: location === "/plans" ? "rgba(var(--roam-electric-rgb),0.15)" : "transparent",
+                      color: location === "/plans" ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.35)",
+                    }}
+                    data-testid="nav-plans">
+              <Zap size={17} strokeWidth={1.8} />
+            </button>
+          </Link>
+          <div style={{ width: 20, height: 1, background: "rgba(var(--roam-cream-rgb),0.12)", flexShrink: 0, margin: "1px 0" }} />
           <button title="Create"
-                  className="w-10 h-10 rounded-[18px] flex items-center justify-center transition-all hover:opacity-90 active:scale-95"
+                  className="w-10 h-10 rounded-[14px] flex items-center justify-center transition-all hover:opacity-90 active:scale-95"
                   style={{
                     background: createOpen ? "rgba(var(--roam-electric-rgb),0.8)" : "var(--roam-electric)",
-                    boxShadow: `0 2px 14px rgba(var(--roam-electric-rgb),0.45)`,
+                    boxShadow: "0 2px 12px rgba(var(--roam-electric-rgb),0.4)",
                   }}
                   onClick={() => { setCreateOpen(o => !o); if (createOpen) setCreateView("menu"); }}
                   data-testid="nav-post">
@@ -236,10 +235,10 @@ export default function AppNav() {
               ? <X size={16} strokeWidth={2.5} style={{ color: "var(--roam-forest)" }} />
               : <Plus size={18} strokeWidth={2.5} style={{ color: "var(--roam-forest)" }} />}
           </button>
-
-          {createOpen && (
-            <div className="absolute right-12 bottom-0 w-56 rounded-2xl overflow-hidden shadow-2xl animate-fade-up"
-                 style={{ background: "var(--roam-surface)", border: "1px solid rgba(var(--roam-cream-rgb),0.1)" }}>
+        </div>
+        {createOpen && (
+          <div className="absolute right-14 bottom-0 w-56 rounded-2xl overflow-hidden shadow-2xl animate-fade-up"
+               style={{ background: "var(--roam-surface)", border: "1px solid rgba(var(--roam-cream-rgb),0.1)" }}>
 
               {createView === "menu" && (
                 <div className="p-1">
@@ -362,7 +361,6 @@ export default function AppNav() {
               )}
             </div>
           )}
-        </div>
       </div>
     </>
   );
