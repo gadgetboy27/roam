@@ -77,7 +77,10 @@ export interface IStorage {
   deleteGroupEvent(id: string): Promise<void>;
 
   rsvpEvent(eventId: string, userId: string): Promise<void>;
+  rsvpEventTicketed(eventId: string, userId: string, sessionId: string): Promise<void>;
   unrsvpEvent(eventId: string, userId: string): Promise<void>;
+  getEventAttendee(eventId: string, userId: string): Promise<typeof groupEventAttendees.$inferSelect | undefined>;
+  markTicketPaid(attendeeId: number, sessionId: string): Promise<void>;
   getEventAttendees(eventId: string): Promise<{ userId: string; name: string; avatarUrl: string | null }[]>;
   getUpcomingEvents(userId?: string): Promise<any[]>;
 
@@ -377,13 +380,29 @@ export class DatabaseStorage implements IStorage {
     const existing = await db.select().from(groupEventAttendees)
       .where(and(eq(groupEventAttendees.eventId, eventId), eq(groupEventAttendees.userId, userId)));
     if (existing.length === 0) {
-      await db.insert(groupEventAttendees).values({ eventId, userId });
+      await db.insert(groupEventAttendees).values({ eventId, userId, ticketPaid: true });
     }
+  }
+
+  async rsvpEventTicketed(eventId: string, userId: string, sessionId: string): Promise<void> {
+    await db.insert(groupEventAttendees).values({ eventId, userId, ticketPaid: true, ticketSessionId: sessionId });
   }
 
   async unrsvpEvent(eventId: string, userId: string): Promise<void> {
     await db.delete(groupEventAttendees)
       .where(and(eq(groupEventAttendees.eventId, eventId), eq(groupEventAttendees.userId, userId)));
+  }
+
+  async getEventAttendee(eventId: string, userId: string): Promise<typeof groupEventAttendees.$inferSelect | undefined> {
+    const [row] = await db.select().from(groupEventAttendees)
+      .where(and(eq(groupEventAttendees.eventId, eventId), eq(groupEventAttendees.userId, userId)));
+    return row;
+  }
+
+  async markTicketPaid(attendeeId: number, sessionId: string): Promise<void> {
+    await db.update(groupEventAttendees)
+      .set({ ticketPaid: true, ticketSessionId: sessionId })
+      .where(eq(groupEventAttendees.id, attendeeId));
   }
 
   async getEventAttendees(eventId: string): Promise<{ userId: string; name: string; avatarUrl: string | null }[]> {

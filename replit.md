@@ -38,7 +38,12 @@ I prefer concise and clear communication. When making changes, please explain th
 - **Discover Page**: Displays demo profiles for anonymous users and provides a signup nudge.
 - **Profile Page**: Allows users to edit personal details, adventure DNA, upload avatars (as data URLs), initiate Stripe Identity verification, and manage subscription tiers.
 - **Match Lifecycle**: Users "like" each other; a reciprocal like results in a "matched" status, enabling chat.
-- **Tiers**: "Explorer" (free with limitations), "Adventurer" (paid subscription with full features), and "Contributor" (free in exchange for photo licensing).
+- **Tiers**: "Explorer" (free with limitations), "Adventurer" ($4.99/mo NZD subscription with full features), and "Contributor" (free in exchange for photo licensing).
+- **Freemium Monetization**: Replaced the $12/mo gate with a freemium model. Explorer (free) gets basic browsing; Adventurer ($4.99/mo) unlocks full features; Profile Boost ($1 NZD one-time, 24hr top-of-discovery); Squad Leader ($19.99 NZD one-time, permanent group organiser tools); 10% platform fee on ticketed events.
+- **Profile Boost**: Sets `boostExpiresAt` on the user via Stripe checkout. Shown in profile page with success banner (`?boosted=1`). Schema: `boost_expires_at` on users table.
+- **Squad Leader**: $19.99 one-time purchase sets `isOrganiser=true` on user. Unlocks creating groups and ticketed events without Adventurer subscription. Schema: `is_organiser` on users table. Group leader eligibility accepts this flag.
+- **Event Ticketing**: Group organisers can set a ticket price (NZD) on events. Attendees pay price × 1.10 (roam. takes 10%). Schema: `ticket_price_nzd` (cents) on group_events; `ticket_paid`, `ticket_session_id` on group_event_attendees. RSVP returns 402 for ticketed events; client redirects to Stripe checkout via `/api/events/:id/ticket/start`.
+- **Plans Page**: Dedicated `/plans` page shows all tiers, pricing, and upgrade CTAs. Accessible via ⚡ Zap icon in the sidebar. Checkout flows are redirected to Stripe hosted checkout.
 - **Rate Limiting**: Implemented in-memory per-IP buckets for API endpoints to prevent abuse.
 - **Admin Dashboard**: Provides user management (tier changes, banning), ad metrics tracking, and an ad review portal. Access is restricted by `ADMIN_EMAILS` environment variable.
 - **What's On Feed**: Events discovery page at `/whats-on` showing upcoming group events with Today/This Week/Upcoming filters, smart relative datetime display, attendee faces, and RSVP capability. RSVP button states: not logged in → signup prompt; not group member → join group link; member → toggle RSVP. Group event cards also include RSVP + attendee count.
@@ -65,7 +70,7 @@ I prefer concise and clear communication. When making changes, please explain th
     - **Supabase PostgreSQL**: Managed database service.
 - **Stripe**:
     - **Stripe Identity**: For user identity verification.
-    - **Stripe Hosted Checkout**: For subscription payments ($12 NZD/month).
+    - **Stripe Hosted Checkout**: Subscription ($4.99/mo Adventurer), Profile Boost ($1 NZD), Squad Leader ($19.99 NZD), Event Ticket checkout.
     - **Stripe Billing Portal**: For users to manage their subscriptions.
 - **Vite**: Frontend build tool.
 - **TanStack Query**: Data fetching and caching.

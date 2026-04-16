@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import {
   Compass, MessageCircle, Plus, User, Palette, Check, Users, CalendarDays,
-  Camera, X, ChevronRight, Tent, Ship, Mountain, Building2, ArrowRight, Megaphone,
+  Camera, X, ChevronRight, Tent, Ship, Mountain, Building2, ArrowRight, Megaphone, Zap,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -210,6 +210,18 @@ export default function AppNav() {
         })}
 
         <div className="w-5 h-px my-0.5" style={{ background: `rgba(var(--roam-cream-rgb),0.1)` }} />
+
+        <Link href="/plans">
+          <button title="Plans & pricing"
+                  className="w-10 h-10 rounded-[18px] flex items-center justify-center transition-all"
+                  style={{
+                    background: location === "/plans" ? "rgba(var(--roam-electric-rgb),0.14)" : "transparent",
+                    color: location === "/plans" ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.38)",
+                  }}
+                  data-testid="nav-plans">
+            <Zap size={18} strokeWidth={1.8} />
+          </button>
+        </Link>
 
         <div className="relative" ref={createRef}>
           <button title="Create"

@@ -30,6 +30,8 @@ export const users = pgTable("users", {
   openToRoaming: boolean("open_to_roaming").default(false),
   isFoundingMember: boolean("is_founding_member").default(false),
   isTierGifted: boolean("is_tier_gifted").default(false),
+  boostExpiresAt: timestamp("boost_expires_at"),
+  isOrganiser: boolean("is_organiser").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -149,6 +151,7 @@ export const groupEvents = pgTable("group_events", {
   location: text("location"),
   startAt: timestamp("start_at").notNull(),
   endAt: timestamp("end_at"),
+  ticketPriceNzd: integer("ticket_price_nzd"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -156,6 +159,8 @@ export const groupEventAttendees = pgTable("group_event_attendees", {
   id: serial("id").primaryKey(),
   eventId: varchar("event_id").notNull(),
   userId: varchar("user_id").notNull(),
+  ticketPaid: boolean("ticket_paid").default(false).notNull(),
+  ticketSessionId: text("ticket_session_id"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

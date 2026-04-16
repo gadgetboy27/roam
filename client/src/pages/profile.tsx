@@ -94,6 +94,10 @@ export default function Profile() {
   const [upgrading, setUpgrading] = useState(false);
   const [upgraded, setUpgraded] = useState(false);
   const [upgradeError, setUpgradeError] = useState("");
+  const [boosting, setBoosting] = useState(false);
+  const [boosted, setBoosted] = useState(false);
+  const [organisingUp, setOrganisingUp] = useState(false);
+  const [squadLeader, setSquadLeader] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -108,7 +112,43 @@ export default function Profile() {
       window.history.replaceState({}, "", "/profile");
       refresh();
     }
+    if (params.get("boosted") === "1") {
+      setBoosted(true);
+      window.history.replaceState({}, "", "/profile");
+      refresh();
+    }
+    if (params.get("squad") === "1") {
+      setSquadLeader(true);
+      window.history.replaceState({}, "", "/profile");
+      refresh();
+    }
   }, []);
+
+  const handleBoost = async () => {
+    setBoosting(true);
+    try {
+      const res = await apiRequest("POST", "/api/checkout/boost");
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } catch {
+      /* silent */
+    } finally {
+      setBoosting(false);
+    }
+  };
+
+  const handleOrganiser = async () => {
+    setOrganisingUp(true);
+    try {
+      const res = await apiRequest("POST", "/api/checkout/organiser");
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } catch {
+      /* silent */
+    } finally {
+      setOrganisingUp(false);
+    }
+  };
 
   const handleUpgrade = async () => {
     setUpgrading(true);
@@ -388,6 +428,22 @@ export default function Profile() {
               </div>
             )}
 
+            {boosted && (
+              <div className="mb-4 px-4 py-3 rounded-2xl flex items-center gap-3"
+                   style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)" }}>
+                <span style={{ color: "var(--roam-electric)" }}>⚡</span>
+                <span className="font-mono text-[11px]" style={{ color: "var(--roam-electric)" }}>Profile boosted! You're at the top of discovery for 24 hours.</span>
+              </div>
+            )}
+
+            {squadLeader && (
+              <div className="mb-4 px-4 py-3 rounded-2xl flex items-center gap-3"
+                   style={{ background: "rgba(var(--roam-ember-rgb),0.1)", border: "1px solid rgba(var(--roam-ember-rgb),0.3)" }}>
+                <span style={{ color: "var(--roam-ember)" }}>🏕️</span>
+                <span className="font-mono text-[11px]" style={{ color: "var(--roam-ember)" }}>Squad Leader unlocked! You can now create and run groups & ticketed events.</span>
+              </div>
+            )}
+
             {user?.tier === "free" && (
               <div className="mb-4 rounded-2xl overflow-hidden"
                    style={{ border: "1.5px solid rgba(var(--roam-electric-rgb),0.4)", background: "linear-gradient(135deg, rgba(var(--roam-electric-rgb),0.08) 0%, rgba(var(--roam-electric-rgb),0.03) 100%)" }}>
@@ -398,16 +454,16 @@ export default function Profile() {
                         Unlock Adventurer
                       </div>
                       <div className="font-mono text-[9px] tracking-wider uppercase" style={{ color: "var(--roam-electric)" }}>
-                        Most popular plan
+                        Most popular · cancel anytime
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <div className="font-serif text-[22px] font-bold" style={{ color: "var(--roam-cream)" }}>$12</div>
+                      <div className="font-serif text-[22px] font-bold" style={{ color: "var(--roam-cream)" }}>$4.99</div>
                       <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>NZD / mo</div>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1 mb-3">
-                    {["Unlimited matches", "Full messaging", "Almost Met radar", "Bucket List matching"].map(f => (
+                    {["Unlimited connections", "Full messaging", "Almost Met radar", "Bucket List matching", "Priority in discovery", "Join unlimited groups"].map(f => (
                       <div key={f} className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>
                         <span style={{ color: "var(--roam-electric)" }}>✓</span> {f}
                       </div>
@@ -431,6 +487,68 @@ export default function Profile() {
                 </div>
               </div>
             )}
+
+            {!(user as any)?.isOrganiser && (
+              <div className="mb-4 rounded-2xl overflow-hidden"
+                   style={{ border: "1px solid rgba(var(--roam-ember-rgb),0.3)", background: "linear-gradient(135deg, rgba(var(--roam-ember-rgb),0.06) 0%, rgba(var(--roam-ember-rgb),0.02) 100%)" }}>
+                <div className="px-4 pt-4 pb-4">
+                  <div className="flex items-start justify-between gap-3 mb-1.5">
+                    <div>
+                      <div className="font-serif text-[15px] font-black mb-0.5" style={{ color: "var(--roam-cream)" }}>
+                        Squad Leader
+                      </div>
+                      <div className="font-mono text-[9px] tracking-wider uppercase" style={{ color: "var(--roam-ember)" }}>
+                        For group organisers
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="font-serif text-[20px] font-bold" style={{ color: "var(--roam-cream)" }}>$19.99</div>
+                      <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>NZD · one-time</div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 mb-3">
+                    {["Create unlimited groups", "Run ticketed events", "Member management tools", "Custom invite links", "Event notifications", "Yours forever"].map(f => (
+                      <div key={f} className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
+                        <span style={{ color: "var(--roam-ember)" }}>✓</span> {f}
+                      </div>
+                    ))}
+                  </div>
+                  <button onClick={handleOrganiser} disabled={organisingUp}
+                          className="w-full py-3 rounded-xl font-mono text-[11px] tracking-wider uppercase font-semibold transition-all"
+                          style={{ background: "rgba(var(--roam-ember-rgb),0.15)", border: "1px solid rgba(var(--roam-ember-rgb),0.4)", color: "var(--roam-ember)", opacity: organisingUp ? 0.7 : 1 }}
+                          data-testid="button-upgrade-organiser">
+                    {organisingUp ? "Redirecting…" : "Unlock Squad Leader →"}
+                  </button>
+                  <div className="text-center mt-2 font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.2)" }}>
+                    Pay once · no subscription · create your first group today
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="mb-4 rounded-2xl overflow-hidden"
+                 style={{ border: "1px solid rgba(var(--roam-cream-rgb),0.1)", background: "rgba(var(--roam-cream-rgb),0.02)" }}>
+              <div className="px-4 py-3 flex items-center justify-between">
+                <div>
+                  <div className="font-serif text-[14px] font-black mb-0.5" style={{ color: "var(--roam-cream)" }}>⚡ Boost your profile</div>
+                  <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                    Appear at the top of discovery for 24 hours
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="text-right">
+                    <div className="font-serif text-[16px] font-bold" style={{ color: "var(--roam-cream)" }}>$1</div>
+                    <div className="font-mono text-[8px]" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>NZD</div>
+                  </div>
+                  <button onClick={handleBoost} disabled={boosting}
+                          className="py-2 px-4 rounded-xl font-mono text-[10px] tracking-wider uppercase font-semibold transition-all flex-shrink-0"
+                          style={{ background: "rgba(var(--roam-electric-rgb),0.12)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)", color: "var(--roam-electric)", opacity: boosting ? 0.7 : 1 }}
+                          data-testid="button-boost-profile">
+                    {boosting ? "…" : "Boost"}
+                  </button>
+                </div>
+              </div>
+            </div>
 
             {(() => {
               const vibeWord = computeVibeWord(profileData.dna);

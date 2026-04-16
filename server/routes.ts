@@ -709,7 +709,7 @@ export async function registerRoutes(
   });
 
   // ---------------------------------------------------------------------------
-  // Stripe Hosted Checkout — Adventurer subscription ($12 NZD/month)
+  // Stripe Hosted Checkout — Adventurer subscription ($4.99 NZD/month)
   // ---------------------------------------------------------------------------
   const checkoutLimiter = createRateLimiter(5, 60 * 60 * 1000);
 
@@ -733,23 +733,156 @@ export async function registerRoutes(
             currency: "nzd",
             product_data: {
               name: "roam. Adventurer",
-              description: "Unlimited matches · Full messaging · Almost Met radar · Bucket List matching",
+              description: "Unlimited connections · Full messaging · Almost Met radar · Bucket List matching · Priority discovery",
               images: [],
             },
-            unit_amount: 1200,
+            unit_amount: 499,
             recurring: { interval: "month" },
           },
           quantity: 1,
         }],
         success_url: `${baseUrl}/profile?upgraded=1`,
         cancel_url: `${baseUrl}/profile`,
-        metadata: { userId },
+        metadata: { userId, type: "adventurer" },
         allow_promotion_codes: true,
       });
 
       return res.json({ url: session.url });
     } catch (err: any) {
       console.error("[checkout] Error:", err.message);
+      return res.status(500).json({ message: err.message });
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Profile Boost — $1 NZD one-time, 24 hours of boosted discovery visibility
+  // ---------------------------------------------------------------------------
+  app.post("/api/checkout/boost", checkoutLimiter, async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    try {
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const stripe = await getUncachableStripeClient();
+      const domain = process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
+      const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
+
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        customer_email: user.stripeCustomerId ? undefined : user.email,
+        customer: user.stripeCustomerId || undefined,
+        line_items: [{
+          price_data: {
+            currency: "nzd",
+            product_data: {
+              name: "roam. Profile Boost",
+              description: "Get seen first in discovery for 24 hours",
+            },
+            unit_amount: 100,
+          },
+          quantity: 1,
+        }],
+        success_url: `${baseUrl}/profile?boosted=1`,
+        cancel_url: `${baseUrl}/profile`,
+        metadata: { userId, type: "boost" },
+      });
+
+      return res.json({ url: session.url });
+    } catch (err: any) {
+      console.error("[boost-checkout] Error:", err.message);
+      return res.status(500).json({ message: err.message });
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Squad Leader Plan — $19.99 NZD one-time, permanent organiser tools
+  // ---------------------------------------------------------------------------
+  app.post("/api/checkout/organiser", checkoutLimiter, async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    try {
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      if (user.isOrganiser) return res.status(400).json({ message: "Already a Squad Leader" });
+
+      const stripe = await getUncachableStripeClient();
+      const domain = process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
+      const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
+
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        customer_email: user.stripeCustomerId ? undefined : user.email,
+        customer: user.stripeCustomerId || undefined,
+        line_items: [{
+          price_data: {
+            currency: "nzd",
+            product_data: {
+              name: "roam. Squad Leader",
+              description: "Create unlimited groups · Ticketed events · Member management · Custom invites — one-time, yours forever",
+            },
+            unit_amount: 1999,
+          },
+          quantity: 1,
+        }],
+        success_url: `${baseUrl}/profile?squad=1`,
+        cancel_url: `${baseUrl}/profile`,
+        metadata: { userId, type: "organiser" },
+      });
+
+      return res.json({ url: session.url });
+    } catch (err: any) {
+      console.error("[organiser-checkout] Error:", err.message);
+      return res.status(500).json({ message: err.message });
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Event Ticket Checkout — Stripe payment for ticketed group events (10% fee)
+  // ---------------------------------------------------------------------------
+  app.post("/api/events/:eventId/ticket/start", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    try {
+      const event = await storage.getGroupEvent(req.params.eventId);
+      if (!event) return res.status(404).json({ message: "Event not found" });
+      if (!event.ticketPriceNzd) return res.status(400).json({ message: "This event is free — no ticket required" });
+
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const existing = await storage.getEventAttendee(event.id, userId);
+      if (existing?.ticketPaid) return res.status(400).json({ message: "You already have a ticket" });
+
+      const stripe = await getUncachableStripeClient();
+      const domain = process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
+      const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
+
+      const totalCents = Math.round(event.ticketPriceNzd * 1.10);
+
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        customer_email: user.stripeCustomerId ? undefined : user.email,
+        customer: user.stripeCustomerId || undefined,
+        line_items: [{
+          price_data: {
+            currency: "nzd",
+            product_data: {
+              name: `Ticket: ${event.title}`,
+              description: `Event ticket · includes 10% roam. platform fee`,
+            },
+            unit_amount: totalCents,
+          },
+          quantity: 1,
+        }],
+        success_url: `${baseUrl}/groups/${event.groupId}?tab=events&ticketed=1`,
+        cancel_url: `${baseUrl}/groups/${event.groupId}?tab=events`,
+        metadata: { userId, type: "event_ticket", eventId: event.id },
+      });
+
+      return res.json({ url: session.url });
+    } catch (err: any) {
+      console.error("[event-ticket] Error:", err.message);
       return res.status(500).json({ message: err.message });
     }
   });
@@ -992,6 +1125,31 @@ export async function registerRoutes(
           await storage.updateAd(adId, { status: "pending_review" });
           console.log(`[payment] Ad ${adId} paid — moved to pending_review`);
         }
+      } else if (metaType === "boost") {
+        const userId = session?.metadata?.userId;
+        if (userId) {
+          const boostExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+          await storage.updateUser(userId, { boostExpiresAt: boostExpiry } as any);
+          console.log(`[payment] User ${userId} boosted until ${boostExpiry.toISOString()}`);
+        }
+      } else if (metaType === "organiser") {
+        const userId = session?.metadata?.userId;
+        if (userId) {
+          await storage.updateUser(userId, { isOrganiser: true } as any);
+          console.log(`[payment] User ${userId} unlocked Squad Leader plan`);
+        }
+      } else if (metaType === "event_ticket") {
+        const userId = session?.metadata?.userId;
+        const eventId = session?.metadata?.eventId;
+        if (userId && eventId) {
+          const existing = await storage.getEventAttendee(eventId, userId);
+          if (existing) {
+            await storage.markTicketPaid(existing.id, session.id);
+          } else {
+            await storage.rsvpEventTicketed(eventId, userId, session.id);
+          }
+          console.log(`[payment] User ${userId} bought ticket for event ${eventId}`);
+        }
       } else {
         const userId = session?.metadata?.userId;
         if (userId) {
@@ -1154,12 +1312,12 @@ export async function registerRoutes(
     const tags = user.adventureTags ?? [];
     const isFoundingOrGifted = user.isFoundingMember || user.isTierGifted;
     const checks = {
-      tier: user.tier === "adventurer" || user.tier === "contributor" || isFoundingOrGifted,
+      tier: user.tier === "adventurer" || user.tier === "contributor" || isFoundingOrGifted || user.isOrganiser,
       photo: hasApprovedPhoto,
       tagline: !!user.tagline,
       tags: tags.length >= 3,
     };
-    if (!checks.tier) return { eligible: false, reason: "Adventurer or Contributor tier required", checks };
+    if (!checks.tier) return { eligible: false, reason: "Adventurer subscription or Squad Leader plan required", checks };
     if (!checks.photo) return { eligible: false, reason: "At least one approved adventure photo required", checks };
     if (!checks.tagline) return { eligible: false, reason: "Add a tagline to your profile", checks };
     if (!checks.tags) return { eligible: false, reason: "Add at least 3 adventure tags to your profile", checks };
@@ -1353,8 +1511,9 @@ export async function registerRoutes(
     if (!member || member.status !== "approved" || (member.role !== "leader" && member.role !== "moderator")) {
       return res.status(403).json({ error: "Only leaders can create events" });
     }
-    const { title, description, location, startAt, endAt } = req.body;
+    const { title, description, location, startAt, endAt, ticketPriceNzd } = req.body;
     if (!title || !startAt) return res.status(400).json({ error: "title and startAt are required" });
+    const parsedTicketPrice = ticketPriceNzd ? Math.round(parseFloat(ticketPriceNzd) * 100) : null;
     const event = await storage.createGroupEvent({
       groupId: req.params.id,
       createdBy: userId,
@@ -1363,6 +1522,7 @@ export async function registerRoutes(
       location: location ?? null,
       startAt: new Date(startAt),
       endAt: endAt ? new Date(endAt) : null,
+      ticketPriceNzd: parsedTicketPrice,
     });
     const members = await storage.getGroupMembers(req.params.id);
     const approved = members.filter(m => m.status === "approved" && m.userId !== userId);
@@ -1499,6 +1659,10 @@ export async function registerRoutes(
   app.post("/api/events/:eventId/rsvp", async (req, res) => {
     const userId = req.session?.userId;
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
+    const event = await storage.getGroupEvent(req.params.eventId);
+    if (event?.ticketPriceNzd) {
+      return res.status(402).json({ error: "This event requires a ticket", requiresTicket: true, eventId: event.id });
+    }
     await storage.rsvpEvent(req.params.eventId, userId);
     res.json({ success: true });
   });

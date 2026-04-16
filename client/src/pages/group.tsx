@@ -72,14 +72,27 @@ function GroupEventCard({ ev, group, isLeader, isApproved, userId, deleteEventMu
   const isRsvpd = !!userId && attendees.some((a: any) => a.userId === userId);
 
   const rsvpMutation = useMutation({
-    mutationFn: () => isRsvpd
-      ? apiRequest("DELETE", `/api/events/${ev.id}/rsvp`)
-      : apiRequest("POST", `/api/events/${ev.id}/rsvp`),
+    mutationFn: async () => {
+      if (isRsvpd) return apiRequest("DELETE", `/api/events/${ev.id}/rsvp`);
+      const res = await apiRequest("POST", `/api/events/${ev.id}/rsvp`);
+      if (res.status === 402) {
+        const data = await res.json();
+        if (data.requiresTicket) {
+          const ticketRes = await apiRequest("POST", `/api/events/${ev.id}/ticket/start`);
+          const ticketData = await ticketRes.json();
+          if (ticketData.url) { window.location.href = ticketData.url; return; }
+        }
+        throw new Error(data.error || "Payment required");
+      }
+      return res;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events", ev.id, "attendees"] });
       queryClient.invalidateQueries({ queryKey: ["/api/events/upcoming"] });
-      toast({ description: isRsvpd ? "RSVP removed." : "You're going! 🎉" });
+      if (!isRsvpd && !ev.ticketPriceNzd) toast({ description: "You're going! 🎉" });
+      if (isRsvpd) toast({ description: "RSVP removed." });
     },
+    onError: (err: any) => toast({ description: err.message, variant: "destructive" }),
   });
 
   return (
@@ -98,6 +111,12 @@ function GroupEventCard({ ev, group, isLeader, isApproved, userId, deleteEventMu
           )}
           {ev.description && (
             <p className="text-[12px] mt-2" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>{ev.description}</p>
+          )}
+          {ev.ticketPriceNzd && (
+            <div className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-lg font-mono text-[9px]"
+                 style={{ background: "rgba(var(--roam-ember-rgb),0.12)", border: "1px solid rgba(var(--roam-ember-rgb),0.25)", color: "var(--roam-ember)" }}>
+              🎟 ${(ev.ticketPriceNzd / 100 * 1.1).toFixed(2)} NZD entry
+            </div>
           )}
         </div>
         <div className="flex flex-col gap-1 flex-shrink-0">
@@ -172,10 +191,12 @@ function GroupEventCard({ ev, group, isLeader, isApproved, userId, deleteEventMu
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-[10px] tracking-wider font-medium transition-all"
               style={isRsvpd
                 ? { background: "rgba(var(--roam-electric-rgb),0.12)", color: "var(--roam-electric)", border: "1px solid rgba(var(--roam-electric-rgb),0.35)" }
-                : { background: "var(--roam-electric)", color: "var(--roam-forest)" }}
+                : ev.ticketPriceNzd
+                  ? { background: "rgba(var(--roam-ember-rgb),0.15)", color: "var(--roam-ember)", border: "1px solid rgba(var(--roam-ember-rgb),0.4)" }
+                  : { background: "var(--roam-electric)", color: "var(--roam-forest)" }}
               data-testid={`button-rsvp-${ev.id}`}>
               {isRsvpd && <Check size={10} />}
-              {rsvpMutation.isPending ? "…" : isRsvpd ? "Going ✓" : "RSVP"}
+              {rsvpMutation.isPending ? "…" : isRsvpd ? "Going ✓" : ev.ticketPriceNzd ? "🎟 Get Ticket" : "RSVP"}
             </button>
           )}
         </div>
@@ -303,18 +324,21 @@ export default function GroupPage() {
   });
 
   const [showEventForm, setShowEventForm] = useState(false);
-  const [eventForm, setEventForm] = useState({ title: "", description: "", location: "", startAt: "", endAt: "" });
+  const [eventForm, setEventForm] = useState({ title: "", description: "", location: "", startAt: "", endAt: "", ticketPriceNzd: "" });
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteMessage, setInviteMessage] = useState("");
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
   const createEventMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/groups/${id}/events`, eventForm),
+    mutationFn: () => apiRequest("POST", `/api/groups/${id}/events`, {
+      ...eventForm,
+      ticketPriceNzd: eventForm.ticketPriceNzd && parseFloat(eventForm.ticketPriceNzd) > 0 ? eventForm.ticketPriceNzd : undefined,
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/groups", id, "events"] });
       setShowEventForm(false);
-      setEventForm({ title: "", description: "", location: "", startAt: "", endAt: "" });
+      setEventForm({ title: "", description: "", location: "", startAt: "", endAt: "", ticketPriceNzd: "" });
       toast({ title: "Event created!" });
     },
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
@@ -812,6 +836,26 @@ export default function GroupPage() {
                         style={{ background: "var(--roam-moss)", border: "1px solid rgba(var(--roam-cream-rgb),0.14)", color: "var(--roam-cream)" }}
                         data-testid="input-event-description"
                       />
+                      <div>
+                        <label className="text-[11px] font-mono block mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Ticket price (NZD) — optional</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.50"
+                          value={eventForm.ticketPriceNzd}
+                          onChange={e => setEventForm(ef => ({ ...ef, ticketPriceNzd: e.target.value }))}
+                          placeholder="0.00 — leave blank for free event"
+                          className="w-full px-3 py-2 rounded-xl text-sm outline-none"
+                          style={{ background: "var(--roam-moss)", border: "1px solid rgba(var(--roam-cream-rgb),0.14)", color: "var(--roam-cream)" }}
+                          data-testid="input-event-ticketPrice"
+                        />
+                        {eventForm.ticketPriceNzd && parseFloat(eventForm.ticketPriceNzd) > 0 && (
+                          <div className="mt-1.5 px-2.5 py-1.5 rounded-lg font-mono text-[9px]"
+                               style={{ background: "rgba(var(--roam-ember-rgb),0.07)", border: "1px solid rgba(var(--roam-ember-rgb),0.2)", color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                            Attendees pay <span style={{ color: "var(--roam-cream)" }}>${(parseFloat(eventForm.ticketPriceNzd) * 1.10).toFixed(2)} NZD</span> — includes 10% roam. platform fee. You receive <span style={{ color: "var(--roam-cream)" }}>${parseFloat(eventForm.ticketPriceNzd).toFixed(2)} NZD</span> per ticket.
+                          </div>
+                        )}
+                      </div>
                       <div className="flex gap-2">
                         <button onClick={() => setShowEventForm(false)}
                                 className="flex-1 py-2 rounded-xl text-sm"

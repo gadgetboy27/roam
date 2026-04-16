@@ -26,6 +26,7 @@ import AdminAds from "@/pages/admin-ads";
 import Admin from "@/pages/admin";
 import AdminLogin from "@/pages/admin-login";
 import Roamers from "@/pages/roamers";
+import Plans from "@/pages/plans";
 import GroupPage from "@/pages/group";
 import InvitePage from "@/pages/invite";
 import WhatsOn from "@/pages/whats-on";
@@ -53,6 +54,7 @@ function Router() {
       <Route path="/profile">
         <RequireAuth><Profile /></RequireAuth>
       </Route>
+      <Route path="/plans" component={Plans} />
       <Route path="/advertise" component={Advertise} />
       <Route path="/advertise/success" component={AdvertiseSuccess} />
       <Route path="/whats-on" component={WhatsOn} />
