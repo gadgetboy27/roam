@@ -1,6 +1,17 @@
 import Stripe from "stripe";
 
+const isProduction = process.env.REPLIT_DEPLOYMENT === "1";
+
 async function getCredentials() {
+  // In development, prefer test keys if they exist — keeps live keys safe
+  if (!isProduction && process.env.STRIPE_TEST_SECRET_KEY && process.env.STRIPE_TEST_PUBLISHABLE_KEY) {
+    return {
+      secretKey: process.env.STRIPE_TEST_SECRET_KEY,
+      publishableKey: process.env.STRIPE_TEST_PUBLISHABLE_KEY,
+    };
+  }
+
+  // In production (or dev without test keys), use live keys
   if (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PUBLISHABLE_KEY) {
     return {
       secretKey: process.env.STRIPE_SECRET_KEY,
@@ -17,7 +28,6 @@ async function getCredentials() {
 
   if (hostname && xReplitToken) {
     const connectorName = "stripe";
-    const isProduction = process.env.REPLIT_DEPLOYMENT === "1";
     const targetEnvironment = isProduction ? "production" : "development";
 
     const url = new URL(`https://${hostname}/api/v2/connection`);
@@ -48,7 +58,7 @@ async function getCredentials() {
   }
 
   throw new Error(
-    "Stripe is not configured. Set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY environment secrets."
+    "Stripe is not configured. Set STRIPE_TEST_SECRET_KEY and STRIPE_TEST_PUBLISHABLE_KEY for development, or STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY for production."
   );
 }
 
@@ -63,3 +73,5 @@ export async function getStripePublishableKey() {
   const { publishableKey } = await getCredentials();
   return publishableKey;
 }
+
+export { isProduction };
