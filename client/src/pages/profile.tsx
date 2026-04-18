@@ -4,7 +4,7 @@ import AppNav from "@/components/app-nav";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, Camera, Edit3, Settings, Star, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2, Trash2, Megaphone, Download } from "lucide-react";
+import { MapPin, Camera, Edit3, Settings, Star, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2, Trash2, Megaphone, Download, Banknote, ExternalLink, AlertCircle } from "lucide-react";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { computeVibeWord } from "@/lib/fingerprint";
 
@@ -98,7 +98,24 @@ export default function Profile() {
   const [boosted, setBoosted] = useState(false);
   const [organisingUp, setOrganisingUp] = useState(false);
   const [squadLeader, setSquadLeader] = useState(false);
+  const [connectingStripe, setConnectingStripe] = useState(false);
+  const [connectSuccess, setConnectSuccess] = useState(false);
+  const [connectRefresh, setConnectRefresh] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const isOrganiser = !!(user as any)?.isOrganiser;
+
+  const { data: connectStatus, refetch: refetchConnect } = useQuery<{
+    status: "not_started" | "pending" | "active";
+    chargesEnabled: boolean;
+    payoutsEnabled: boolean;
+    accountId?: string;
+    dashboardUrl?: string;
+  }>({
+    queryKey: ["/api/stripe/connect/status"],
+    enabled: isOrganiser,
+    staleTime: 60_000,
+  });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -121,6 +138,15 @@ export default function Profile() {
       setSquadLeader(true);
       window.history.replaceState({}, "", "/profile");
       refresh();
+    }
+    if (params.get("connect") === "success") {
+      setConnectSuccess(true);
+      window.history.replaceState({}, "", "/profile");
+      refetchConnect();
+    }
+    if (params.get("connect") === "refresh") {
+      setConnectRefresh(true);
+      window.history.replaceState({}, "", "/profile");
     }
   }, []);
 
@@ -147,6 +173,19 @@ export default function Profile() {
       /* silent */
     } finally {
       setOrganisingUp(false);
+    }
+  };
+
+  const handleConnectStripe = async () => {
+    setConnectingStripe(true);
+    try {
+      const res = await apiRequest("POST", "/api/stripe/connect/start");
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } catch {
+      /* silent */
+    } finally {
+      setConnectingStripe(false);
     }
   };
 
@@ -483,6 +522,101 @@ export default function Profile() {
                   </button>
                   <div className="text-center mt-2 font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
                     Powered by Stripe · Cancel anytime
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── Stripe Connect — shown to Squad Leaders ── */}
+            {isOrganiser && (
+              <div className="mb-4 rounded-2xl overflow-hidden"
+                   style={{ border: `1px solid ${connectStatus?.status === "active" ? "rgba(var(--roam-electric-rgb),0.35)" : "rgba(var(--roam-ember-rgb),0.3)"}`, background: connectStatus?.status === "active" ? "linear-gradient(135deg, rgba(var(--roam-electric-rgb),0.07) 0%, rgba(var(--roam-electric-rgb),0.02) 100%)" : "linear-gradient(135deg, rgba(var(--roam-ember-rgb),0.06) 0%, rgba(var(--roam-ember-rgb),0.02) 100%)" }}>
+                <div className="px-4 pt-4 pb-4">
+
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                           style={{ background: connectStatus?.status === "active" ? "rgba(var(--roam-electric-rgb),0.14)" : "rgba(var(--roam-ember-rgb),0.12)" }}>
+                        <Banknote size={17} style={{ color: connectStatus?.status === "active" ? "var(--roam-electric)" : "var(--roam-ember)" }} />
+                      </div>
+                      <div>
+                        <div className="font-serif text-[15px] font-black leading-tight" style={{ color: "var(--roam-cream)" }}>Stripe Payouts</div>
+                        <div className="font-mono text-[9px] tracking-wider uppercase mt-0.5" style={{ color: connectStatus?.status === "active" ? "var(--roam-electric)" : "var(--roam-ember)" }}>
+                          {connectStatus?.status === "active" ? "Connected · payouts active" : connectStatus?.status === "pending" ? "Setup incomplete" : "Not connected yet"}
+                        </div>
+                      </div>
+                    </div>
+                    {connectStatus?.status === "active" && (
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg flex-shrink-0"
+                           style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)" }}>
+                        <Check size={11} style={{ color: "var(--roam-electric)" }} />
+                        <span className="font-mono text-[9px]" style={{ color: "var(--roam-electric)" }}>Active</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Return banner */}
+                  {connectSuccess && connectStatus?.status === "active" && (
+                    <div className="mb-3 px-3 py-2 rounded-xl flex items-center gap-2"
+                         style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)" }}>
+                      <Check size={13} style={{ color: "var(--roam-electric)" }} />
+                      <span className="font-mono text-[11px]" style={{ color: "var(--roam-electric)" }}>Bank account connected — ticket sales will be paid out automatically.</span>
+                    </div>
+                  )}
+
+                  {/* Refresh banner */}
+                  {connectRefresh && (
+                    <div className="mb-3 px-3 py-2 rounded-xl flex items-center gap-2"
+                         style={{ background: "rgba(var(--roam-ember-rgb),0.1)", border: "1px solid rgba(var(--roam-ember-rgb),0.25)" }}>
+                      <AlertCircle size={13} style={{ color: "var(--roam-ember)" }} />
+                      <span className="font-mono text-[11px]" style={{ color: "var(--roam-ember)" }}>The setup link expired. Click below to restart.</span>
+                    </div>
+                  )}
+
+                  {/* Description */}
+                  {connectStatus?.status !== "active" && (
+                    <p className="font-mono text-[11px] leading-relaxed mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.72)" }}>
+                      Connect your bank account so Stripe can automatically pay you your ticket revenue when attendees purchase tickets. roam. keeps only the 10% platform fee — the rest goes directly to you.
+                    </p>
+                  )}
+
+                  {connectStatus?.status === "active" && (
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      {[
+                        { label: "Your cut per ticket", value: "90%" },
+                        { label: "Platform fee", value: "10%" },
+                        { label: "Payouts", value: "Automatic" },
+                        { label: "Settlement", value: "T+2 days" },
+                      ].map(s => (
+                        <div key={s.label} className="px-3 py-2 rounded-xl"
+                             style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
+                          <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>{s.label}</div>
+                          <div className="font-mono text-[13px] font-semibold mt-0.5" style={{ color: "var(--roam-cream)" }}>{s.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* CTA */}
+                  {connectStatus?.status === "active" ? (
+                    <a href={connectStatus.dashboardUrl} target="_blank" rel="noopener noreferrer"
+                       className="w-full py-2.5 rounded-xl font-mono text-[11px] tracking-wider uppercase font-semibold flex items-center justify-center gap-2 transition-all"
+                       style={{ background: "rgba(var(--roam-electric-rgb),0.12)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)", color: "var(--roam-electric)" }}
+                       data-testid="link-stripe-dashboard">
+                      <ExternalLink size={12} /> Open Stripe dashboard
+                    </a>
+                  ) : (
+                    <button onClick={handleConnectStripe} disabled={connectingStripe}
+                            className="w-full py-2.5 rounded-xl font-mono text-[11px] tracking-wider uppercase font-semibold flex items-center justify-center gap-2 transition-all"
+                            style={{ background: "rgba(var(--roam-ember-rgb),0.15)", border: "1px solid rgba(var(--roam-ember-rgb),0.4)", color: "var(--roam-ember)", opacity: connectingStripe ? 0.7 : 1 }}
+                            data-testid="button-connect-stripe">
+                      {connectingStripe ? <Loader2 size={13} className="animate-spin" /> : <Banknote size={13} />}
+                      {connectingStripe ? "Opening Stripe…" : connectStatus?.status === "pending" ? "Continue bank setup →" : "Connect bank account →"}
+                    </button>
+                  )}
+                  <div className="text-center mt-2 font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                    Powered by Stripe Connect · Bank-grade security · NZ accounts supported
                   </div>
                 </div>
               </div>
