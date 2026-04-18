@@ -1362,6 +1362,17 @@ export default function Profile() {
               </button>
             </div>
           </div>
+
+          {/* Thumb-friendly close button at the bottom */}
+          <div className="px-3.5 py-5">
+            <button
+              onClick={() => setShowYearCard(false)}
+              className="w-full py-4 rounded-2xl font-mono text-[12px] tracking-wider uppercase font-semibold flex items-center justify-center gap-2 transition-all"
+              style={{ background: "rgba(var(--roam-cream-rgb),0.06)", border: "1px solid rgba(var(--roam-cream-rgb),0.12)", color: "rgba(var(--roam-cream-rgb),0.7)" }}
+              data-testid="button-close-year-bottom">
+              ← Back to profile
+            </button>
+          </div>
         </div>
       )}
     </div>

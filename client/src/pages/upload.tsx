@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { Link } from "wouter";
 import AppNav from "@/components/app-nav";
 import { Mountain, Ban, ImageOff, Users, Check, AlertTriangle, UploadCloud, X, Camera, Plus } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
@@ -129,6 +130,11 @@ export default function Upload() {
         <AppNav />
         <div className="max-w-lg mx-auto pb-8 pr-14">
           <div className="px-4.5 pt-6 animate-fade-up">
+            <Link href="/profile" className="inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider uppercase mb-3 transition-opacity hover:opacity-70"
+                  style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}
+                  data-testid="link-back-upload">
+              ← Back to profile
+            </Link>
             <h1 className="font-serif text-[28px] font-black leading-[1.1]">
               Your <span className="italic" style={{ color: "var(--roam-electric)" }}>adventure</span><br />story
             </h1>

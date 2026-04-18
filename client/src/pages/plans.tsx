@@ -78,6 +78,11 @@ export default function Plans() {
         <div className="max-w-lg mx-auto px-4 pb-16 pt-4 pr-14">
 
           <div className="mb-6">
+            <Link href="/profile" className="inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider uppercase mb-3 transition-opacity hover:opacity-70"
+                  style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}
+                  data-testid="link-back-plans">
+              ← Back to profile
+            </Link>
             <div className="font-mono text-[10px] tracking-[2px] uppercase mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
               Membership &amp; Perks
             </div>
