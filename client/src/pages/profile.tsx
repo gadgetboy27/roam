@@ -1258,14 +1258,7 @@ export default function Profile() {
 
       {showYearCard && (
         <div className="fixed inset-0 z-[60] overflow-y-auto" style={{ background: "var(--roam-forest)" }} data-testid="overlay-year-in-adventure">
-          <div className="flex justify-end p-4 pt-5">
-            <button className="w-9 h-9 rounded-full flex items-center justify-center transition-all"
-                    style={{ background: "rgba(var(--roam-cream-rgb),0.07)", border: "1px solid rgba(var(--roam-cream-rgb),0.13)" }}
-                    onClick={() => setShowYearCard(false)}
-                    data-testid="button-close-year">
-              <X size={16} style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }} />
-            </button>
-          </div>
+          <div className="h-5" />
 
           <div className="mx-3.5 mb-8 rounded-[24px] overflow-hidden"
                style={{ background: "linear-gradient(160deg, var(--roam-moss) 0%, var(--roam-forest) 100%)", border: "1px solid rgba(var(--roam-electric-rgb),0.15)", boxShadow: "0 16px 48px rgba(0,0,0,0.55)" }}>
@@ -1341,9 +1334,14 @@ export default function Profile() {
             </div>
 
             <div className="flex items-center justify-between p-5" style={{ borderTop: "1px solid rgba(var(--roam-cream-rgb),0.06)" }}>
-              <div className="font-serif text-[20px] font-black tracking-tight" style={{ color: "rgba(var(--roam-cream-rgb),0.92)" }}>
-                roam<span style={{ color: "var(--roam-electric)" }}>.</span>
-              </div>
+              <button onClick={() => setShowYearCard(false)}
+                      className="flex flex-col items-start transition-opacity hover:opacity-70"
+                      data-testid="button-close-year-logo">
+                <div className="font-serif text-[20px] font-black tracking-tight leading-none" style={{ color: "rgba(var(--roam-cream-rgb),0.92)" }}>
+                  roam<span style={{ color: "var(--roam-electric)" }}>.</span>
+                </div>
+                <div className="font-mono text-[8px] tracking-wider" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>← back to profile</div>
+              </button>
               <button
                 className="flex items-center gap-2 font-mono text-[10px] font-medium tracking-wider px-4 py-2.5 rounded-xl transition-all hover:scale-105"
                 style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
