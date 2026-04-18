@@ -32,6 +32,8 @@ export const users = pgTable("users", {
   isTierGifted: boolean("is_tier_gifted").default(false),
   boostExpiresAt: timestamp("boost_expires_at"),
   isOrganiser: boolean("is_organiser").default(false).notNull(),
+  stripeConnectAccountId: text("stripe_connect_account_id"),
+  stripeConnectOnboarded: boolean("stripe_connect_onboarded").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

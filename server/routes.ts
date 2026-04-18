@@ -838,6 +838,109 @@ export async function registerRoutes(
   });
 
   // ---------------------------------------------------------------------------
+  // Stripe Connect — organiser onboarding & payout account management
+  // ---------------------------------------------------------------------------
+
+  // Start or resume Connect Express onboarding
+  app.post("/api/stripe/connect/start", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    try {
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      if (!user.isOrganiser) return res.status(403).json({ message: "Squad Leader account required" });
+
+      const stripe = await getUncachableStripeClient();
+      const domain = process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
+      const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
+
+      // Create Express account if not already created
+      let accountId = user.stripeConnectAccountId;
+      if (!accountId) {
+        const account = await stripe.accounts.create({
+          type: "express",
+          country: "NZ",
+          email: user.email,
+          capabilities: { transfers: { requested: true }, card_payments: { requested: true } },
+          business_type: "individual",
+          metadata: { userId },
+        });
+        accountId = account.id;
+        await storage.updateUser(userId, { stripeConnectAccountId: accountId, stripeConnectOnboarded: false });
+      }
+
+      // Generate a fresh Account Link
+      const accountLink = await stripe.accountLinks.create({
+        account: accountId,
+        refresh_url: `${baseUrl}/api/stripe/connect/refresh`,
+        return_url: `${baseUrl}/api/stripe/connect/return?userId=${userId}`,
+        type: "account_onboarding",
+      });
+
+      return res.json({ url: accountLink.url });
+    } catch (err: any) {
+      console.error("[connect-start] Error:", err.message);
+      return res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Return URL after Stripe onboarding completes — check account status and redirect
+  app.get("/api/stripe/connect/return", async (req, res) => {
+    const { userId } = req.query as { userId: string };
+    try {
+      const user = userId ? await storage.getUser(userId) : null;
+      if (user?.stripeConnectAccountId) {
+        const stripe = await getUncachableStripeClient();
+        const account = await stripe.accounts.retrieve(user.stripeConnectAccountId);
+        if (account.charges_enabled && account.payouts_enabled) {
+          await storage.updateUser(userId, { stripeConnectOnboarded: true });
+        }
+      }
+    } catch (err: any) {
+      console.warn("[connect-return] Status check failed:", err.message);
+    }
+    const domain = process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
+    const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
+    return res.redirect(`${baseUrl}/profile?connect=success`);
+  });
+
+  // Refresh URL — link expired, generate a new one and redirect
+  app.get("/api/stripe/connect/refresh", async (req, res) => {
+    const domain = process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
+    const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
+    return res.redirect(`${baseUrl}/profile?connect=refresh`);
+  });
+
+  // Get Connect account status for the logged-in user
+  app.get("/api/stripe/connect/status", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    try {
+      const user = await storage.getUser(userId);
+      if (!user?.stripeConnectAccountId) {
+        return res.json({ status: "not_started", chargesEnabled: false, payoutsEnabled: false });
+      }
+      const stripe = await getUncachableStripeClient();
+      const account = await stripe.accounts.retrieve(user.stripeConnectAccountId);
+      const onboarded = account.charges_enabled && account.payouts_enabled;
+      // Keep DB in sync
+      if (onboarded && !user.stripeConnectOnboarded) {
+        await storage.updateUser(userId, { stripeConnectOnboarded: true });
+      }
+      return res.json({
+        status: onboarded ? "active" : "pending",
+        chargesEnabled: account.charges_enabled,
+        payoutsEnabled: account.payouts_enabled,
+        accountId: user.stripeConnectAccountId,
+        dashboardUrl: "https://dashboard.stripe.com/express",
+      });
+    } catch (err: any) {
+      console.error("[connect-status] Error:", err.message);
+      return res.status(500).json({ message: err.message });
+    }
+  });
+
+  // ---------------------------------------------------------------------------
   // Event Ticket Checkout — Stripe payment for ticketed group events (10% fee)
   // ---------------------------------------------------------------------------
   app.post("/api/events/:eventId/ticket/start", async (req, res) => {
@@ -858,9 +961,22 @@ export async function registerRoutes(
       const domain = process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
       const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
 
-      const totalCents = Math.round(event.ticketPriceNzd * 1.10);
+      // ticketPriceNzd is what the organiser receives; attendee pays +10%
+      const organiserCents = Math.round(event.ticketPriceNzd * 100);
+      const totalCents     = Math.round(event.ticketPriceNzd * 110); // price × 1.10
+      const feeCents       = totalCents - organiserCents;             // 10% for roam.
 
-      const session = await stripe.checkout.sessions.create({
+      // Check if the group leader has a connected Stripe account for auto-split
+      const group = await storage.getGroup(event.groupId);
+      let connectAccountId: string | null = null;
+      if (group?.leaderId) {
+        const leader = await storage.getUser(group.leaderId);
+        if (leader?.stripeConnectAccountId && leader.stripeConnectOnboarded) {
+          connectAccountId = leader.stripeConnectAccountId;
+        }
+      }
+
+      const sessionParams: any = {
         mode: "payment",
         customer_email: user.stripeCustomerId ? undefined : user.email,
         customer: user.stripeCustomerId || undefined,
@@ -869,7 +985,9 @@ export async function registerRoutes(
             currency: "nzd",
             product_data: {
               name: `Ticket: ${event.title}`,
-              description: `Event ticket · includes 10% roam. platform fee`,
+              description: connectAccountId
+                ? `Event ticket · 10% roam. platform fee deducted automatically`
+                : `Event ticket · includes 10% roam. platform fee`,
             },
             unit_amount: totalCents,
           },
@@ -878,7 +996,17 @@ export async function registerRoutes(
         success_url: `${baseUrl}/groups/${event.groupId}?tab=events&ticketed=1`,
         cancel_url: `${baseUrl}/groups/${event.groupId}?tab=events`,
         metadata: { userId, type: "event_ticket", eventId: event.id },
-      });
+      };
+
+      // Auto-split: organiser receives their share, roam. keeps the fee
+      if (connectAccountId) {
+        sessionParams.payment_intent_data = {
+          application_fee_amount: feeCents,
+          transfer_data: { destination: connectAccountId },
+        };
+      }
+
+      const session = await stripe.checkout.sessions.create(sessionParams);
 
       return res.json({ url: session.url });
     } catch (err: any) {
