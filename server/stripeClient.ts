@@ -2,6 +2,10 @@ import Stripe from "stripe";
 
 const isProduction = process.env.REPLIT_DEPLOYMENT === "1";
 
+// Startup log — shows key mode without exposing secrets
+const _stripeMode = !isProduction && !!process.env.STRIPE_TEST_SECRET_KEY ? "TEST" : "LIVE";
+console.log(`[stripe] mode: ${_stripeMode} (isProduction=${isProduction})`);
+
 async function getCredentials() {
   // In development, prefer test keys if they exist — keeps live keys safe
   if (!isProduction && process.env.STRIPE_TEST_SECRET_KEY && process.env.STRIPE_TEST_PUBLISHABLE_KEY) {
