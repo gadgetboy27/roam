@@ -66,12 +66,17 @@ I prefer concise and clear communication. When making changes, please explain th
 - Stripe webhooks are secured with signature verification.
 - **Messaging auth** (socket + REST): `send_message` socket validates match exists, status==="matched", and sender is a participant before creating the message. `POST /api/messages` and `GET /api/matches/:matchId/messages` enforce the same participant check.
 - **Group messaging auth**: `send_group_message` socket checks approved membership BEFORE creating the message (previously creation happened in parallel with the auth check, allowing ghost messages).
+- **Match auth hardened**: `POST /api/matches` now requires authentication (was unauthenticated). Session user is verified to equal `userAId` — prevents forging likes on behalf of other users.
+- **Connection limit fix**: `getMonthlyConnectionsSent` now only counts outgoing connections (`userAId = userId`). Previously counted both sides, meaning popular users who received many likes could hit their own outgoing limit without ever liking anyone.
 - **Free tier limits**: `POST /api/matches` enforces a limit of 3 connections per calendar month for free-tier users. Returns `{ limitReached: true, upgradeRequired: true }` with 403. Frontend shows upgrade toast and redirects to `/plans`.
-- **Stripe Connect**: Full Stripe Connect flow for group organisers to receive payouts; account status shown on profile page.
-- **Stripe mode flag**: `STRIPE_TEST_MODE=true` env var switches to test keys; default is live keys.
+- **Founding member integrity**: Profile creation now uses `countFoundingMembers()` (targeted DB count WHERE is_founding_member=true) instead of `getAllUsers().length`. Prevents gaming via account deletion and re-registration.
+- **Bucket list privacy**: `GET /api/bucket-list/:userId` now requires authentication (was publicly accessible).
+- **Group member privacy**: `GET /api/groups/:id/members` now requires authentication (was publicly accessible).
+- **Stripe Connect**: Full Stripe Connect flow for group organisers to receive payouts; account status shown on profile page. Connect button shows toast errors instead of silently failing.
+- **Stripe mode**: `STRIPE_TEST_MODE` env var removed — permanently using live Stripe keys via the Replit integration. No mode switching possible in production.
 - **Notification routing**: All notification types route to the correct page on tap: match/message → `/matches`; group events → `/groups/:id?tab=events`; event promotion with no group → `/whats-on`; join/approve/invite → `/groups/:id`. Type icons shown per notification category.
-- **getMatchById** added to IStorage and DatabaseStorage to support all messaging security checks.
-- **getMonthlyConnectionsSent** added to IStorage and DatabaseStorage to enforce free tier limits.
+- **Storage efficiency**: Added `countFoundingMembers()`, `getUserByStripeCustomerId()` to storage interface. Subscription cancellation webhook uses targeted lookup instead of fetching all users.
+- **getMatchById**, **getMonthlyConnectionsSent** added to IStorage and DatabaseStorage to support all messaging security checks and free tier limits.
 
 ## External Dependencies
 

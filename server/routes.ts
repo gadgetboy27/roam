@@ -327,8 +327,8 @@ export async function registerRoutes(
       if (!name) return res.status(400).json({ message: "Name is required" });
 
       const FOUNDING_MEMBER_LIMIT = 50;
-      const allUsers = await storage.getAllUsers();
-      const isFoundingMember = allUsers.length < FOUNDING_MEMBER_LIMIT;
+      const foundingCount = await storage.countFoundingMembers();
+      const isFoundingMember = foundingCount < FOUNDING_MEMBER_LIMIT;
 
       const newUser = await storage.createUser({
         name,
@@ -603,9 +603,18 @@ export async function registerRoutes(
   });
 
   app.post("/api/matches", async (req, res) => {
+    // Must be authenticated — the initiator must be the session user
+    const sessionUserId = await authenticateRequest(req);
+    if (!sessionUserId) return res.status(401).json({ message: "Not authenticated" });
+
     try {
       const { userAId, userBId, status } = req.body;
       if (!userAId || !userBId) return res.status(400).json({ message: "userAId and userBId are required" });
+
+      // Prevent forging likes on behalf of other users
+      if (userAId !== sessionUserId) {
+        return res.status(403).json({ message: "Forbidden — you can only like as yourself" });
+      }
 
       // Block matches involving demo profiles — they are display-only placeholders
       if (String(userAId).startsWith("demo-") || String(userBId).startsWith("demo-")) {
@@ -613,7 +622,7 @@ export async function registerRoutes(
       }
 
       // Enforce free-tier connection limit (3 per month)
-      const initiatorId = userAId;
+      const initiatorId = sessionUserId;
       const initiator = await storage.getUser(initiatorId);
       if (initiator && (initiator.tier === "free" || !initiator.tier)) {
         const sentThisMonth = await storage.getMonthlyConnectionsSent(initiatorId);
@@ -732,6 +741,8 @@ export async function registerRoutes(
   });
 
   app.get("/api/bucket-list/:userId", async (req, res) => {
+    const sessionUserId = await authenticateRequest(req);
+    if (!sessionUserId) return res.status(401).json({ message: "Not authenticated" });
     const items = await storage.getBucketListByUser(req.params.userId);
     res.json(items);
   });
@@ -1334,8 +1345,7 @@ export async function registerRoutes(
       const sub = event.data?.object;
       const customerId = sub?.customer;
       if (customerId) {
-        const allUsers = await storage.getAllUsers();
-        const user = allUsers.find(u => u.stripeCustomerId === customerId);
+        const user = await storage.getUserByStripeCustomerId(customerId);
         if (user) {
           await storage.updateUser(user.id, { tier: "free", stripeSubscriptionId: null });
           console.log(`[payment] User ${user.id} downgraded to free (subscription cancelled)`);
@@ -1573,6 +1583,8 @@ export async function registerRoutes(
   // ─── Group members ────────────────────────────────────────────────────────
 
   app.get("/api/groups/:id/members", async (req, res) => {
+    const sessionUserId = await authenticateRequest(req);
+    if (!sessionUserId) return res.status(401).json({ message: "Not authenticated" });
     const members = await storage.getGroupMembers(req.params.id);
     const enriched = await Promise.all(members.map(async m => {
       const user = await storage.getUser(m.userId);

@@ -80,4 +80,3 @@ VITE_SUPABASE_ANON_KEY = ""
 ADMIN_EMAILS = "admin@letsroam.life"
 
 [userenv.development]
-STRIPE_TEST_MODE = "true"

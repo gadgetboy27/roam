@@ -19,6 +19,8 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
+  countFoundingMembers(): Promise<number>;
+  getUserByStripeCustomerId(customerId: string): Promise<User | undefined>;
 
   createPhoto(photo: InsertPhoto): Promise<Photo>;
   getPhotosByUser(userId: string): Promise<Photo[]>;
@@ -126,6 +128,19 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(users);
   }
 
+  async countFoundingMembers(): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(users)
+      .where(eq(users.isFoundingMember, true));
+    return Number(result[0]?.count ?? 0);
+  }
+
+  async getUserByStripeCustomerId(customerId: string): Promise<User | undefined> {
+    const [found] = await db.select().from(users).where(eq(users.stripeCustomerId, customerId)).limit(1);
+    return found;
+  }
+
   async createPhoto(photo: InsertPhoto): Promise<Photo> {
     const [created] = await db.insert(photos).values(photo).returning();
     return created;
@@ -168,9 +183,12 @@ export class DatabaseStorage implements IStorage {
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
+    // Only count matches where this user is the initiator (userAId).
+    // Counting both sides was wrong — incoming likes from others would consume
+    // the user's own monthly limit.
     const result = await db.select({ count: sql<number>`count(*)` }).from(matches).where(
       and(
-        or(eq(matches.userAId, userId), eq(matches.userBId, userId)),
+        eq(matches.userAId, userId),
         gte(matches.createdAt, startOfMonth),
       )
     );
