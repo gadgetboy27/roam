@@ -2,20 +2,22 @@ import Stripe from "stripe";
 
 const isProduction = process.env.REPLIT_DEPLOYMENT === "1";
 
-// Startup log — shows key mode without exposing secrets
-const _stripeMode = !isProduction && !!process.env.STRIPE_TEST_SECRET_KEY ? "TEST" : "LIVE";
-console.log(`[stripe] mode: ${_stripeMode} (isProduction=${isProduction})`);
+// STRIPE_TEST_MODE=true enables test keys in development
+// In all other cases (including when test secrets exist), live keys are used
+const useTestMode = !isProduction && process.env.STRIPE_TEST_MODE === "true";
+
+console.log(`[stripe] mode: ${useTestMode ? "TEST" : "LIVE"} (isProduction=${isProduction}, STRIPE_TEST_MODE=${process.env.STRIPE_TEST_MODE})`);
 
 async function getCredentials() {
-  // In development, prefer test keys if they exist — keeps live keys safe
-  if (!isProduction && process.env.STRIPE_TEST_SECRET_KEY && process.env.STRIPE_TEST_PUBLISHABLE_KEY) {
+  // Test mode: only when explicitly enabled via STRIPE_TEST_MODE=true env var
+  if (useTestMode && process.env.STRIPE_TEST_SECRET_KEY && process.env.STRIPE_TEST_PUBLISHABLE_KEY) {
     return {
       secretKey: process.env.STRIPE_TEST_SECRET_KEY,
       publishableKey: process.env.STRIPE_TEST_PUBLISHABLE_KEY,
     };
   }
 
-  // In production (or dev without test keys), use live keys
+  // Live keys (default for all environments)
   if (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PUBLISHABLE_KEY) {
     return {
       secretKey: process.env.STRIPE_SECRET_KEY,
@@ -62,7 +64,7 @@ async function getCredentials() {
   }
 
   throw new Error(
-    "Stripe is not configured. Set STRIPE_TEST_SECRET_KEY and STRIPE_TEST_PUBLISHABLE_KEY for development, or STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY for production."
+    "Stripe is not configured. Set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY environment secrets."
   );
 }
 

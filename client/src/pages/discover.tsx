@@ -183,6 +183,13 @@ export default function Discover() {
         userBId: targetId,
         status: "liked_a",
       });
+      if (res.status === 403) {
+        const body = await res.json();
+        if (body?.limitReached) {
+          throw Object.assign(new Error("limit_reached"), { limitReached: true });
+        }
+        throw new Error("Forbidden");
+      }
       return res.json();
     },
     onSuccess: (data: any, targetId: string) => {
@@ -192,6 +199,13 @@ export default function Discover() {
         pendingMatchRef.current = null;
       } else {
         showToast("✓ Adventure request sent!");
+      }
+    },
+    onError: (err: any) => {
+      pendingMatchRef.current = null;
+      if (err?.limitReached) {
+        showToast("You've hit your 3 free connections this month — upgrade to Adventurer for unlimited!");
+        setTimeout(() => navigate("/plans"), 2400);
       }
     },
   });

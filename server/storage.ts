@@ -1,4 +1,4 @@
-import { eq, and, or, desc, inArray, gt } from "drizzle-orm";
+import { eq, and, or, desc, inArray, gt, gte, sql } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, photos, matches, messages, bucketList, ads, adminUsers,
@@ -25,9 +25,11 @@ export interface IStorage {
   getFirstApprovedPhotoPerUser(): Promise<Record<string, string>>;
 
   createMatch(match: InsertMatch): Promise<Match>;
+  getMatchById(id: string): Promise<Match | undefined>;
   getMatchesForUser(userId: string): Promise<Match[]>;
   getMatchBetween(userAId: string, userBId: string): Promise<Match | undefined>;
   updateMatchStatus(id: string, status: string, extra?: Partial<InsertMatch>): Promise<Match | undefined>;
+  getMonthlyConnectionsSent(userId: string): Promise<number>;
 
   createMessage(message: InsertMessage): Promise<Message>;
   getMessagesByMatch(matchId: string): Promise<Message[]>;
@@ -151,10 +153,28 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
+  async getMatchById(id: string): Promise<Match | undefined> {
+    const [found] = await db.select().from(matches).where(eq(matches.id, id)).limit(1);
+    return found;
+  }
+
   async getMatchesForUser(userId: string): Promise<Match[]> {
     return db.select().from(matches).where(
       or(eq(matches.userAId, userId), eq(matches.userBId, userId))
     ).orderBy(desc(matches.createdAt));
+  }
+
+  async getMonthlyConnectionsSent(userId: string): Promise<number> {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const result = await db.select({ count: sql<number>`count(*)` }).from(matches).where(
+      and(
+        or(eq(matches.userAId, userId), eq(matches.userBId, userId)),
+        gte(matches.createdAt, startOfMonth),
+      )
+    );
+    return Number(result[0]?.count ?? 0);
   }
 
   async getMatchBetween(userAId: string, userBId: string): Promise<Match | undefined> {

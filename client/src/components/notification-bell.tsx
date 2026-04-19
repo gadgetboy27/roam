@@ -64,15 +64,38 @@ export default function NotificationBell() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  function notifIcon(type: string) {
+    switch (type) {
+      case "match":             return "⚡";
+      case "message":           return "💬";
+      case "event_promotion":   return "🎟️";
+      case "group_event":       return "📅";
+      case "join_request":      return "🙋";
+      case "join_approved":     return "✅";
+      case "group_invite_accepted": return "🤝";
+      case "group_invite":      return "✉️";
+      default:                  return "🔔";
+    }
+  }
+
   function handleNotifClick(notif: Notification) {
     if (!notif.isRead) markOneMutation.mutate(notif.id);
-    if (notif.data) {
-      try {
-        const d = JSON.parse(notif.data);
-        if (d.groupId) navigate(`/groups/${d.groupId}`);
-      } catch {}
-    }
     setOpen(false);
+    try {
+      const d = notif.data ? JSON.parse(notif.data) : {};
+      // Route based on notification type first, fall back to data fields
+      if (notif.type === "match" || notif.type === "message") {
+        navigate("/matches");
+      } else if (notif.type === "group_event" && d.groupId) {
+        navigate(`/groups/${d.groupId}?tab=events`);
+      } else if (notif.type === "event_promotion" && d.groupId) {
+        navigate(`/groups/${d.groupId}?tab=events`);
+      } else if (notif.type === "event_promotion") {
+        navigate("/whats-on");
+      } else if (d.groupId) {
+        navigate(`/groups/${d.groupId}`);
+      }
+    } catch {}
   }
 
   const count = unread?.count ?? 0;
@@ -133,8 +156,9 @@ export default function NotificationBell() {
                         borderBottom: "1px solid rgba(var(--roam-cream-rgb),0.05)",
                       }}
                       data-testid={`notif-${n.id}`}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[16px] flex-shrink-0 mt-0.5">{notifIcon(n.type)}</span>
+                  <div className="min-w-0 flex-1">
                     <div className="text-[13px] font-medium leading-snug" style={{ color: "var(--roam-cream)" }}>
                       {n.title}
                     </div>

@@ -167,6 +167,16 @@ export async function registerRoutes(
 
     socket.on("send_message", async (data: { matchId: string; senderId: string; content: string; tempId?: string }) => {
       try {
+        // Verify the match exists, is mutually matched, and sender is a participant
+        const match = await storage.getMatchById(data.matchId);
+        if (!match || match.status !== "matched") {
+          socket.emit("message_error", { tempId: data.tempId, error: "Messaging requires a mutual match" });
+          return;
+        }
+        if (match.userAId !== data.senderId && match.userBId !== data.senderId) {
+          socket.emit("message_error", { tempId: data.tempId, error: "Not a participant in this match" });
+          return;
+        }
         const msg = await storage.createMessage({
           matchId: data.matchId,
           senderId: data.senderId,
@@ -602,6 +612,20 @@ export async function registerRoutes(
         return res.json({ isNewMatch: false, demo: true });
       }
 
+      // Enforce free-tier connection limit (3 per month)
+      const initiatorId = userAId;
+      const initiator = await storage.getUser(initiatorId);
+      if (initiator && (initiator.tier === "free" || !initiator.tier)) {
+        const sentThisMonth = await storage.getMonthlyConnectionsSent(initiatorId);
+        if (sentThisMonth >= 3) {
+          return res.status(403).json({
+            message: "Free plan limit reached",
+            limitReached: true,
+            upgradeRequired: true,
+          });
+        }
+      }
+
       const existing = await storage.getMatchBetween(userAId, userBId);
       if (existing) {
         if (
@@ -674,6 +698,12 @@ export async function registerRoutes(
   app.get("/api/matches/:matchId/messages", async (req, res) => {
     const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    // Verify requesting user is a participant in this match
+    const match = await storage.getMatchById(req.params.matchId);
+    if (!match) return res.status(404).json({ message: "Match not found" });
+    if (match.userAId !== userId && match.userBId !== userId) {
+      return res.status(403).json({ message: "Not authorised to view these messages" });
+    }
     const msgs = await storage.getMessagesByMatch(req.params.matchId);
     res.json(msgs);
   });
@@ -683,6 +713,15 @@ export async function registerRoutes(
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
     if (req.body.senderId && req.body.senderId !== userId) {
       return res.status(403).json({ message: "Cannot send messages as another user" });
+    }
+    // Verify match exists, is mutually matched, and sender is a participant
+    const match = await storage.getMatchById(req.body.matchId);
+    if (!match) return res.status(404).json({ message: "Match not found" });
+    if (match.status !== "matched") {
+      return res.status(403).json({ message: "Messaging requires a mutual match" });
+    }
+    if (match.userAId !== userId && match.userBId !== userId) {
+      return res.status(403).json({ message: "You are not a participant in this match" });
     }
     try {
       const msg = await storage.createMessage(req.body);
@@ -1938,15 +1977,16 @@ export async function registerRoutes(
 
     socket.on("send_group_message", async (data: { groupId: string; senderId: string; content: string; tempId?: string }) => {
       try {
-        const [member, msg] = await Promise.all([
-          storage.getGroupMember(data.groupId, data.senderId),
-          storage.createGroupMessage({ groupId: data.groupId, senderId: data.senderId, content: data.content }),
-        ]);
+        // Check membership BEFORE creating the message
+        const member = await storage.getGroupMember(data.groupId, data.senderId);
         if (!member || member.status !== "approved") {
-          socket.emit("group_message_error", { tempId: data.tempId, error: "Not a member of this group" });
+          socket.emit("group_message_error", { tempId: data.tempId, error: "Not an approved member of this group" });
           return;
         }
-        const sender = await storage.getUser(data.senderId);
+        const [msg, sender] = await Promise.all([
+          storage.createGroupMessage({ groupId: data.groupId, senderId: data.senderId, content: data.content }),
+          storage.getUser(data.senderId),
+        ]);
         io.to(`group:${data.groupId}`).emit("new_group_message", {
           ...msg,
           sender: sender ? { id: sender.id, name: sender.name, avatarUrl: sender.avatarUrl } : null,

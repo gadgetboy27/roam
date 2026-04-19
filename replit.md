@@ -60,6 +60,14 @@ I prefer concise and clear communication. When making changes, please explain th
 - Session cookies are configured with `httpOnly`, `secure`, and `sameSite` attributes.
 - Socket.io CORS is restricted in production.
 - Stripe webhooks are secured with signature verification.
+- **Messaging auth** (socket + REST): `send_message` socket validates match exists, status==="matched", and sender is a participant before creating the message. `POST /api/messages` and `GET /api/matches/:matchId/messages` enforce the same participant check.
+- **Group messaging auth**: `send_group_message` socket checks approved membership BEFORE creating the message (previously creation happened in parallel with the auth check, allowing ghost messages).
+- **Free tier limits**: `POST /api/matches` enforces a limit of 3 connections per calendar month for free-tier users. Returns `{ limitReached: true, upgradeRequired: true }` with 403. Frontend shows upgrade toast and redirects to `/plans`.
+- **Stripe Connect**: Full Stripe Connect flow for group organisers to receive payouts; account status shown on profile page.
+- **Stripe mode flag**: `STRIPE_TEST_MODE=true` env var switches to test keys; default is live keys.
+- **Notification routing**: All notification types route to the correct page on tap: match/message → `/matches`; group events → `/groups/:id?tab=events`; event promotion with no group → `/whats-on`; join/approve/invite → `/groups/:id`. Type icons shown per notification category.
+- **getMatchById** added to IStorage and DatabaseStorage to support all messaging security checks.
+- **getMonthlyConnectionsSent** added to IStorage and DatabaseStorage to enforce free tier limits.
 
 ## External Dependencies
 
