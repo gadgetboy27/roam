@@ -54,6 +54,10 @@ I prefer concise and clear communication. When making changes, please explain th
 - **Ads Schema**: Added adType, submittedByUserId, linkedGroupId, linkedEventId columns to the ads table.
 - **New Storage Methods**: getMatchedUserIds(userId), getGroupsLedByUser(userId).
 - **New Endpoint**: GET /api/groups/my-led — returns active groups led by the logged-in user (used for nav smart routing).
+- **Squad Leader Broadcast**: `POST /api/groups/:id/broadcast` — leader-only endpoint that sends an announcement to selected approved members. Validated server-side (leader check, approved member check). Creates a highlighted `isAnnouncement=true` message in the campsite and an in-app notification per recipient. Schema: added `is_announcement boolean DEFAULT false` column to `group_messages`.
+- **Broadcast UI**: In the campsite tab, a leader-only "Announce" button (megaphone icon) opens a full-screen modal with member picker (individual checkboxes + Select All toggle) and compose area. Announcements render as a distinct electric-bordered banner in the chat.
+- **Member Admin Panel**: Leader-only "Manage Crew" button in the About tab members section opens a full-screen admin panel showing pending join requests (approve/reject with profile checks) and all approved members (remove), replacing the need to scroll through the About tab.
+- **Deep-link routing**: Notification type `group_broadcast` routes directly to `/groups/:id?tab=campsite`. The campsite tab now accepts `?tab=campsite` URL param.
 
 **Security**:
 - Standard HTTP security headers are set.

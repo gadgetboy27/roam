@@ -141,6 +141,7 @@ export const groupMessages = pgTable("group_messages", {
   groupId: varchar("group_id").notNull(),
   senderId: varchar("sender_id").notNull(),
   content: text("content").notNull(),
+  isAnnouncement: boolean("is_announcement").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

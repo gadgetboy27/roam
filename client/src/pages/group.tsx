@@ -213,7 +213,7 @@ export default function GroupPage() {
   const { toast } = useToast();
   const initialTab = new URLSearchParams(search).get("tab");
   const [tab, setTab] = useState<"about" | "campsite" | "events">(
-    initialTab === "events" ? "events" : "about"
+    initialTab === "events" ? "events" : initialTab === "campsite" ? "campsite" : "about"
   );
   const [message, setMessage] = useState("");
   const [localMessages, setLocalMessages] = useState<any[]>([]);
@@ -330,6 +330,14 @@ export default function GroupPage() {
   const [inviteMessage, setInviteMessage] = useState("");
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
+  // Broadcast state
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [broadcastText, setBroadcastText] = useState("");
+  const [broadcastSelected, setBroadcastSelected] = useState<Set<string>>(new Set());
+
+  // Member admin panel state
+  const [manageOpen, setManageOpen] = useState(false);
+
   const createEventMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/groups/${id}/events`, {
       ...eventForm,
@@ -368,6 +376,31 @@ export default function GroupPage() {
       } else {
         toast({ title: "Invite created!" });
       }
+    },
+    onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
+  });
+
+  const broadcastMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/groups/${id}/broadcast`, {
+        message: broadcastText.trim(),
+        recipientIds: Array.from(broadcastSelected),
+      });
+      if (!res.ok) {
+        const body = await res.json();
+        throw new Error(body.error ?? "Failed to send");
+      }
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      setBroadcastOpen(false);
+      setBroadcastText("");
+      setBroadcastSelected(new Set());
+      // Optimistically show the announcement in the campsite
+      if (data.message) {
+        setLocalMessages(prev => [...prev, { ...data.message, isAnnouncement: true }]);
+      }
+      toast({ title: `Announcement sent to ${data.recipientCount} member${data.recipientCount !== 1 ? "s" : ""}` });
     },
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
@@ -546,8 +579,20 @@ export default function GroupPage() {
               )}
 
               <div>
-                <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
-                  Members ({approvedMembers.length})
+                <div className="flex items-center justify-between mb-3">
+                  <div className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
+                    Members ({approvedMembers.length})
+                  </div>
+                  {isLeader && (
+                    <button
+                      onClick={() => setManageOpen(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-[10px] font-semibold"
+                      style={{ background: "rgba(var(--roam-cream-rgb),0.06)", color: "rgba(var(--roam-cream-rgb),0.75)", border: "1px solid rgba(var(--roam-cream-rgb),0.1)" }}
+                      data-testid="button-manage-crew"
+                    >
+                      <Crown size={11} style={{ color: "rgba(var(--roam-electric-rgb),0.8)" }} /> Manage Crew
+                    </button>
+                  )}
                 </div>
                 <div className="space-y-2">
                   {approvedMembers.map((m: any) => (
@@ -724,6 +769,25 @@ export default function GroupPage() {
                 </div>
               ) : (
                 <>
+                  {isLeader && (
+                    <div className="flex items-center justify-between px-4 py-2 flex-shrink-0"
+                         style={{ borderBottom: "1px solid rgba(var(--roam-cream-rgb),0.06)" }}>
+                      <span className="font-mono text-[10px] tracking-wider" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
+                        {approvedMembers.length} members online
+                      </span>
+                      <button
+                        onClick={() => {
+                          setBroadcastSelected(new Set(approvedMembers.filter((m: any) => m.userId !== user?.id).map((m: any) => m.userId)));
+                          setBroadcastOpen(true);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-[10px] font-semibold transition-all"
+                        style={{ background: "rgba(var(--roam-electric-rgb),0.12)", color: "var(--roam-electric)", border: "1px solid rgba(var(--roam-electric-rgb),0.22)" }}
+                        data-testid="button-broadcast"
+                      >
+                        <Megaphone size={12} /> Announce
+                      </button>
+                    </div>
+                  )}
                   <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
                     {localMessages.length === 0 && (
                       <div className="text-center py-10">
@@ -734,6 +798,23 @@ export default function GroupPage() {
                     )}
                     {localMessages.map((msg: any, i) => {
                       const isMe = msg.senderId === user?.id;
+                      // Announcement banner (full-width, centred)
+                      if (msg.isAnnouncement) {
+                        return (
+                          <div key={msg.id ?? msg.tempId ?? i} className="mx-2">
+                            <div className="rounded-2xl px-4 py-3"
+                                 style={{ background: "rgba(var(--roam-electric-rgb),0.08)", border: "1px solid rgba(var(--roam-electric-rgb),0.2)" }}>
+                              <div className="flex items-center gap-2 mb-1.5">
+                                <Megaphone size={12} style={{ color: "var(--roam-electric)", flexShrink: 0 }} />
+                                <span className="font-mono text-[10px] tracking-wider" style={{ color: "var(--roam-electric)" }}>
+                                  ANNOUNCEMENT · {msg.sender?.name ?? "Leader"}
+                                </span>
+                              </div>
+                              <p className="text-[13px] leading-relaxed" style={{ color: "var(--roam-cream)" }}>{msg.content}</p>
+                            </div>
+                          </div>
+                        );
+                      }
                       return (
                         <div key={msg.id ?? msg.tempId ?? i} className={`flex gap-2 ${isMe ? "flex-row-reverse" : ""}`}>
                           {!isMe && (
@@ -889,6 +970,275 @@ export default function GroupPage() {
           )}
         </div>
       </div>
+
+      {/* ── Broadcast / Announcement Modal ──────────────────────────────── */}
+      {broadcastOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "var(--roam-bg)" }}>
+          <div className="flex items-center gap-3 px-5 py-4 flex-shrink-0"
+               style={{ borderBottom: "1px solid rgba(var(--roam-cream-rgb),0.08)" }}>
+            <button onClick={() => setBroadcastOpen(false)} data-testid="button-close-broadcast">
+              <ArrowLeft size={20} style={{ color: "rgba(var(--roam-cream-rgb),0.7)" }} />
+            </button>
+            <div className="flex-1">
+              <h2 className="font-serif text-lg font-black" style={{ color: "var(--roam-cream)" }}>Send Announcement</h2>
+              <p className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
+                Pins in the campsite + sends notification to selected members
+              </p>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+            <div>
+              <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
+                Your message
+              </div>
+              <textarea
+                value={broadcastText}
+                onChange={e => setBroadcastText(e.target.value)}
+                placeholder="Hey crew — reminder about Sunday's hike. Meet at 7am at the carpark…"
+                rows={4}
+                className="w-full px-4 py-3 rounded-2xl text-[13px] leading-relaxed outline-none resize-none"
+                style={{ background: "rgba(var(--roam-cream-rgb),0.05)", border: "1px solid rgba(var(--roam-cream-rgb),0.12)", color: "var(--roam-cream)" }}
+                data-testid="input-broadcast-text"
+                autoFocus
+              />
+              <div className="text-right font-mono text-[10px] mt-1" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                {broadcastText.length} chars
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
+                  Recipients ({broadcastSelected.size})
+                </div>
+                <button
+                  onClick={() => {
+                    const others = approvedMembers.filter((m: any) => m.userId !== user?.id).map((m: any) => m.userId);
+                    if (broadcastSelected.size === others.length) {
+                      setBroadcastSelected(new Set());
+                    } else {
+                      setBroadcastSelected(new Set(others));
+                    }
+                  }}
+                  className="font-mono text-[10px]"
+                  style={{ color: "var(--roam-electric)" }}
+                  data-testid="button-select-all-recipients"
+                >
+                  {broadcastSelected.size === approvedMembers.filter((m: any) => m.userId !== user?.id).length ? "Deselect all" : "Select all"}
+                </button>
+              </div>
+              <div className="space-y-2">
+                {approvedMembers.filter((m: any) => m.userId !== user?.id).map((m: any) => {
+                  const selected = broadcastSelected.has(m.userId);
+                  return (
+                    <button
+                      key={m.userId}
+                      onClick={() => {
+                        setBroadcastSelected(prev => {
+                          const next = new Set(prev);
+                          if (next.has(m.userId)) next.delete(m.userId); else next.add(m.userId);
+                          return next;
+                        });
+                      }}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left"
+                      style={{
+                        background: selected ? "rgba(var(--roam-electric-rgb),0.08)" : "rgba(var(--roam-cream-rgb),0.04)",
+                        border: `1px solid ${selected ? "rgba(var(--roam-electric-rgb),0.25)" : "rgba(var(--roam-cream-rgb),0.06)"}`,
+                      }}
+                      data-testid={`checkbox-recipient-${m.userId}`}
+                    >
+                      {m.user?.avatarUrl ? (
+                        <img src={m.user.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+                             style={{ background: "rgba(var(--roam-electric-rgb),0.15)", color: "var(--roam-electric)" }}>
+                          {(m.user?.name ?? "?")[0]}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium" style={{ color: "var(--roam-cream)" }}>{m.user?.name ?? "Member"}</div>
+                        {m.user?.location && (
+                          <div className="text-[10px] font-mono" style={{ color: "rgba(var(--roam-cream-rgb),0.58)" }}>{m.user.location}</div>
+                        )}
+                      </div>
+                      <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0"
+                           style={{ borderColor: selected ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.3)", background: selected ? "var(--roam-electric)" : "transparent" }}>
+                        {selected && <Check size={11} style={{ color: "var(--roam-bg)" }} />}
+                      </div>
+                    </button>
+                  );
+                })}
+                {approvedMembers.filter((m: any) => m.userId !== user?.id).length === 0 && (
+                  <p className="text-sm text-center py-4" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
+                    No other approved members yet
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="px-5 py-4 flex-shrink-0" style={{ borderTop: "1px solid rgba(var(--roam-cream-rgb),0.08)" }}>
+            <button
+              onClick={() => broadcastMutation.mutate()}
+              disabled={!broadcastText.trim() || broadcastSelected.size === 0 || broadcastMutation.isPending}
+              className="w-full py-3.5 rounded-2xl font-mono text-[13px] font-semibold flex items-center justify-center gap-2 transition-all"
+              style={{
+                background: broadcastText.trim() && broadcastSelected.size > 0 ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.06)",
+                color: broadcastText.trim() && broadcastSelected.size > 0 ? "var(--roam-bg)" : "rgba(var(--roam-cream-rgb),0.45)",
+              }}
+              data-testid="button-send-broadcast"
+            >
+              <Megaphone size={14} />
+              {broadcastMutation.isPending ? "Sending…" : `Send to ${broadcastSelected.size} member${broadcastSelected.size !== 1 ? "s" : ""}`}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Member Admin Panel ───────────────────────────────────────────── */}
+      {manageOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "var(--roam-bg)" }}>
+          <div className="flex items-center gap-3 px-5 py-4 flex-shrink-0"
+               style={{ borderBottom: "1px solid rgba(var(--roam-cream-rgb),0.08)" }}>
+            <button onClick={() => setManageOpen(false)} data-testid="button-close-manage">
+              <ArrowLeft size={20} style={{ color: "rgba(var(--roam-cream-rgb),0.7)" }} />
+            </button>
+            <div>
+              <h2 className="font-serif text-lg font-black" style={{ color: "var(--roam-cream)" }}>Manage Crew</h2>
+              <p className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
+                {approvedMembers.length} approved · {pendingMembers.length} pending
+              </p>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6">
+            {pendingMembers.length > 0 && (
+              <div>
+                <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3 flex items-center gap-2"
+                     style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
+                  Pending requests
+                  <span className="px-1.5 py-0.5 rounded-full text-[9px]"
+                        style={{ background: "rgba(var(--roam-electric-rgb),0.15)", color: "var(--roam-electric)" }}>
+                    {pendingMembers.length}
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {pendingMembers.map((m: any) => {
+                    const hasPhoto = !!m.user?.avatarUrl;
+                    const hasTagline = !!m.user?.tagline;
+                    return (
+                      <div key={m.id} className="p-4 rounded-2xl"
+                           style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.08)" }}>
+                        <div className="flex items-center gap-3 mb-3">
+                          {m.user?.avatarUrl ? (
+                            <img src={m.user.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
+                                 style={{ background: "rgba(var(--roam-cream-rgb),0.1)", color: "var(--roam-cream)" }}>
+                              {(m.user?.name ?? "?")[0]}
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <div className="font-medium" style={{ color: "var(--roam-cream)" }}>{m.user?.name ?? "Unknown"}</div>
+                            {m.user?.location && (
+                              <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>{m.user.location}</div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex gap-2 text-[10px] font-mono mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>
+                          <span className="flex items-center gap-1">
+                            {hasPhoto ? <Check size={9} style={{ color: "var(--roam-electric)" }} /> : <XCircle size={9} style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }} />}
+                            photo
+                          </span>
+                          <span className="flex items-center gap-1">
+                            {hasTagline ? <Check size={9} style={{ color: "var(--roam-electric)" }} /> : <XCircle size={9} style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }} />}
+                            tagline
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => approveMutation.mutate(m.userId)}
+                            disabled={approveMutation.isPending}
+                            className="flex-1 py-2 rounded-xl font-mono text-[11px] font-semibold flex items-center justify-center gap-1.5"
+                            style={{ background: "rgba(var(--roam-electric-rgb),0.12)", color: "var(--roam-electric)", border: "1px solid rgba(var(--roam-electric-rgb),0.2)" }}
+                            data-testid={`button-approve-admin-${m.userId}`}
+                          >
+                            <CheckCircle size={13} /> Approve
+                          </button>
+                          <button
+                            onClick={() => rejectMutation.mutate(m.userId)}
+                            disabled={rejectMutation.isPending}
+                            className="flex-1 py-2 rounded-xl font-mono text-[11px] font-semibold flex items-center justify-center gap-1.5"
+                            style={{ background: "rgba(var(--roam-cream-rgb),0.05)", color: "rgba(var(--roam-cream-rgb),0.7)", border: "1px solid rgba(var(--roam-cream-rgb),0.1)" }}
+                            data-testid={`button-reject-admin-${m.userId}`}
+                          >
+                            <XCircle size={13} /> Decline
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {pendingMembers.length === 0 && (
+              <div className="rounded-2xl px-4 py-3"
+                   style={{ background: "rgba(var(--roam-electric-rgb),0.05)", border: "1px solid rgba(var(--roam-electric-rgb),0.1)" }}>
+                <p className="text-[12px] font-mono" style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>
+                  No pending requests
+                </p>
+              </div>
+            )}
+
+            <div>
+              <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3"
+                   style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
+                Approved members
+              </div>
+              <div className="space-y-2">
+                {approvedMembers.map((m: any) => (
+                  <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl"
+                       style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.06)" }}>
+                    {m.user?.avatarUrl ? (
+                      <img src={m.user.avatarUrl} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+                           style={{ background: "rgba(var(--roam-electric-rgb),0.15)", color: "var(--roam-electric)" }}>
+                        {(m.user?.name ?? "?")[0]}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium" style={{ color: "var(--roam-cream)" }}>{m.user?.name ?? "Member"}</div>
+                      {m.user?.location && (
+                        <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.58)" }}>{m.user.location}</div>
+                      )}
+                    </div>
+                    {m.role === "leader" ? (
+                      <span className="flex items-center gap-1 font-mono text-[9px] px-2 py-1 rounded-full"
+                            style={{ background: "rgba(var(--roam-electric-rgb),0.1)", color: "var(--roam-electric)" }}>
+                        <Crown size={9} /> Leader
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => removeMutation.mutate(m.userId)}
+                        disabled={removeMutation.isPending}
+                        className="p-2 rounded-lg transition-all"
+                        style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}
+                        data-testid={`button-remove-admin-${m.userId}`}
+                        title="Remove member"
+                      >
+                        <XCircle size={16} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

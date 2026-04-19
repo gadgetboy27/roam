@@ -74,6 +74,7 @@ export default function NotificationBell() {
       case "join_approved":     return "✅";
       case "group_invite_accepted": return "🤝";
       case "group_invite":      return "✉️";
+      case "group_broadcast":   return "📢";
       default:                  return "🔔";
     }
   }
@@ -92,6 +93,8 @@ export default function NotificationBell() {
         navigate(`/groups/${d.groupId}?tab=events`);
       } else if (notif.type === "event_promotion") {
         navigate("/whats-on");
+      } else if (notif.type === "group_broadcast" && d.groupId) {
+        navigate(`/groups/${d.groupId}?tab=campsite`);
       } else if (d.groupId) {
         navigate(`/groups/${d.groupId}`);
       }

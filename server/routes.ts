@@ -1662,6 +1662,44 @@ export async function registerRoutes(
     res.json(enriched);
   });
 
+  // ─── Squad Leader broadcast ───────────────────────────────────────────────
+
+  app.post("/api/groups/:id/broadcast", async (req, res) => {
+    const requesterId = await authenticateRequest(req);
+    if (!requesterId) return res.status(401).json({ error: "Unauthorised" });
+
+    const group = await storage.getGroup(req.params.id);
+    if (!group) return res.status(404).json({ error: "Group not found" });
+    if (group.leaderId !== requesterId) return res.status(403).json({ error: "Only the group leader can send announcements" });
+
+    const { message: content, recipientIds } = req.body as { message: string; recipientIds: string[] };
+    if (!content?.trim()) return res.status(400).json({ error: "Message is required" });
+    if (!Array.isArray(recipientIds) || recipientIds.length === 0) return res.status(400).json({ error: "Select at least one recipient" });
+
+    // Verify all recipients are approved members
+    const allMembers = await storage.getGroupMembers(req.params.id);
+    const approvedIds = new Set(allMembers.filter(m => m.status === "approved").map(m => m.userId));
+    const validRecipients = recipientIds.filter(uid => approvedIds.has(uid) && uid !== requesterId);
+    if (validRecipients.length === 0) return res.status(400).json({ error: "No valid recipients" });
+
+    // Post as an announcement in the campsite
+    const leader = await storage.getUser(requesterId);
+    const msg = await storage.createGroupMessage({ groupId: req.params.id, senderId: requesterId, content: content.trim(), isAnnouncement: true });
+
+    // Notify each recipient
+    await Promise.all(validRecipients.map(uid =>
+      storage.createNotification({
+        userId: uid,
+        type: "group_broadcast",
+        title: `📢 ${group.name}`,
+        body: content.trim().length > 80 ? content.trim().slice(0, 80) + "…" : content.trim(),
+        data: JSON.stringify({ groupId: req.params.id }),
+      })
+    ));
+
+    res.json({ success: true, message: { ...msg, sender: leader ? { id: leader.id, name: leader.name, avatarUrl: leader.avatarUrl } : null }, recipientCount: validRecipients.length });
+  });
+
   // ─── Group events ─────────────────────────────────────────────────────────
 
   app.get("/api/groups/:id/events", async (req, res) => {

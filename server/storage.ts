@@ -70,7 +70,7 @@ export interface IStorage {
   getGroupsForUser(userId: string): Promise<Group[]>;
   getUserActiveGroupIds(userId: string): Promise<string[]>;
 
-  createGroupMessage(data: { groupId: string; senderId: string; content: string }): Promise<GroupMessage>;
+  createGroupMessage(data: { groupId: string; senderId: string; content: string; isAnnouncement?: boolean }): Promise<GroupMessage>;
   getGroupMessages(groupId: string, limit?: number): Promise<GroupMessage[]>;
 
   createGroupEvent(data: InsertGroupEvent): Promise<GroupEvent>;
@@ -363,7 +363,7 @@ export class DatabaseStorage implements IStorage {
     return memberships.map(m => m.groupId);
   }
 
-  async createGroupMessage(data: { groupId: string; senderId: string; content: string }): Promise<GroupMessage> {
+  async createGroupMessage(data: { groupId: string; senderId: string; content: string; isAnnouncement?: boolean }): Promise<GroupMessage> {
     const [created] = await db.insert(groupMessages).values(data).returning();
     return created;
   }
