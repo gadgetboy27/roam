@@ -4,6 +4,7 @@ import AppNav from "@/components/app-nav";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import { MapPin, Camera, Edit3, Settings, Star, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2, Trash2, Megaphone, Download, Banknote, ExternalLink, AlertCircle } from "lucide-react";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { computeVibeWord } from "@/lib/fingerprint";
@@ -75,6 +76,7 @@ function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () 
 
 export default function Profile() {
   const { user, logout, refresh } = useAuth();
+  const { toast } = useToast();
   const { canInstall, triggerInstall, isIos } = usePwaInstall();
   const [, navigate] = useLocation();
   const [editOpen, setEditOpen] = useState(false);
@@ -181,9 +183,21 @@ export default function Profile() {
     try {
       const res = await apiRequest("POST", "/api/stripe/connect/start");
       const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } catch {
-      /* silent */
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        toast({
+          title: "Stripe Connect failed",
+          description: data.message || "Could not start bank account setup. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: "Connection error",
+        description: err?.message || "Could not reach payment service. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setConnectingStripe(false);
     }
