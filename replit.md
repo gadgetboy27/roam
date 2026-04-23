@@ -78,6 +78,21 @@ I prefer concise and clear communication. When making changes, please explain th
 - **Storage efficiency**: Added `countFoundingMembers()`, `getUserByStripeCustomerId()` to storage interface. Subscription cancellation webhook uses targeted lookup instead of fetching all users.
 - **getMatchById**, **getMonthlyConnectionsSent** added to IStorage and DatabaseStorage to support all messaging security checks and free tier limits.
 
+## Security Fixes Applied (Post-Launch Audit)
+
+The following issues were identified in a full code audit and fixed:
+
+- **Hardcoded Supabase URL**: `server/supabaseAdmin.ts` now uses `process.env.SUPABASE_URL` instead of a hardcoded string.
+- **Hardcoded Supabase anon key**: `client/src/lib/supabase.ts` now reads from `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` env vars with hardcoded fallbacks (safe — anon key is public by design, fallbacks allow rotation via secrets).
+- **Unprotected endpoints**: Added `authenticateRequest` guard to `/api/users/:id/photos`, `/api/users/:id/honesty`, and `/api/events/:eventId/attendees`.
+- **Webhook bypass in production**: Both payment and identity webhook handlers now hard-reject (400) if no signature secret is present and `REPLIT_DEPLOYMENT=1`.
+- **Subscription lifecycle**: Added `customer.subscription.updated` webhook handler to downgrade users when Stripe marks a subscription as `canceled` or `unpaid` (belt-and-suspenders alongside the existing `customer.subscription.deleted` handler).
+
+Known remaining items (non-critical):
+- In-memory rate limiters reset on server restart (acceptable for current scale; Redis or DB-backed limiting is the long-term fix).
+- `passport` and `passport-local` are listed as build externals but never imported — dead deps, removable from package.json when convenient.
+- Admin panel shows a UI shell before API auth fails (cosmetic; all data endpoints are protected).
+
 ## External Dependencies
 
 - **Supabase**:

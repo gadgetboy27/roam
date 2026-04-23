@@ -518,6 +518,8 @@ export async function registerRoutes(
   });
 
   app.get("/api/users/:id/photos", async (req, res) => {
+    const authUserId = await authenticateRequest(req);
+    if (!authUserId) return res.status(401).json({ message: "Not authenticated" });
     const photos = await storage.getPhotosByUser(req.params.id);
     res.json(photos);
   });
@@ -686,6 +688,8 @@ export async function registerRoutes(
   });
 
   app.get("/api/users/:id/honesty", async (req, res) => {
+    const authUserId = await authenticateRequest(req);
+    if (!authUserId) return res.status(401).json({ message: "Not authenticated" });
     try {
       const photos = await storage.getPhotosByUser(req.params.id);
       const tier = computeHonestyTier(photos);
@@ -1286,6 +1290,9 @@ export async function registerRoutes(
       if (webhookSecret && sig) {
         event = stripe.webhooks.constructEvent(req.rawBody as Buffer, sig, webhookSecret);
       } else {
+        if (process.env.REPLIT_DEPLOYMENT === "1") {
+          return res.status(400).json({ error: "Webhook signature verification required in production" });
+        }
         event = req.body;
         console.warn("[payment-webhook] No secret — skipping signature check (dev only)");
       }
@@ -1349,6 +1356,19 @@ export async function registerRoutes(
         if (user) {
           await storage.updateUser(user.id, { tier: "free", stripeSubscriptionId: null });
           console.log(`[payment] User ${user.id} downgraded to free (subscription cancelled)`);
+        }
+      }
+    }
+
+    if (event?.type === "customer.subscription.updated") {
+      const sub = event.data?.object;
+      const customerId = sub?.customer;
+      const status = sub?.status;
+      if (customerId && (status === "canceled" || status === "unpaid")) {
+        const user = await storage.getUserByStripeCustomerId(customerId);
+        if (user && user.tier !== "free") {
+          await storage.updateUser(user.id, { tier: "free", stripeSubscriptionId: null });
+          console.log(`[payment] User ${user.id} downgraded to free (subscription status: ${status})`);
         }
       }
     }
@@ -1451,6 +1471,9 @@ export async function registerRoutes(
           webhookSecret
         );
       } else {
+        if (process.env.REPLIT_DEPLOYMENT === "1") {
+          return res.status(400).json({ error: "Webhook signature verification required in production" });
+        }
         event = req.body;
         console.warn("[identity-webhook] No secret configured — skipping signature check (dev only)");
       }
@@ -1903,6 +1926,8 @@ export async function registerRoutes(
   });
 
   app.get("/api/events/:eventId/attendees", async (req, res) => {
+    const authUserId = await authenticateRequest(req);
+    if (!authUserId) return res.status(401).json({ message: "Not authenticated" });
     const attendees = await storage.getEventAttendees(req.params.eventId);
     res.json(attendees);
   });
