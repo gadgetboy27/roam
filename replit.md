@@ -78,6 +78,29 @@ I prefer concise and clear communication. When making changes, please explain th
 - **Storage efficiency**: Added `countFoundingMembers()`, `getUserByStripeCustomerId()` to storage interface. Subscription cancellation webhook uses targeted lookup instead of fetching all users.
 - **getMatchById**, **getMonthlyConnectionsSent** added to IStorage and DatabaseStorage to support all messaging security checks and free tier limits.
 
+## Discover Feed — Real Ranked Matches
+
+The Discover feed now serves a **fingerprint-scored, personalised deck** from `GET /api/discover` instead of the raw `/api/users` list.
+
+**How it works:**
+1. Server builds the current user's Adventure Fingerprint from their photos + selected tags
+2. Fetches all users the caller has already interacted with (any status: liked, passed, matched) and excludes them
+3. For each remaining candidate, computes `buildFingerprint` + `computeOverlap` → returns `overlapScore` (0–1) and `sharedTags`
+4. Runs `detectAlmostMet` per candidate to surface location coincidences
+5. Sorts: Almost-Met profiles first, then by overlap score descending
+6. Returns only non-sensitive fields (no passwords, emails, Stripe IDs)
+
+**Pass recording** — `POST /api/matches/pass`:
+- Called automatically when a user swipes left or up on a real profile
+- Creates a `status: "passed"` match row so the same profile never re-appears in the deck
+- No-ops silently if a match row between the two users already exists
+
+**DNA tags** — the card now shows `sharedTags` (tags both users actually share) instead of the candidate's raw `adventureTags`. Falls back to the candidate's own tags if there's no overlap yet.
+
+**Storage additions:**
+- `getInteractedUserIds(userId)` — all userIds with any existing match row
+- `createPass(userAId, userBId)` — inserts a passed match if none exists
+
 ## Onboarding Wizard
 
 Six-step first-run experience for new users. Triggered immediately after signup (both email and OAuth paths). Completed state stored in `localStorage("roam_onboarding_done")` so returning users are never shown it again.

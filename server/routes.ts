@@ -484,6 +484,70 @@ export async function registerRoutes(
     res.json(safe);
   });
 
+  app.get("/api/discover", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+    const [currentUser, currentPhotos, interactedIds, allUsers, heroPhotoMap] = await Promise.all([
+      storage.getUser(userId),
+      storage.getPhotosByUser(userId),
+      storage.getInteractedUserIds(userId),
+      storage.getAllUsers(),
+      storage.getFirstApprovedPhotoPerUser(),
+    ]);
+
+    if (!currentUser) return res.status(404).json({ message: "User not found" });
+
+    const myFp = buildFingerprint(currentPhotos, currentUser.adventureTags);
+    const interactedSet = new Set(interactedIds);
+    const candidates = allUsers.filter(u => u.id !== userId && !interactedSet.has(u.id));
+
+    const scored = await Promise.all(candidates.map(async candidate => {
+      const candidatePhotos = await storage.getPhotosByUser(candidate.id);
+      const candidateFp = buildFingerprint(candidatePhotos, candidate.adventureTags);
+      const { score, sharedTags } = computeOverlap(myFp, candidateFp);
+      const almostMet = detectAlmostMet(currentPhotos, candidatePhotos);
+      const age = candidate.dob
+        ? Math.floor((Date.now() - new Date(candidate.dob).getTime()) / (365.25 * 24 * 3600 * 1000))
+        : null;
+      return {
+        id: candidate.id,
+        name: candidate.name,
+        age,
+        ethnicity: candidate.ethnicity,
+        tagline: candidate.tagline,
+        heroPhotoUrl: heroPhotoMap[candidate.id] ?? candidate.avatarUrl ?? null,
+        adventureTags: candidate.adventureTags,
+        identityVerified: candidate.identityVerified,
+        openToRoaming: candidate.openToRoaming,
+        overlapScore: score,
+        sharedTags,
+        almostMet,
+      };
+    }));
+
+    scored.sort((a, b) => {
+      if (a.almostMet && !b.almostMet) return -1;
+      if (!a.almostMet && b.almostMet) return 1;
+      return b.overlapScore - a.overlapScore;
+    });
+
+    res.json(scored);
+  });
+
+  app.post("/api/matches/pass", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const { targetId } = req.body;
+    if (!targetId) return res.status(400).json({ message: "targetId required" });
+    try {
+      await storage.createPass(userId, targetId);
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.patch("/api/users/:id", async (req, res) => {
     const sessionUserId = await authenticateRequest(req);
     if (!sessionUserId || sessionUserId !== req.params.id) {

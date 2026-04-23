@@ -93,7 +93,7 @@ export default function Discover() {
   const { user } = useAuth();
 
   const { data: allUsers = [], isLoading: loadingUsers } = useQuery<any[]>({
-    queryKey: ["/api/users"],
+    queryKey: ["/api/discover"],
     enabled: !!user,
     refetchInterval: 60000,
   });
@@ -138,33 +138,39 @@ export default function Discover() {
     }
   }, []);
 
+  const passMutation = useMutation({
+    mutationFn: async (targetId: string) => {
+      if (!user) return;
+      await apiRequest("POST", "/api/matches/pass", { targetId });
+    },
+  });
+
   const realDeck = useMemo(() => {
     if (!user) return null;
-    return allUsers
-      .filter(u => u.id !== user.id)
-      .map(u => {
-        const age = u.dob
-          ? Math.floor((Date.now() - new Date(u.dob).getTime()) / (365.25 * 24 * 3600 * 1000))
-          : null;
-        const rawHero = u.heroPhotoUrl || u.avatarUrl || "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=800&q=85&fit=crop";
-        const hero = rawHero.includes("images.unsplash.com")
-          ? rawHero.replace(/([?&])w=\d+/, "$1w=800").replace(/([?&])q=\d+/, "$1q=85")
-          : rawHero;
-        return {
-          id: u.id as string,
-          name: u.name as string,
-          age: age as number | null,
-          ethnicity: (u.ethnicity || "") as string,
-          tagline: (u.tagline || "Adventure awaits") as string,
-          hero,
-          dna: ((u.adventureTags || []) as string[]),
-          honestyTier: (u.identityVerified ? "verified-adventure" : "unverified") as HonestyTier,
-          almostMet: null as { location: string; dateHint: string } | null,
-          pioneerBadge: null as PioneerBadge,
-          hasNewMatch: false,
-          openToRoaming: !!(u as any).openToRoaming,
-        };
-      });
+    return allUsers.map(u => {
+      const rawHero = u.heroPhotoUrl || "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=800&q=85&fit=crop";
+      const hero = rawHero.includes("images.unsplash.com")
+        ? rawHero.replace(/([?&])w=\d+/, "$1w=800").replace(/([?&])q=\d+/, "$1q=85")
+        : rawHero;
+      const dna: string[] = u.sharedTags?.length
+        ? u.sharedTags
+        : (u.adventureTags || []);
+      return {
+        id: u.id as string,
+        name: u.name as string,
+        age: u.age as number | null,
+        ethnicity: (u.ethnicity || "") as string,
+        tagline: (u.tagline || "Adventure awaits") as string,
+        hero,
+        dna,
+        honestyTier: (u.identityVerified ? "verified-adventure" : "unverified") as HonestyTier,
+        almostMet: (u.almostMet ?? null) as { location: string; dateHint: string } | null,
+        pioneerBadge: null as PioneerBadge,
+        hasNewMatch: false,
+        openToRoaming: !!(u as any).openToRoaming,
+        overlapScore: (u.overlapScore ?? 0) as number,
+      };
+    });
   }, [allUsers, user]);
 
   const deck = realDeck ?? DEMO_PROFILES;
@@ -287,9 +293,11 @@ export default function Discover() {
     dragStartX.current = null;
     dragStartY.current = null;
     if (action === "roam") handleRoam();
+    if (action === "advance" && user && profile && !profile.id.startsWith("demo-")) {
+      passMutation.mutate(profile.id);
+    }
     setTimeout(() => {
-      if (action === "advance") advanceCard();
-      else advanceCard();
+      advanceCard();
       setExitDir(null);
     }, 320);
   };

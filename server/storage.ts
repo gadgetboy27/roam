@@ -95,6 +95,8 @@ export interface IStorage {
   markAllNotificationsRead(userId: string): Promise<void>;
 
   getMatchedUserIds(userId: string): Promise<string[]>;
+  getInteractedUserIds(userId: string): Promise<string[]>;
+  createPass(userAId: string, userBId: string): Promise<void>;
   getGroupsLedByUser(userId: string): Promise<Group[]>;
 
   createGroupInvite(data: InsertGroupInvite): Promise<GroupInvite>;
@@ -525,6 +527,21 @@ export class DatabaseStorage implements IStorage {
       )
     );
     return rows.map(m => m.userAId === userId ? m.userBId : m.userAId);
+  }
+
+  async getInteractedUserIds(userId: string): Promise<string[]> {
+    const rows = await db
+      .select({ userAId: matches.userAId, userBId: matches.userBId })
+      .from(matches)
+      .where(or(eq(matches.userAId, userId), eq(matches.userBId, userId)));
+    return rows.map(r => r.userAId === userId ? r.userBId : r.userAId);
+  }
+
+  async createPass(userAId: string, userBId: string): Promise<void> {
+    const existing = await this.getMatchBetween(userAId, userBId);
+    if (!existing) {
+      await db.insert(matches).values({ userAId, userBId, status: "passed" });
+    }
   }
 
   async getGroupsLedByUser(userId: string): Promise<Group[]> {
