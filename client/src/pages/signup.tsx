@@ -253,15 +253,15 @@ export default function Signup() {
           <div className="flex flex-col gap-3 w-full max-w-xs animate-fade-up-3">
             <button className="py-3.5 rounded-2xl text-sm font-mono tracking-wider uppercase font-medium transition-all"
                     style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
-                    onClick={() => navigate("/upload")}
+                    onClick={() => navigate("/onboarding")}
                     data-testid="button-upload-photos">
-              Upload my first photos
+              Set up my profile
             </button>
             <button className="py-3.5 rounded-2xl text-sm font-mono tracking-wider uppercase transition-all"
                     style={{ background: "transparent", border: "1px solid rgba(var(--roam-cream-rgb),0.12)", color: "var(--roam-sand)" }}
-                    onClick={() => navigate("/discover")}
+                    onClick={() => navigate("/onboarding")}
                     data-testid="button-browse-matches">
-              Browse matches first
+              Get started
             </button>
           </div>
         </div>

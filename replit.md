@@ -78,6 +78,25 @@ I prefer concise and clear communication. When making changes, please explain th
 - **Storage efficiency**: Added `countFoundingMembers()`, `getUserByStripeCustomerId()` to storage interface. Subscription cancellation webhook uses targeted lookup instead of fetching all users.
 - **getMatchById**, **getMonthlyConnectionsSent** added to IStorage and DatabaseStorage to support all messaging security checks and free tier limits.
 
+## Onboarding Wizard
+
+Six-step first-run experience for new users. Triggered immediately after signup (both email and OAuth paths). Completed state stored in `localStorage("roam_onboarding_done")` so returning users are never shown it again.
+
+**Steps:**
+- **0 — Intro**: What belongs here vs what doesn't (pill grid). No backend call.
+- **1 — Photo examples**: Good/bad side-by-side columns with visual CSS treatment. No backend call.
+- **2 — Adventure quiz**: 8 adventure type cards (2-col grid). On save → `PATCH /api/users/:id` with `{ adventureTags: [...] }`. Skippable.
+- **3 — Bucket list seed**: 12 destination cards (3-col grid). On save → `POST /api/bucket-list` for each selected destination. Skippable.
+- **4 — Upload**: Drag-and-drop up to 6 photos → `POST /api/upload`. Real-time `uploading → analysing → confirmed` animation. Skip link available.
+- **5 — Complete**: Shows selected tags + destinations as pills. `Start discovering` → `/discover`.
+
+**Routing changes:**
+- `App.tsx`: `/onboarding` route added (RequireAuth protected)
+- `signup.tsx`: Both post-signup CTAs redirect to `/onboarding`
+- `auth-callback.tsx`: OAuth new users redirect to `/onboarding` (was `/discover?welcome=1`)
+
+**Also fixed**: Login endpoint now returns 401 (not 500) when an OAuth-only user attempts email/password login.
+
 ## Security Fixes Applied (Post-Launch Audit)
 
 The following issues were identified in a full code audit and fixed:

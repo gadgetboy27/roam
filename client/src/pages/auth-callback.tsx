@@ -81,7 +81,7 @@ export default function AuthCallback() {
 
         await refresh();
         setStatus("success");
-        setTimeout(() => navigate(isNewUser ? "/discover?welcome=1" : "/discover"), 1100);
+        setTimeout(() => navigate(isNewUser ? "/onboarding" : "/discover"), 1100);
       } catch (err: any) {
         setErrorMsg(err.message || "Verification failed. Try signing in again.");
         setStatus("error");

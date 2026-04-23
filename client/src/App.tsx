@@ -30,6 +30,7 @@ import Plans from "@/pages/plans";
 import GroupPage from "@/pages/group";
 import InvitePage from "@/pages/invite";
 import WhatsOn from "@/pages/whats-on";
+import Onboarding from "@/pages/onboarding";
 
 function Router() {
   return (
@@ -43,6 +44,9 @@ function Router() {
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
       <Route path="/data-deletion" component={DataDeletion} />
+      <Route path="/onboarding">
+        <RequireAuth><Onboarding /></RequireAuth>
+      </Route>
       <Route path="/discover" component={Discover} />
       <Route path="/upload">
         <RequireAuth><Upload /></RequireAuth>
