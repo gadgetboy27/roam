@@ -158,6 +158,11 @@ if (!process.env.STRIPE_PAYMENT_WEBHOOK_SECRET && (process.env.NODE_ENV === "pro
   process.exit(1);
 }
 
+if (!process.env.STRIPE_IDENTITY_WEBHOOK_SECRET && (process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1")) {
+  console.error("FATAL: STRIPE_IDENTITY_WEBHOOK_SECRET is not set in production. Exiting.");
+  process.exit(1);
+}
+
 const app = express();
 const httpServer = createServer(app);
 

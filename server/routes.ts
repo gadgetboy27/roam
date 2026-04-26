@@ -1676,7 +1676,7 @@ export async function registerRoutes(
           webhookSecret
         );
       } else {
-        if (process.env.REPLIT_DEPLOYMENT === "1") {
+        if (process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1") {
           return res.status(400).json({ error: "Webhook signature verification required in production" });
         }
         event = req.body;
@@ -1691,6 +1691,11 @@ export async function registerRoutes(
       const session = event.data?.object;
       const userId = session?.metadata?.userId;
       if (userId) {
+        const user = await storage.getUser(userId);
+        if (!user || user.identityVerificationId !== session.id) {
+          console.warn(`[identity-webhook] Session ID mismatch for user ${userId} — ignoring event`);
+          return res.json({ received: true });
+        }
         await storage.updateUserVerification(userId, session.id, true);
         console.log(`[identity] User ${userId} verified successfully via Stripe Identity`);
       }
