@@ -5,6 +5,108 @@ import { createServer } from "http";
 import { seedDatabase } from "./seed";
 import { seedInitialAdmin } from "./admin-auth";
 import path from "path";
+import pg from "pg";
+
+/**
+ * Idempotent startup migration.
+ * Runs on every boot — safe to re-run because every step is guarded by
+ * IF NOT EXISTS / existence checks. Handles:
+ *   1. Orphaned record cleanup (required before FK constraints can be added)
+ *   2. FK constraints with ON DELETE CASCADE
+ *   3. The missing idx_users_boost_expires index
+ */
+async function runStartupMigrations(): Promise<void> {
+  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+  try {
+    await pool.query(`
+      -- ── Orphan cleanup (idempotent — deletes only what's already broken) ──────
+      DELETE FROM messages
+        WHERE match_id  NOT IN (SELECT id FROM matches)
+           OR sender_id NOT IN (SELECT id FROM users);
+
+      DELETE FROM photos
+        WHERE user_id NOT IN (SELECT id FROM users);
+
+      DELETE FROM notifications
+        WHERE user_id NOT IN (SELECT id FROM users);
+
+      DELETE FROM matches
+        WHERE user_a_id NOT IN (SELECT id FROM users)
+           OR user_b_id NOT IN (SELECT id FROM users);
+
+      DELETE FROM group_members
+        WHERE user_id  NOT IN (SELECT id FROM users)
+           OR group_id NOT IN (SELECT id FROM groups);
+
+      -- ── FK constraints (each wrapped in an existence check) ──────────────────
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.table_constraints
+          WHERE constraint_name = 'fk_photos_user' AND table_name = 'photos'
+        ) THEN
+          ALTER TABLE photos
+            ADD CONSTRAINT fk_photos_user
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.table_constraints
+          WHERE constraint_name = 'fk_matches_user_a' AND table_name = 'matches'
+        ) THEN
+          ALTER TABLE matches
+            ADD CONSTRAINT fk_matches_user_a
+            FOREIGN KEY (user_a_id) REFERENCES users(id) ON DELETE CASCADE;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.table_constraints
+          WHERE constraint_name = 'fk_matches_user_b' AND table_name = 'matches'
+        ) THEN
+          ALTER TABLE matches
+            ADD CONSTRAINT fk_matches_user_b
+            FOREIGN KEY (user_b_id) REFERENCES users(id) ON DELETE CASCADE;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.table_constraints
+          WHERE constraint_name = 'fk_messages_match' AND table_name = 'messages'
+        ) THEN
+          ALTER TABLE messages
+            ADD CONSTRAINT fk_messages_match
+            FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.table_constraints
+          WHERE constraint_name = 'fk_messages_sender' AND table_name = 'messages'
+        ) THEN
+          ALTER TABLE messages
+            ADD CONSTRAINT fk_messages_sender
+            FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.table_constraints
+          WHERE constraint_name = 'fk_notifications_user' AND table_name = 'notifications'
+        ) THEN
+          ALTER TABLE notifications
+            ADD CONSTRAINT fk_notifications_user
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+        END IF;
+      END $$;
+
+      -- ── Indexes (CREATE IF NOT EXISTS is always safe) ─────────────────────────
+      CREATE INDEX IF NOT EXISTS idx_users_boost_expires  ON users(boost_expires_at);
+      CREATE INDEX IF NOT EXISTS idx_rate_limits_reset    ON rate_limits(reset_at);
+    `);
+    console.log("[migration] Startup migrations applied successfully");
+  } catch (err: any) {
+    console.error("[migration] Startup migration error (non-fatal):", err.message);
+  } finally {
+    await pool.end();
+  }
+}
 
 if (!process.env.SESSION_SECRET) {
   console.error("FATAL: SESSION_SECRET environment variable is not set. Exiting.");
@@ -119,6 +221,8 @@ httpServer.listen({ port, host: "0.0.0.0", reusePort: true }, () => {
 
 (async () => {
   try {
+    await runStartupMigrations();
+
     await registerRoutes(httpServer, app);
 
     await seedDatabase().catch((err) => {
