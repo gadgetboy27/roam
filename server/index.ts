@@ -8,102 +8,131 @@ import path from "path";
 import pg from "pg";
 
 /**
- * Idempotent startup migration.
- * Runs on every boot — safe to re-run because every step is guarded by
- * IF NOT EXISTS / existence checks. Handles:
- *   1. Orphaned record cleanup (required before FK constraints can be added)
- *   2. FK constraints with ON DELETE CASCADE
- *   3. The missing idx_users_boost_expires index
+ * Idempotent startup migration — runs inside a single transaction.
+ *
+ * On every boot it:
+ *   1. Deletes orphaned records (logging row counts per table)
+ *   2. Applies FK constraints with ON DELETE CASCADE (skipped if already present)
+ *   3. Creates any missing indexes
+ *
+ * If anything fails the transaction rolls back and the process exits with code 1
+ * so the deployment fails loudly rather than starting in a broken state.
  */
 async function runStartupMigrations(): Promise<void> {
   const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+  const client = await pool.connect();
+
   try {
-    await pool.query(`
-      -- ── Orphan cleanup (idempotent — deletes only what's already broken) ──────
-      DELETE FROM messages
-        WHERE match_id  NOT IN (SELECT id FROM matches)
-           OR sender_id NOT IN (SELECT id FROM users);
+    await client.query("BEGIN");
 
-      DELETE FROM photos
-        WHERE user_id NOT IN (SELECT id FROM users);
+    // ── Orphan cleanup ────────────────────────────────────────────────────────
+    const orphanSteps: Array<{ label: string; sql: string }> = [
+      {
+        label: "orphaned messages (bad match_id or sender_id)",
+        sql: `DELETE FROM messages
+              WHERE match_id  NOT IN (SELECT id FROM matches)
+                 OR sender_id NOT IN (SELECT id FROM users)`,
+      },
+      {
+        label: "orphaned photos (user deleted)",
+        sql: `DELETE FROM photos WHERE user_id NOT IN (SELECT id FROM users)`,
+      },
+      {
+        label: "orphaned notifications (user deleted)",
+        sql: `DELETE FROM notifications WHERE user_id NOT IN (SELECT id FROM users)`,
+      },
+      {
+        label: "orphaned matches (either user deleted)",
+        sql: `DELETE FROM matches
+              WHERE user_a_id NOT IN (SELECT id FROM users)
+                 OR user_b_id NOT IN (SELECT id FROM users)`,
+      },
+      {
+        label: "orphaned group_members (user or group deleted)",
+        sql: `DELETE FROM group_members
+              WHERE user_id  NOT IN (SELECT id FROM users)
+                 OR group_id NOT IN (SELECT id FROM groups)`,
+      },
+    ];
 
-      DELETE FROM notifications
-        WHERE user_id NOT IN (SELECT id FROM users);
+    for (const { label, sql } of orphanSteps) {
+      const res = await client.query(sql);
+      const n = res.rowCount ?? 0;
+      if (n > 0) console.log(`[migration] Deleted ${n} ${label}`);
+    }
 
-      DELETE FROM matches
-        WHERE user_a_id NOT IN (SELECT id FROM users)
-           OR user_b_id NOT IN (SELECT id FROM users);
+    // ── FK constraints (each guarded by IF NOT EXISTS) ────────────────────────
+    const fkSteps: Array<{ name: string; table: string; sql: string }> = [
+      {
+        name: "fk_photos_user",
+        table: "photos",
+        sql: `ALTER TABLE photos
+              ADD CONSTRAINT fk_photos_user
+              FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE`,
+      },
+      {
+        name: "fk_matches_user_a",
+        table: "matches",
+        sql: `ALTER TABLE matches
+              ADD CONSTRAINT fk_matches_user_a
+              FOREIGN KEY (user_a_id) REFERENCES users(id) ON DELETE CASCADE`,
+      },
+      {
+        name: "fk_matches_user_b",
+        table: "matches",
+        sql: `ALTER TABLE matches
+              ADD CONSTRAINT fk_matches_user_b
+              FOREIGN KEY (user_b_id) REFERENCES users(id) ON DELETE CASCADE`,
+      },
+      {
+        name: "fk_messages_match",
+        table: "messages",
+        sql: `ALTER TABLE messages
+              ADD CONSTRAINT fk_messages_match
+              FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE`,
+      },
+      {
+        name: "fk_messages_sender",
+        table: "messages",
+        sql: `ALTER TABLE messages
+              ADD CONSTRAINT fk_messages_sender
+              FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE`,
+      },
+      {
+        name: "fk_notifications_user",
+        table: "notifications",
+        sql: `ALTER TABLE notifications
+              ADD CONSTRAINT fk_notifications_user
+              FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE`,
+      },
+    ];
 
-      DELETE FROM group_members
-        WHERE user_id  NOT IN (SELECT id FROM users)
-           OR group_id NOT IN (SELECT id FROM groups);
+    for (const { name, table, sql } of fkSteps) {
+      const exists = await client.query(
+        `SELECT 1 FROM information_schema.table_constraints
+         WHERE constraint_name = $1 AND table_name = $2`,
+        [name, table]
+      );
+      if (exists.rowCount === 0) {
+        await client.query(sql);
+        console.log(`[migration] FK constraint ${name} applied`);
+      }
+    }
 
-      -- ── FK constraints (each wrapped in an existence check) ──────────────────
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM information_schema.table_constraints
-          WHERE constraint_name = 'fk_photos_user' AND table_name = 'photos'
-        ) THEN
-          ALTER TABLE photos
-            ADD CONSTRAINT fk_photos_user
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-        END IF;
-
-        IF NOT EXISTS (
-          SELECT 1 FROM information_schema.table_constraints
-          WHERE constraint_name = 'fk_matches_user_a' AND table_name = 'matches'
-        ) THEN
-          ALTER TABLE matches
-            ADD CONSTRAINT fk_matches_user_a
-            FOREIGN KEY (user_a_id) REFERENCES users(id) ON DELETE CASCADE;
-        END IF;
-
-        IF NOT EXISTS (
-          SELECT 1 FROM information_schema.table_constraints
-          WHERE constraint_name = 'fk_matches_user_b' AND table_name = 'matches'
-        ) THEN
-          ALTER TABLE matches
-            ADD CONSTRAINT fk_matches_user_b
-            FOREIGN KEY (user_b_id) REFERENCES users(id) ON DELETE CASCADE;
-        END IF;
-
-        IF NOT EXISTS (
-          SELECT 1 FROM information_schema.table_constraints
-          WHERE constraint_name = 'fk_messages_match' AND table_name = 'messages'
-        ) THEN
-          ALTER TABLE messages
-            ADD CONSTRAINT fk_messages_match
-            FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE;
-        END IF;
-
-        IF NOT EXISTS (
-          SELECT 1 FROM information_schema.table_constraints
-          WHERE constraint_name = 'fk_messages_sender' AND table_name = 'messages'
-        ) THEN
-          ALTER TABLE messages
-            ADD CONSTRAINT fk_messages_sender
-            FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE;
-        END IF;
-
-        IF NOT EXISTS (
-          SELECT 1 FROM information_schema.table_constraints
-          WHERE constraint_name = 'fk_notifications_user' AND table_name = 'notifications'
-        ) THEN
-          ALTER TABLE notifications
-            ADD CONSTRAINT fk_notifications_user
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-        END IF;
-      END $$;
-
-      -- ── Indexes (CREATE IF NOT EXISTS is always safe) ─────────────────────────
-      CREATE INDEX IF NOT EXISTS idx_users_boost_expires  ON users(boost_expires_at);
-      CREATE INDEX IF NOT EXISTS idx_rate_limits_reset    ON rate_limits(reset_at);
+    // ── Indexes ───────────────────────────────────────────────────────────────
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_users_boost_expires ON users(boost_expires_at);
+      CREATE INDEX IF NOT EXISTS idx_rate_limits_reset   ON rate_limits(reset_at);
     `);
+
+    await client.query("COMMIT");
     console.log("[migration] Startup migrations applied successfully");
   } catch (err: any) {
-    console.error("[migration] Startup migration error (non-fatal):", err.message);
+    await client.query("ROLLBACK").catch(() => {});
+    console.error("[migration] FATAL: Startup migration failed — rolling back:", err.message);
+    process.exit(1);
   } finally {
+    client.release();
     await pool.end();
   }
 }
