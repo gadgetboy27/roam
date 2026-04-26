@@ -47,7 +47,9 @@ function Router() {
       <Route path="/onboarding">
         <RequireAuth><Onboarding /></RequireAuth>
       </Route>
-      <Route path="/discover" component={Discover} />
+      <Route path="/discover">
+        <RequireAuth><Discover /></RequireAuth>
+      </Route>
       <Route path="/upload">
         <RequireAuth><Upload /></RequireAuth>
       </Route>
@@ -57,7 +59,9 @@ function Router() {
       <Route path="/profile">
         <RequireAuth><Profile /></RequireAuth>
       </Route>
-      <Route path="/plans" component={Plans} />
+      <Route path="/plans">
+        <RequireAuth><Plans /></RequireAuth>
+      </Route>
       <Route path="/advertise" component={Advertise} />
       <Route path="/advertise/success" component={AdvertiseSuccess} />
       <Route path="/whats-on">
