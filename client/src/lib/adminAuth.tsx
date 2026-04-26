@@ -1,4 +1,5 @@
 import { useState, useEffect, createContext, useContext } from "react";
+import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 
 type AdminSession = {
@@ -64,4 +65,19 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAdminAuth() {
   return useContext(AdminAuthContext);
+}
+
+export function RequireAdminAuth({ children }: { children: React.ReactNode }) {
+  const { admin, isLoading } = useAdminAuth();
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    if (!isLoading && !admin) {
+      navigate("/admin/login");
+    }
+  }, [admin, isLoading, navigate]);
+
+  if (isLoading) return null;
+  if (!admin) return null;
+  return <>{children}</>;
 }

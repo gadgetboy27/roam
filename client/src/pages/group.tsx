@@ -274,18 +274,29 @@ export default function GroupPage() {
 
   useEffect(() => {
     if (tab !== "campsite" || !isApproved || !user) return;
-    const socket = ioClient({ path: "/socket.io", transports: ["websocket", "polling"] });
-    socketRef.current = socket;
-    socket.emit("join_group", id);
-    socket.on("new_group_message", (msg: any) => {
-      setLocalMessages(prev => {
-        if (prev.some(m => m.id === msg.id)) return prev;
-        return [...prev.filter(m => m.tempId !== msg.tempId), msg];
+    let cancelled = false;
+    (async () => {
+      const { supabase } = await import("@/lib/supabase");
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (cancelled) return;
+      const socket = ioClient({ path: "/socket.io", auth: token ? { token } : undefined, transports: ["websocket", "polling"] });
+      socketRef.current = socket;
+      socket.emit("join_group", id);
+      socket.on("new_group_message", (msg: any) => {
+        setLocalMessages(prev => {
+          if (prev.some(m => m.id === msg.id)) return prev;
+          return [...prev.filter(m => m.tempId !== msg.tempId), msg];
+        });
       });
-    });
+    })();
     return () => {
-      socket.emit("leave_group", id);
-      socket.disconnect();
+      cancelled = true;
+      if (socketRef.current) {
+        socketRef.current.emit("leave_group", id);
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
     };
   }, [tab, isApproved, id, user]);
 

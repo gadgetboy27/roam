@@ -4,7 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, RequireAuth } from "@/lib/auth";
-import { AdminAuthProvider } from "@/lib/adminAuth";
+import { AdminAuthProvider, RequireAdminAuth } from "@/lib/adminAuth";
 import { ThemeProvider } from "@/lib/theme";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
@@ -68,8 +68,12 @@ function Router() {
         {(params) => <GroupPage />}
       </Route>
       <Route path="/admin/login" component={AdminLogin} />
-      <Route path="/admin" component={Admin} />
-      <Route path="/admin/ads" component={AdminAds} />
+      <Route path="/admin">
+        <RequireAdminAuth><Admin /></RequireAdminAuth>
+      </Route>
+      <Route path="/admin/ads">
+        <RequireAdminAuth><AdminAds /></RequireAdminAuth>
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );

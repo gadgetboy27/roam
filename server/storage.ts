@@ -97,6 +97,7 @@ export interface IStorage {
   getMatchedUserIds(userId: string): Promise<string[]>;
   getInteractedUserIds(userId: string): Promise<string[]>;
   createPass(userAId: string, userBId: string): Promise<void>;
+  getAllPhotosForUsers(userIds: string[]): Promise<Record<string, Photo[]>>;
   getGroupsLedByUser(userId: string): Promise<Group[]>;
 
   createGroupInvite(data: InsertGroupInvite): Promise<GroupInvite>;
@@ -542,6 +543,21 @@ export class DatabaseStorage implements IStorage {
     if (!existing) {
       await db.insert(matches).values({ userAId, userBId, status: "passed" });
     }
+  }
+
+  async getAllPhotosForUsers(userIds: string[]): Promise<Record<string, Photo[]>> {
+    if (!userIds.length) return {};
+    const rows = await db
+      .select()
+      .from(photos)
+      .where(inArray(photos.userId, userIds))
+      .orderBy(photos.displayOrder);
+    const map: Record<string, Photo[]> = {};
+    for (const p of rows) {
+      if (!map[p.userId]) map[p.userId] = [];
+      map[p.userId].push(p);
+    }
+    return map;
   }
 
   async getGroupsLedByUser(userId: string): Promise<Group[]> {

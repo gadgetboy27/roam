@@ -160,28 +160,50 @@ export async function registerRoutes(
     transports: ["websocket", "polling"],
   });
 
+  // Verify Supabase token on socket connection — attach verified userId to socket.data
+  io.use(async (socket, next) => {
+    const token = socket.handshake.auth?.token;
+    if (token) {
+      try {
+        const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+        if (!error && user?.email) {
+          const dbUser = await storage.getUserByEmail(user.email);
+          if (dbUser) {
+            socket.data.userId = dbUser.id;
+            return next();
+          }
+        }
+      } catch { /* fall through */ }
+    }
+    // Allow unauthenticated connections for connection-status monitoring
+    // but mark userId as null — authenticated handlers will reject if null
+    socket.data.userId = null;
+    next();
+  });
+
   io.on("connection", (socket) => {
     socket.on("join_match", (matchId: string) => {
+      if (!socket.data.userId) return;
       socket.join(`match:${matchId}`);
     });
 
-    socket.on("send_message", async (data: { matchId: string; senderId: string; content: string; tempId?: string }) => {
+    socket.on("send_message", async (data: { matchId: string; content: string; tempId?: string }) => {
+      const senderId = socket.data.userId;
+      if (!senderId) {
+        socket.emit("message_error", { tempId: data.tempId, error: "Authentication required" });
+        return;
+      }
       try {
-        // Verify the match exists, is mutually matched, and sender is a participant
         const match = await storage.getMatchById(data.matchId);
         if (!match || match.status !== "matched") {
           socket.emit("message_error", { tempId: data.tempId, error: "Messaging requires a mutual match" });
           return;
         }
-        if (match.userAId !== data.senderId && match.userBId !== data.senderId) {
+        if (match.userAId !== senderId && match.userBId !== senderId) {
           socket.emit("message_error", { tempId: data.tempId, error: "Not a participant in this match" });
           return;
         }
-        const msg = await storage.createMessage({
-          matchId: data.matchId,
-          senderId: data.senderId,
-          content: data.content,
-        });
+        const msg = await storage.createMessage({ matchId: data.matchId, senderId, content: data.content });
         io.to(`match:${data.matchId}`).emit("new_message", { ...msg, tempId: data.tempId });
       } catch (err: any) {
         socket.emit("message_error", { tempId: data.tempId, error: err.message });
@@ -194,7 +216,6 @@ export async function registerRoutes(
 
   const sessionPool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 
-  app.set("trust proxy", 1);
   app.use(
     session({
       secret: process.env.SESSION_SECRET!,
@@ -502,8 +523,11 @@ export async function registerRoutes(
     const interactedSet = new Set(interactedIds);
     const candidates = allUsers.filter(u => u.id !== userId && !interactedSet.has(u.id));
 
-    const scored = await Promise.all(candidates.map(async candidate => {
-      const candidatePhotos = await storage.getPhotosByUser(candidate.id);
+    // Bulk-load all candidate photos in one query (eliminates N+1)
+    const allCandidatePhotos = await storage.getAllPhotosForUsers(candidates.map(c => c.id));
+
+    const scored = candidates.map(candidate => {
+      const candidatePhotos = allCandidatePhotos[candidate.id] ?? [];
       const candidateFp = buildFingerprint(candidatePhotos, candidate.adventureTags);
       const { score, sharedTags } = computeOverlap(myFp, candidateFp);
       const almostMet = detectAlmostMet(currentPhotos, candidatePhotos);
@@ -524,7 +548,7 @@ export async function registerRoutes(
         sharedTags,
         almostMet,
       };
-    }));
+    });
 
     scored.sort((a, b) => {
       if (a.almostMet && !b.almostMet) return -1;
@@ -791,6 +815,10 @@ export async function registerRoutes(
     if (req.body.senderId && req.body.senderId !== userId) {
       return res.status(403).json({ message: "Cannot send messages as another user" });
     }
+    const content: string = req.body.content ?? "";
+    if (!content || content.length > 2000) {
+      return res.status(400).json({ message: "Message must be 1–2000 characters" });
+    }
     // Verify match exists, is mutually matched, and sender is a participant
     const match = await storage.getMatchById(req.body.matchId);
     if (!match) return res.status(404).json({ message: "Match not found" });
@@ -801,7 +829,7 @@ export async function registerRoutes(
       return res.status(403).json({ message: "You are not a participant in this match" });
     }
     try {
-      const msg = await storage.createMessage(req.body);
+      const msg = await storage.createMessage({ matchId: req.body.matchId, senderId: userId, content });
       res.status(201).json(msg);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
@@ -2107,6 +2135,7 @@ export async function registerRoutes(
 
   io.on("connection", (socket) => {
     socket.on("join_group", (groupId: string) => {
+      if (!socket.data.userId) return;
       socket.join(`group:${groupId}`);
     });
 
@@ -2114,17 +2143,26 @@ export async function registerRoutes(
       socket.leave(`group:${groupId}`);
     });
 
-    socket.on("send_group_message", async (data: { groupId: string; senderId: string; content: string; tempId?: string }) => {
+    socket.on("send_group_message", async (data: { groupId: string; content: string; tempId?: string }) => {
+      const senderId = socket.data.userId;
+      if (!senderId) {
+        socket.emit("group_message_error", { tempId: data.tempId, error: "Authentication required" });
+        return;
+      }
+      if (!data.content || data.content.length > 2000) {
+        socket.emit("group_message_error", { tempId: data.tempId, error: "Message must be 1–2000 characters" });
+        return;
+      }
       try {
-        // Check membership BEFORE creating the message
-        const member = await storage.getGroupMember(data.groupId, data.senderId);
+        // Check membership using the verified server-side senderId
+        const member = await storage.getGroupMember(data.groupId, senderId);
         if (!member || member.status !== "approved") {
           socket.emit("group_message_error", { tempId: data.tempId, error: "Not an approved member of this group" });
           return;
         }
         const [msg, sender] = await Promise.all([
-          storage.createGroupMessage({ groupId: data.groupId, senderId: data.senderId, content: data.content }),
-          storage.getUser(data.senderId),
+          storage.createGroupMessage({ groupId: data.groupId, senderId, content: data.content }),
+          storage.getUser(senderId),
         ]);
         io.to(`group:${data.groupId}`).emit("new_group_message", {
           ...msg,

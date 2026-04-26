@@ -6,6 +6,11 @@ import { seedDatabase } from "./seed";
 import { seedInitialAdmin } from "./admin-auth";
 import path from "path";
 
+if (!process.env.SESSION_SECRET) {
+  console.error("FATAL: SESSION_SECRET environment variable is not set. Exiting.");
+  process.exit(1);
+}
+
 const app = express();
 const httpServer = createServer(app);
 
@@ -26,15 +31,31 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
+app.set("trust proxy", 1);
+
 app.use((_req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "SAMEORIGIN");
   res.setHeader("X-XSS-Protection", "1; mode=block");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+  if (process.env.NODE_ENV === "production") {
+    res.setHeader(
+      "Content-Security-Policy",
+      [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline'",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "img-src 'self' data: https: blob:",
+        "connect-src 'self' wss: https:",
+        "font-src 'self' data: https://fonts.gstatic.com",
+        "frame-ancestors 'none'",
+        "object-src 'none'",
+      ].join("; ")
+    );
+  }
   next();
 });
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Health check registered immediately so it responds before any async setup
 app.get("/api/healthz", (_req, res) => res.json({ status: "ok" }));

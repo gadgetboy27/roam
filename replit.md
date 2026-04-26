@@ -120,20 +120,37 @@ Six-step first-run experience for new users. Triggered immediately after signup 
 
 **Also fixed**: Login endpoint now returns 401 (not 500) when an OAuth-only user attempts email/password login.
 
-## Security Fixes Applied (Post-Launch Audit)
+## Security Fixes Applied (Post-Launch Audit — Round 1)
 
-The following issues were identified in a full code audit and fixed:
+The following issues were identified in a full production code audit and fixed:
 
-- **Hardcoded Supabase URL**: `server/supabaseAdmin.ts` now uses `process.env.SUPABASE_URL` instead of a hardcoded string.
-- **Hardcoded Supabase anon key**: `client/src/lib/supabase.ts` now reads from `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` env vars with hardcoded fallbacks (safe — anon key is public by design, fallbacks allow rotation via secrets).
-- **Unprotected endpoints**: Added `authenticateRequest` guard to `/api/users/:id/photos`, `/api/users/:id/honesty`, and `/api/events/:eventId/attendees`.
-- **Webhook bypass in production**: Both payment and identity webhook handlers now hard-reject (400) if no signature secret is present and `REPLIT_DEPLOYMENT=1`.
-- **Subscription lifecycle**: Added `customer.subscription.updated` webhook handler to downgrade users when Stripe marks a subscription as `canceled` or `unpaid` (belt-and-suspenders alongside the existing `customer.subscription.deleted` handler).
+**Critical:**
+- **Socket.IO authentication (C1)**: Added `io.use()` middleware to verify the Supabase JWT on every socket connection. `socket.data.userId` is set server-side; `send_message` and `send_group_message` handlers now use `socket.data.userId` exclusively — client-supplied `senderId` is never trusted. Group campsite chat passes the Supabase session token in the socket handshake.
+- **Hardcoded Supabase credentials (C3)**: `client/src/lib/supabase.ts` now throws a startup error if `VITE_SUPABASE_URL` or `VITE_SUPABASE_ANON_KEY` are missing. No hardcoded fallback values remain.
+- **OAuth email/password login crash (C3)**: Login endpoint returns 401 (not 500) when an OAuth-only user attempts password login.
 
-Known remaining items (non-critical):
-- In-memory rate limiters reset on server restart (acceptable for current scale; Redis or DB-backed limiting is the long-term fix).
-- `passport` and `passport-local` are listed as build externals but never imported — dead deps, removable from package.json when convenient.
-- Admin panel shows a UI shell before API auth fails (cosmetic; all data endpoints are protected).
+**High:**
+- **N+1 query in /api/discover (H6)**: Replaced per-candidate `getPhotosByUser()` loop with a single `getAllPhotosForUsers(userIds[])` bulk query. Discover feed performance scales linearly instead of O(n) DB round-trips.
+- **Message content length limit (H5/M)**: `POST /api/messages` and `send_group_message` socket handler both enforce a 1–2000 character limit.
+- **Admin routes unprotected in frontend (H2)**: `/admin` and `/admin/ads` routes in `App.tsx` now wrapped with `RequireAdminAuth` component, which redirects to `/admin/login` if no admin session exists.
+- **Content Security Policy (H4)**: Added `Content-Security-Policy` header covering `default-src`, `script-src`, `style-src` (allows Google Fonts), `img-src`, `connect-src`, `font-src`, `frame-ancestors 'none'`, `object-src 'none'`.
+- **Trust proxy moved to startup (H)**: `app.set("trust proxy", 1)` moved from within `registerRoutes()` to `index.ts` so it's active before any middleware runs.
+- **SESSION_SECRET startup guard**: Server now calls `process.exit(1)` if `SESSION_SECRET` is missing at startup.
+- **Removed `/uploads` static serve**: The `/uploads` static file route was removed (files are served from Supabase Storage, not local disk).
+
+**Medium:**
+- **Database indexes (M3)**: Added 17 indexes to the schema (`idx_photos_user_id`, `idx_matches_user_a/b/status`, `idx_messages_match`, `idx_group_members_group/user`, `idx_group_messages_group`, `idx_notifications_user`, etc.) and applied them directly to the database.
+- **Password column nullable (M8)**: `users.password` column is now nullable in both schema and database — OAuth-only users never have a password hash and should not be blocked by a NOT NULL constraint.
+- **Supabase RLS policies (M7)**: `supabase_setup.sql` now contains participant-scoped policies. `messages` table: SELECT only if auth.uid is a match participant, INSERT only as self, UPDATE only for messages sent by others. `typing_indicators`: full access only for own row. (Must be re-applied in Supabase dashboard.)
+- **`RequireAdminAuth` component**: New component in `adminAuth.tsx` wraps admin pages and redirects unauthenticated admin sessions to `/admin/login`.
+
+**Known remaining / deferred:**
+- In-memory rate limiters reset on server restart (acceptable for current ~50 user scale).
+- Supabase RLS policies require manual re-application in the Supabase dashboard (provided in `supabase_setup.sql`).
+- Hardcoded Supabase URL**: `server/supabaseAdmin.ts` now uses `process.env.SUPABASE_URL` instead of a hardcoded string (done previously).
+- **Unprotected endpoints**: Added `authenticateRequest` guard to `/api/users/:id/photos`, `/api/users/:id/honesty`, and `/api/events/:eventId/attendees` (done previously).
+- **Webhook bypass in production**: Both payment and identity webhook handlers now hard-reject (400) if no signature secret is present and `REPLIT_DEPLOYMENT=1` (done previously).
+- **Subscription lifecycle**: Added `customer.subscription.updated` webhook handler for downgrade on Stripe cancellation (done previously).
 
 ## External Dependencies
 

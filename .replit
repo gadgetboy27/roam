@@ -76,7 +76,7 @@ integrations = ["stripe:1.0.0"]
 
 [userenv.shared]
 VITE_SUPABASE_URL = "https://znqbnldsalsfpraiplxz.supabase.co"
-VITE_SUPABASE_ANON_KEY = ""
+VITE_SUPABASE_ANON_KEY = "sb_publishable_44RJuBDdm7vJx4XfeHzMpg_MeSjC1Ay"
 ADMIN_EMAILS = "admin@letsroam.life"
 
 [userenv.development]

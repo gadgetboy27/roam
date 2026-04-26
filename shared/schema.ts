@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp, real, serial, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, timestamp, real, serial, pgEnum, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -11,7 +11,7 @@ export const adStatusEnum = pgEnum("ad_status", ["pending_payment", "pending_rev
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: text("email").notNull().unique(),
-  password: text("password").notNull(),
+  password: text("password"),
   name: text("name").notNull(),
   dob: text("dob"),
   gender: text("gender"),
@@ -35,7 +35,10 @@ export const users = pgTable("users", {
   stripeConnectAccountId: text("stripe_connect_account_id"),
   stripeConnectOnboarded: boolean("stripe_connect_onboarded").default(false),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_users_stripe_customer").on(table.stripeCustomerId),
+  index("idx_users_email").on(table.email),
+]);
 
 export const photos = pgTable("photos", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -51,7 +54,9 @@ export const photos = pgTable("photos", {
   isLicensable: boolean("is_licensable").default(false),
   displayOrder: integer("display_order").default(0),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_photos_user_id").on(table.userId),
+]);
 
 export const matches = pgTable("matches", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -64,7 +69,11 @@ export const matches = pgTable("matches", {
   almostMetDate: text("almost_met_date"),
   createdAt: timestamp("created_at").defaultNow(),
   matchedAt: timestamp("matched_at"),
-});
+}, (table) => [
+  index("idx_matches_user_a").on(table.userAId),
+  index("idx_matches_user_b").on(table.userBId),
+  index("idx_matches_status").on(table.status),
+]);
 
 export const messages = pgTable("messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -72,7 +81,9 @@ export const messages = pgTable("messages", {
   senderId: varchar("sender_id").notNull(),
   content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_messages_match").on(table.matchId, table.createdAt),
+]);
 
 export const bucketList = pgTable("bucket_list", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -80,7 +91,9 @@ export const bucketList = pgTable("bucket_list", {
   destinationName: text("destination_name").notNull(),
   imageUrl: text("image_url"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_bucket_list_user").on(table.userId),
+]);
 
 export const ads = pgTable("ads", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -109,7 +122,9 @@ export const ads = pgTable("ads", {
   eventStartAt: timestamp("event_start_at"),
   eventLocation: text("event_location"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_ads_status").on(table.status),
+]);
 
 export const groups = pgTable("groups", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -124,7 +139,9 @@ export const groups = pgTable("groups", {
   visibility: text("visibility").notNull().default("open"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_groups_leader").on(table.leaderId),
+]);
 
 export const groupMembers = pgTable("group_members", {
   id: serial("id").primaryKey(),
@@ -134,7 +151,10 @@ export const groupMembers = pgTable("group_members", {
   status: text("status").notNull().default("pending"),
   requestedAt: timestamp("requested_at").defaultNow(),
   joinedAt: timestamp("joined_at"),
-});
+}, (table) => [
+  index("idx_group_members_group").on(table.groupId),
+  index("idx_group_members_user").on(table.userId),
+]);
 
 export const groupMessages = pgTable("group_messages", {
   id: serial("id").primaryKey(),
@@ -143,7 +163,9 @@ export const groupMessages = pgTable("group_messages", {
   content: text("content").notNull(),
   isAnnouncement: boolean("is_announcement").default(false),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_group_messages_group").on(table.groupId, table.createdAt),
+]);
 
 export const groupEvents = pgTable("group_events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -156,7 +178,9 @@ export const groupEvents = pgTable("group_events", {
   endAt: timestamp("end_at"),
   ticketPriceNzd: integer("ticket_price_nzd"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_group_events_group").on(table.groupId),
+]);
 
 export const groupEventAttendees = pgTable("group_event_attendees", {
   id: serial("id").primaryKey(),
@@ -165,7 +189,10 @@ export const groupEventAttendees = pgTable("group_event_attendees", {
   ticketPaid: boolean("ticket_paid").default(false).notNull(),
   ticketSessionId: text("ticket_session_id"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_event_attendees_event").on(table.eventId),
+  index("idx_event_attendees_user").on(table.userId),
+]);
 
 export const groupInvites = pgTable("group_invites", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -191,7 +218,9 @@ export const notifications = pgTable("notifications", {
   data: text("data"),
   isRead: boolean("is_read").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("idx_notifications_user").on(table.userId, table.isRead),
+]);
 
 export const adminUsers = pgTable("admin_users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
