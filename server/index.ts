@@ -219,25 +219,29 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const OPAQUE_TOKEN_RE = /^[A-Za-z0-9_\-.]{25,}$/;
+
+function sanitizeLogPath(rawPath: string): string {
+  return rawPath
+    .split("/")
+    .map((segment) => {
+      if (UUID_RE.test(segment)) return "[id]";
+      if (OPAQUE_TOKEN_RE.test(segment)) return "[redacted]";
+      return segment;
+    })
+    .join("/");
+}
+
 app.use((req, res, next) => {
   const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
+  const rawPath = req.path;
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
+    if (rawPath.startsWith("/api")) {
+      const safePath = sanitizeLogPath(rawPath);
+      const logLine = `${req.method} ${safePath} ${res.statusCode} in ${duration}ms`;
       log(logLine);
     }
   });

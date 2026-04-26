@@ -16,6 +16,25 @@ import { hashAdminPassword, compareAdminPassword, isAdminAuthenticated, getAdmin
 const PgSessionStore = connectPgSimple(session);
 const isProd = process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1";
 
+function toPublicAd(ad: Record<string, any>) {
+  return {
+    id: ad.id,
+    advertiserName: ad.advertiserName,
+    advertiserCompany: ad.advertiserCompany,
+    tier: ad.tier,
+    headline: ad.headline,
+    tagline: ad.tagline,
+    ctaText: ad.ctaText,
+    ctaUrl: ad.ctaUrl,
+    imageUrl: ad.imageUrl,
+    videoUrl: ad.videoUrl,
+    contentType: ad.contentType,
+    adType: ad.adType,
+    eventStartAt: ad.eventStartAt,
+    eventLocation: ad.eventLocation,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // PostgreSQL-backed rate-limit store for express-rate-limit.
 // Uses the same Postgres pool as sessions so no extra connections are needed.
@@ -1286,7 +1305,7 @@ export async function registerRoutes(
     const ad = await storage.getLiveAd();
     if (!ad) return res.json(null);
     await storage.updateAd(ad.id, { impressions: (ad.impressions ?? 0) + 1 });
-    return res.json(ad);
+    return res.json(toPublicAd(ad));
   });
 
   app.post("/api/ads/:id/click", async (req, res) => {
@@ -1578,7 +1597,7 @@ export async function registerRoutes(
         console.warn("[account-delete] Supabase auth delete failed:", err.message);
       }
 
-      console.log(`[account-delete] User ${userId} (${user.email}) deleted their account`);
+      console.log(`[account-delete] User ${userId} deleted their account`);
       return res.json({ ok: true });
     } catch (err: any) {
       console.error("[account-delete] Error:", err.message);
@@ -2095,7 +2114,7 @@ export async function registerRoutes(
 
   app.get("/api/events/public", async (req, res) => {
     const events = await storage.getPublicEventAds();
-    res.json(events);
+    res.json(events.map(toPublicAd));
   });
 
   app.get("/api/events/:eventId/attendees", async (req, res) => {
@@ -2165,7 +2184,7 @@ export async function registerRoutes(
         [userId || null, userName, userEmail, message.trim(), page || null]
       );
       await pool.end();
-      console.log(`[feedback] ${userEmail || "anonymous"}: ${message.trim().substring(0, 60)}`);
+      console.log(`[feedback] feedback submitted`);
 
       // ── Email notification to admin ──────────────────────────────────────
       const adminEmails = process.env.ADMIN_EMAILS;
