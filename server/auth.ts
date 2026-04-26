@@ -10,8 +10,14 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 export async function comparePassword(password: string, stored: string): Promise<boolean> {
-  const [salt, hash] = stored.split(":");
-  const derivedKey = (await scryptAsync(password, salt, 64)) as Buffer;
-  const hashBuffer = Buffer.from(hash, "hex");
-  return timingSafeEqual(derivedKey, hashBuffer);
+  try {
+    const [salt, hash] = stored.split(":");
+    if (!salt || !hash) return false;
+    const derivedKey = (await scryptAsync(password, salt, 64)) as Buffer;
+    const hashBuffer = Buffer.from(hash, "hex");
+    if (derivedKey.length !== hashBuffer.length) return false;
+    return timingSafeEqual(derivedKey, hashBuffer);
+  } catch {
+    return false;
+  }
 }

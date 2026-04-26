@@ -145,12 +145,31 @@ The following issues were identified in a full production code audit and fixed:
 - **`RequireAdminAuth` component**: New component in `adminAuth.tsx` wraps admin pages and redirects unauthenticated admin sessions to `/admin/login`.
 
 **Known remaining / deferred:**
-- In-memory rate limiters reset on server restart (acceptable for current ~50 user scale).
 - Supabase RLS policies require manual re-application in the Supabase dashboard (provided in `supabase_setup.sql`).
-- Hardcoded Supabase URL**: `server/supabaseAdmin.ts` now uses `process.env.SUPABASE_URL` instead of a hardcoded string (done previously).
-- **Unprotected endpoints**: Added `authenticateRequest` guard to `/api/users/:id/photos`, `/api/users/:id/honesty`, and `/api/events/:eventId/attendees` (done previously).
-- **Webhook bypass in production**: Both payment and identity webhook handlers now hard-reject (400) if no signature secret is present and `REPLIT_DEPLOYMENT=1` (done previously).
-- **Subscription lifecycle**: Added `customer.subscription.updated` webhook handler for downgrade on Stripe cancellation (done previously).
+- H7 (FK constraints via Drizzle `.references()`) intentionally deferred — risk of breaking existing data on `db:push` with live records.
+
+## Security Fixes Applied (Post-Launch Audit — Round 2)
+
+**Critical:**
+- **C2: Supabase RLS scoped** — `supabase_setup.sql` updated with participant-scoped policies (must be re-applied in Supabase dashboard). `messages` SELECT requires auth.uid in match participants; INSERT requires auth.uid = sender_id; UPDATE requires auth.uid ≠ sender_id. `typing_indicators` full access scoped to own user_id only.
+- **C4: Missing DB columns** — verified all required columns (ticket_paid, ticket_session_id, ticket_price_nzd, boost_expires_at, is_organiser, stripe_connect_account_id, stripe_connect_onboarded) already existed from prior schema migrations.
+- **C5: PostgreSQL-backed rate limiter** — removed custom in-memory Map implementation. Replaced with `express-rate-limit` backed by a `rate_limits` table in the existing Postgres pool. Expired rows cleaned every 10 minutes. All 7 rate limiters (login, admin login, signup, profile, verify, upload, checkout) now use this store.
+
+**High:**
+- **H1: Route guards** — `/whats-on`, `/groups`, `/roamers`, `/groups/:id` now wrapped with `RequireAuth` in App.tsx. `/discover` and `/plans` remain public (intentional teaser design).
+- **H7: FK constraints** — intentionally deferred (risk to live data).
+
+**Medium:**
+- **M1: Stripe API version** — changed from `"2025-08-27.basil" as any` (forced cast on pre-release version) to `"2025-11-17.clover"` (the typed stable version bundled with stripe@20.0.0).
+- **M4: STRIPE_PAYMENT_WEBHOOK_SECRET guard** — `server/index.ts` now calls `process.exit(1)` if this secret is absent in production/deployment environments.
+- **M5/M6: Unused packages removed** — `passport`, `passport-local`, `memorystore` + their `@types/*` packages uninstalled.
+- **M9: Field max-length validation** — tagline capped at 60 chars, name at 100 chars in `PATCH /api/users/:id`; caption capped at 200 chars in `POST /api/upload`.
+- **M10: Admin audit log** — `admin_audit_log` table added to schema and database. `storage.createAuditLog()` called on: update_user, delete_user, delete_group, approve_ad, reject_ad. New endpoint `GET /api/admin/audit-log` (admin-authenticated) returns up to 200 recent entries.
+- **M12: HSTS header** — `Strict-Transport-Security: max-age=31536000; includeSubDomains` added for production environments.
+
+**Bug fixes:**
+- **`comparePassword` robustness** — `server/auth.ts` now wraps the full body in try/catch and returns false on any error (malformed stored hash with no colon, length mismatch, etc.). Matches the pattern already used in `admin-auth.ts`.
+- **Password length cap** — `signupSchema` now includes `.max(128)` on the password field to prevent DoS via extremely long inputs triggering expensive scrypt computation.
 
 ## External Dependencies
 

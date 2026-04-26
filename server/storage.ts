@@ -1,7 +1,7 @@
 import { eq, and, or, desc, inArray, gt, gte, sql } from "drizzle-orm";
 import { db } from "./db";
 import {
-  users, photos, matches, messages, bucketList, ads, adminUsers,
+  users, photos, matches, messages, bucketList, ads, adminUsers, adminAuditLog,
   groups, groupMembers, groupMessages, groupEvents, groupEventAttendees, groupInvites, notifications,
   type User, type InsertUser, type Photo, type InsertPhoto,
   type Match, type InsertMatch, type Message, type InsertMessage,
@@ -11,6 +11,7 @@ import {
   type GroupMessage, type GroupEvent, type InsertGroupEvent,
   type GroupInvite, type InsertGroupInvite,
   type Notification,
+  type AdminAuditLog, type InsertAdminAuditLog,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -98,6 +99,8 @@ export interface IStorage {
   getInteractedUserIds(userId: string): Promise<string[]>;
   createPass(userAId: string, userBId: string): Promise<void>;
   getAllPhotosForUsers(userIds: string[]): Promise<Record<string, Photo[]>>;
+  createAuditLog(data: InsertAdminAuditLog): Promise<AdminAuditLog>;
+  getAuditLogs(limit?: number): Promise<AdminAuditLog[]>;
   getGroupsLedByUser(userId: string): Promise<Group[]>;
 
   createGroupInvite(data: InsertGroupInvite): Promise<GroupInvite>;
@@ -543,6 +546,15 @@ export class DatabaseStorage implements IStorage {
     if (!existing) {
       await db.insert(matches).values({ userAId, userBId, status: "passed" });
     }
+  }
+
+  async createAuditLog(data: InsertAdminAuditLog): Promise<AdminAuditLog> {
+    const [row] = await db.insert(adminAuditLog).values(data).returning();
+    return row;
+  }
+
+  async getAuditLogs(limit = 200): Promise<AdminAuditLog[]> {
+    return db.select().from(adminAuditLog).orderBy(desc(adminAuditLog.createdAt)).limit(limit);
   }
 
   async getAllPhotosForUsers(userIds: string[]): Promise<Record<string, Photo[]>> {

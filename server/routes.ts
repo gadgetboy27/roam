@@ -9,6 +9,7 @@ import { getUncachableStripeClient } from "./stripeClient";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import pg from "pg";
+import rateLimit from "express-rate-limit";
 import { supabaseAdmin } from "./supabaseAdmin";
 import { hashAdminPassword, compareAdminPassword, isAdminAuthenticated, getAdminFromSession } from "./admin-auth";
 
@@ -16,42 +17,54 @@ const PgSessionStore = connectPgSimple(session);
 const isProd = process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1";
 
 // ---------------------------------------------------------------------------
-// Rate limiting — in-memory per-IP buckets, configurable per endpoint.
-// Each call to createRateLimiter() returns an independent middleware with
-// its own counter store, so limits don't bleed between endpoints.
+// PostgreSQL-backed rate-limit store for express-rate-limit.
+// Uses the same Postgres pool as sessions so no extra connections are needed.
+// Falls open on DB errors to avoid blocking legitimate users during transient failures.
 // ---------------------------------------------------------------------------
-function createRateLimiter(maxRequests: number, windowMs: number, message?: string) {
-  const store = new Map<string, { count: number; resetAt: number }>();
-  const defaultMsg = `Too many requests. Please try again in ${Math.round(windowMs / 60000)} minutes.`;
-  return function rateLimiter(req: Request, res: Response, next: NextFunction) {
-    const key = req.ip || "unknown";
-    const now = Date.now();
-    const rec = store.get(key);
-    if (rec && now < rec.resetAt) {
-      if (rec.count >= maxRequests) {
-        res.set("Retry-After", String(Math.ceil((rec.resetAt - now) / 1000)));
-        return res.status(429).json({ message: message || defaultMsg });
-      }
-      rec.count++;
-    } else {
-      store.set(key, { count: 1, resetAt: now + windowMs });
+class PgRateLimitStore {
+  constructor(private pool: pg.Pool, private windowMs: number, private prefix: string) {}
+
+  async increment(key: string) {
+    const fkey = `${this.prefix}:${key}`;
+    const resetAt = new Date(Date.now() + this.windowMs);
+    try {
+      const result = await this.pool.query(`
+        INSERT INTO rate_limits (key, count, reset_at)
+        VALUES ($1, 1, $2)
+        ON CONFLICT (key) DO UPDATE
+          SET count    = CASE WHEN rate_limits.reset_at > NOW() THEN rate_limits.count + 1 ELSE 1 END,
+              reset_at = CASE WHEN rate_limits.reset_at > NOW() THEN rate_limits.reset_at   ELSE $2 END
+        RETURNING count, reset_at
+      `, [fkey, resetAt]);
+      return { totalHits: result.rows[0].count as number, resetTime: new Date(result.rows[0].reset_at) as Date };
+    } catch {
+      return { totalHits: 1, resetTime: resetAt };
     }
-    next();
-  };
+  }
+
+  async decrement(key: string) {
+    const fkey = `${this.prefix}:${key}`;
+    await this.pool.query("UPDATE rate_limits SET count = GREATEST(0, count - 1) WHERE key = $1", [fkey]).catch(() => {});
+  }
+
+  async resetKey(key: string) {
+    const fkey = `${this.prefix}:${key}`;
+    await this.pool.query("DELETE FROM rate_limits WHERE key = $1", [fkey]).catch(() => {});
+  }
+
+  async resetAll() {
+    await this.pool.query("DELETE FROM rate_limits WHERE key LIKE $1", [`${this.prefix}:%`]).catch(() => {});
+  }
 }
 
-// 5 login attempts per 15 minutes — brute-force protection
-const loginLimiter    = createRateLimiter(5,  15 * 60 * 1000, "Too many login attempts. Please try again in 15 minutes.");
-// 3 admin login attempts per 30 minutes — stricter brute-force protection
-const adminLoginLimiter = createRateLimiter(3, 30 * 60 * 1000, "Too many admin login attempts. Please try again in 30 minutes.");
-// 10 signups per hour — prevents account farming
-const signupLimiter   = createRateLimiter(10, 60 * 60 * 1000, "Too many sign-up attempts. Please try again later.");
-// 10 OAuth profile creations per hour
-const profileLimiter  = createRateLimiter(10, 60 * 60 * 1000);
-// 3 identity verification starts per hour — Stripe sessions are expensive
-const verifyLimiter   = createRateLimiter(3,  60 * 60 * 1000, "Too many verification attempts. Please try again in an hour.");
-// 30 photo uploads per hour
-const uploadLimiter   = createRateLimiter(30, 60 * 60 * 1000);
+// Rate limiters are initialised inside registerRoutes() once the pg.Pool exists.
+// Declared here so they can be referenced in route registrations below.
+let loginLimiter: ReturnType<typeof rateLimit>;
+let adminLoginLimiter: ReturnType<typeof rateLimit>;
+let signupLimiter: ReturnType<typeof rateLimit>;
+let profileLimiter: ReturnType<typeof rateLimit>;
+let verifyLimiter: ReturnType<typeof rateLimit>;
+let uploadLimiter: ReturnType<typeof rateLimit>;
 
 async function authenticateRequest(req: Request): Promise<string | null> {
   const authHeader = req.headers.authorization;
@@ -215,6 +228,37 @@ export async function registerRoutes(
 
 
   const sessionPool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+
+  // Ensure the rate_limits table exists (idempotent)
+  await sessionPool.query(`
+    CREATE TABLE IF NOT EXISTS rate_limits (
+      key text PRIMARY KEY,
+      count integer NOT NULL DEFAULT 0,
+      reset_at timestamptz NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_rate_limits_reset ON rate_limits(reset_at);
+  `).catch((e) => console.error("[rate-limit] Table creation error:", e.message));
+
+  // Clean up expired rows periodically (every 10 min) to prevent unbounded growth
+  setInterval(() => {
+    sessionPool.query("DELETE FROM rate_limits WHERE reset_at < NOW()").catch(() => {});
+  }, 10 * 60 * 1000);
+
+  const makeLimiter = (max: number, windowMs: number, msg?: string) => rateLimit({
+    windowMs,
+    limit: max,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+    message: { message: msg ?? `Too many requests. Try again in ${Math.round(windowMs / 60000)} minutes.` },
+    store: new PgRateLimitStore(sessionPool, windowMs, `rl`),
+  });
+
+  loginLimiter      = makeLimiter(5,  15 * 60 * 1000, "Too many login attempts. Please try again in 15 minutes.");
+  adminLoginLimiter = makeLimiter(3,  30 * 60 * 1000, "Too many admin login attempts. Please try again in 30 minutes.");
+  signupLimiter     = makeLimiter(10, 60 * 60 * 1000, "Too many sign-up attempts. Please try again later.");
+  profileLimiter    = makeLimiter(10, 60 * 60 * 1000);
+  verifyLimiter     = makeLimiter(3,  60 * 60 * 1000, "Too many verification attempts. Please try again in an hour.");
+  uploadLimiter     = makeLimiter(30, 60 * 60 * 1000);
 
   app.use(
     session({
@@ -577,8 +621,14 @@ export async function registerRoutes(
     if (!sessionUserId || sessionUserId !== req.params.id) {
       return res.status(401).json({ message: "Not authorized" });
     }
+    const { name, tagline, location, avatarUrl, adventureTags } = req.body;
+    if (tagline !== undefined && typeof tagline === "string" && tagline.length > 60) {
+      return res.status(400).json({ message: "Tagline must be 60 characters or less" });
+    }
+    if (name !== undefined && typeof name === "string" && name.length > 100) {
+      return res.status(400).json({ message: "Name must be 100 characters or less" });
+    }
     try {
-      const { name, tagline, location, avatarUrl, adventureTags } = req.body;
       const updated = await storage.updateUser(req.params.id, {
         ...(name !== undefined && { name }),
         ...(tagline !== undefined && { tagline }),
@@ -634,6 +684,9 @@ export async function registerRoutes(
       const { dataUrl, filename, userId, caption, displayOrder } = req.body;
       if (!dataUrl || !filename || !userId) {
         return res.status(400).json({ message: "dataUrl, filename, userId required" });
+      }
+      if (caption !== undefined && typeof caption === "string" && caption.length > 200) {
+        return res.status(400).json({ message: "Caption must be 200 characters or less" });
       }
       if (userId !== authUserId) {
         return res.status(403).json({ message: "Cannot upload photos for another user" });
@@ -857,7 +910,7 @@ export async function registerRoutes(
   // ---------------------------------------------------------------------------
   // Stripe Hosted Checkout — Adventurer subscription ($4.99 NZD/month)
   // ---------------------------------------------------------------------------
-  const checkoutLimiter = createRateLimiter(5, 60 * 60 * 1000);
+  const checkoutLimiter = makeLimiter(5, 60 * 60 * 1000);
 
   app.post("/api/checkout/start", checkoutLimiter, async (req, res) => {
     const userId = await authenticateRequest(req);
@@ -1255,6 +1308,7 @@ export async function registerRoutes(
     if (!(await isAdminAuthenticated(req))) {
       return res.status(401).json({ message: "Admin authentication required" });
     }
+    const adminId = await getAdminFromSession(req);
     const { tier, isTierGifted } = req.body;
     if (tier && !["free", "adventurer", "contributor"].includes(tier)) {
       return res.status(400).json({ message: "Invalid tier" });
@@ -1272,8 +1326,11 @@ export async function registerRoutes(
     const updated = await storage.updateUser(req.params.id, updateData);
     if (!updated) return res.status(404).json({ message: "User not found" });
     const { password: _, ...safe } = updated;
-    if (tier) console.log(`[admin] User ${req.params.id} tier → ${tier}`);
-    if (isTierGifted !== undefined) console.log(`[admin] User ${req.params.id} gift tier → ${isTierGifted}`);
+    const changes = JSON.stringify(updateData);
+    if (adminId) {
+      await storage.createAuditLog({ adminId, action: "update_user", targetType: "user", targetId: req.params.id, details: changes, ip: req.ip ?? null }).catch(() => {});
+    }
+    console.log(`[admin] User ${req.params.id} updated: ${changes}`);
     return res.json(safe);
   });
 
@@ -1281,6 +1338,7 @@ export async function registerRoutes(
     if (!(await isAdminAuthenticated(req))) {
       return res.status(401).json({ message: "Admin authentication required" });
     }
+    const adminId = await getAdminFromSession(req);
     const target = await storage.getUser(req.params.id);
     if (!target) return res.status(404).json({ message: "User not found" });
     try {
@@ -1289,6 +1347,9 @@ export async function registerRoutes(
       if (match) await supabaseAdmin.auth.admin.deleteUser(match.id);
     } catch { /* non-fatal */ }
     await storage.deleteUser(req.params.id);
+    if (adminId) {
+      await storage.createAuditLog({ adminId, action: "delete_user", targetType: "user", targetId: req.params.id, details: target.email, ip: req.ip ?? null }).catch(() => {});
+    }
     console.log(`[admin] User ${target.email} deleted`);
     return res.json({ ok: true });
   });
@@ -1313,8 +1374,12 @@ export async function registerRoutes(
     if (!(await isAdminAuthenticated(req))) {
       return res.status(401).json({ message: "Admin authentication required" });
     }
+    const adminId = await getAdminFromSession(req);
     try {
       await storage.deleteGroup(req.params.id);
+      if (adminId) {
+        await storage.createAuditLog({ adminId, action: "delete_group", targetType: "group", targetId: req.params.id, ip: req.ip ?? null }).catch(() => {});
+      }
       res.json({ ok: true });
     } catch {
       res.status(500).json({ message: "Failed to delete group" });
@@ -1337,7 +1402,11 @@ export async function registerRoutes(
     if (!ad) return res.status(404).json({ message: "Ad not found" });
     const tierInfo = AD_TIERS[ad.tier] || AD_TIERS.explorer;
     const expiresAt = new Date(Date.now() + tierInfo.days * 24 * 3600 * 1000);
+    const adminId = await getAdminFromSession(req);
     const updated = await storage.updateAd(ad.id, { status: "approved", reviewedAt: new Date(), expiresAt, rejectionReason: null });
+    if (adminId) {
+      await storage.createAuditLog({ adminId, action: "approve_ad", targetType: "ad", targetId: ad.id, details: ad.advertiserName, ip: req.ip ?? null }).catch(() => {});
+    }
     console.log(`[ads] Admin approved ad ${ad.id} (${ad.advertiserName})`);
 
     if ((ad as any).adType === "event" && (ad as any).submittedByUserId) {
@@ -1365,10 +1434,22 @@ export async function registerRoutes(
     if (!(await isAdminAuthenticated(req))) {
       return res.status(401).json({ message: "Admin authentication required" });
     }
+    const adminId = await getAdminFromSession(req);
     const { reason } = req.body;
     const updated = await storage.updateAd(req.params.id, { status: "rejected", reviewedAt: new Date(), rejectionReason: reason || "Does not meet content guidelines" });
+    if (adminId) {
+      await storage.createAuditLog({ adminId, action: "reject_ad", targetType: "ad", targetId: req.params.id, details: reason ?? null, ip: req.ip ?? null }).catch(() => {});
+    }
     console.log(`[ads] Admin rejected ad ${req.params.id}: ${reason}`);
     return res.json(updated);
+  });
+
+  app.get("/api/admin/audit-log", async (req, res) => {
+    if (!(await isAdminAuthenticated(req))) {
+      return res.status(401).json({ message: "Admin authentication required" });
+    }
+    const logs = await storage.getAuditLogs(parseInt(req.query.limit as string) || 200);
+    return res.json(logs);
   });
 
   // ─────────────────────────────────────────────────────────────────────────

@@ -60,12 +60,18 @@ function Router() {
       <Route path="/plans" component={Plans} />
       <Route path="/advertise" component={Advertise} />
       <Route path="/advertise/success" component={AdvertiseSuccess} />
-      <Route path="/whats-on" component={WhatsOn} />
-      <Route path="/groups" component={Roamers} />
-      <Route path="/roamers" component={Roamers} />
+      <Route path="/whats-on">
+        <RequireAuth><WhatsOn /></RequireAuth>
+      </Route>
+      <Route path="/groups">
+        <RequireAuth><Roamers /></RequireAuth>
+      </Route>
+      <Route path="/roamers">
+        <RequireAuth><Roamers /></RequireAuth>
+      </Route>
       <Route path="/invite/:token" component={InvitePage} />
       <Route path="/groups/:id">
-        {(params) => <GroupPage />}
+        <RequireAuth><GroupPage /></RequireAuth>
       </Route>
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin">

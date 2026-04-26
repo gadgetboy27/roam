@@ -11,6 +11,11 @@ if (!process.env.SESSION_SECRET) {
   process.exit(1);
 }
 
+if (!process.env.STRIPE_PAYMENT_WEBHOOK_SECRET && (process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1")) {
+  console.error("FATAL: STRIPE_PAYMENT_WEBHOOK_SECRET is not set in production. Exiting.");
+  process.exit(1);
+}
+
 const app = express();
 const httpServer = createServer(app);
 
@@ -39,7 +44,8 @@ app.use((_req, res, next) => {
   res.setHeader("X-XSS-Protection", "1; mode=block");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1") {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
     res.setHeader(
       "Content-Security-Policy",
       [

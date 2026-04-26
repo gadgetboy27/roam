@@ -240,10 +240,27 @@ export const insertMatchSchema = createInsertSchema(matches).omit({ id: true, cr
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });
 export const insertBucketListSchema = createInsertSchema(bucketList).omit({ id: true, createdAt: true });
 
+export const adminAuditLog = pgTable("admin_audit_log", {
+  id: serial("id").primaryKey(),
+  adminId: varchar("admin_id").notNull(),
+  action: text("action").notNull(),
+  targetType: text("target_type"),
+  targetId: text("target_id"),
+  details: text("details"),
+  ip: text("ip"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_audit_log_admin").on(table.adminId),
+  index("idx_audit_log_created").on(table.createdAt),
+]);
+
+export type AdminAuditLog = typeof adminAuditLog.$inferSelect;
+export type InsertAdminAuditLog = typeof adminAuditLog.$inferInsert;
+
 export const signupSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Valid email required"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters").max(128, "Password must be 128 characters or less"),
   dob: z.string().optional(),
   gender: z.string().optional(),
   ethnicity: z.string().optional(),
