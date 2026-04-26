@@ -43,7 +43,7 @@ export const users = pgTable("users", {
 
 export const photos = pgTable("photos", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull(),
   storageUrl: text("storage_url").notNull(),
   caption: text("caption"),
   personScore: integer("person_score").default(0),
@@ -61,8 +61,8 @@ export const photos = pgTable("photos", {
 
 export const matches = pgTable("matches", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userAId: varchar("user_a_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  userBId: varchar("user_b_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userAId: varchar("user_a_id").notNull(),
+  userBId: varchar("user_b_id").notNull(),
   overlapScore: real("overlap_score").default(0),
   sharedTags: text("shared_tags").array(),
   status: matchStatusEnum("status").default("pending"),
@@ -78,8 +78,8 @@ export const matches = pgTable("matches", {
 
 export const messages = pgTable("messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  matchId: varchar("match_id").notNull().references(() => matches.id, { onDelete: "cascade" }),
-  senderId: varchar("sender_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  matchId: varchar("match_id").notNull(),
+  senderId: varchar("sender_id").notNull(),
   content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
@@ -212,7 +212,7 @@ export type InsertGroupInvite = typeof groupInvites.$inferInsert;
 
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull(),
   type: text("type").notNull(),
   title: text("title").notNull(),
   body: text("body"),
