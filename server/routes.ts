@@ -667,6 +667,9 @@ export async function registerRoutes(
     const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
     try {
+      const item = await storage.getBucketItem(req.params.id);
+      if (!item) return res.status(404).json({ message: "Not found" });
+      if (item.userId !== userId) return res.status(403).json({ message: "Not authorized" });
       await storage.deleteBucketItem(req.params.id);
       res.json({ message: "Deleted" });
     } catch (err: any) {
@@ -677,8 +680,14 @@ export async function registerRoutes(
   app.get("/api/users/:id/photos", async (req, res) => {
     const authUserId = await authenticateRequest(req);
     if (!authUserId) return res.status(401).json({ message: "Not authenticated" });
-    const photos = await storage.getPhotosByUser(req.params.id);
-    res.json(photos);
+    const allPhotos = await storage.getPhotosByUser(req.params.id);
+    if (authUserId === req.params.id) {
+      return res.json(allPhotos);
+    }
+    const publicPhotos = allPhotos
+      .filter(p => p.verdict === "approved")
+      .map(({ id, storageUrl, caption, displayOrder, createdAt }) => ({ id, storageUrl, caption, displayOrder, createdAt }));
+    res.json(publicPhotos);
   });
 
   app.post("/api/photos", uploadLimiter, async (req, res) => {
@@ -911,6 +920,7 @@ export async function registerRoutes(
   app.get("/api/bucket-list/:userId", async (req, res) => {
     const sessionUserId = await authenticateRequest(req);
     if (!sessionUserId) return res.status(401).json({ message: "Not authenticated" });
+    if (sessionUserId !== req.params.userId) return res.status(403).json({ message: "Not authorized" });
     const items = await storage.getBucketListByUser(req.params.userId);
     res.json(items);
   });
@@ -1168,6 +1178,9 @@ export async function registerRoutes(
       const event = await storage.getGroupEvent(req.params.eventId);
       if (!event) return res.status(404).json({ message: "Event not found" });
       if (!event.ticketPriceNzd) return res.status(400).json({ message: "This event is free — no ticket required" });
+
+      const member = await storage.getGroupMember(event.groupId, userId);
+      if (!member || member.status !== "approved") return res.status(403).json({ message: "You must be an approved group member to purchase a ticket" });
 
       const user = await storage.getUser(userId);
       if (!user) return res.status(404).json({ message: "User not found" });
@@ -1800,8 +1813,12 @@ export async function registerRoutes(
   app.get("/api/groups/:id/members", async (req, res) => {
     const sessionUserId = await authenticateRequest(req);
     if (!sessionUserId) return res.status(401).json({ message: "Not authenticated" });
-    const members = await storage.getGroupMembers(req.params.id);
-    const enriched = await Promise.all(members.map(async m => {
+    const group = await storage.getGroup(req.params.id);
+    if (!group) return res.status(404).json({ message: "Group not found" });
+    const isLeader = group.leaderId === sessionUserId;
+    const allMembers = await storage.getGroupMembers(req.params.id);
+    const visibleMembers = isLeader ? allMembers : allMembers.filter(m => m.status === "approved");
+    const enriched = await Promise.all(visibleMembers.map(async m => {
       const user = await storage.getUser(m.userId);
       const hero = await storage.getHeroPhoto(m.userId);
       return { ...m, user: user ? { id: user.id, name: user.name, avatarUrl: user.avatarUrl, location: user.location, tier: user.tier, heroPhotoUrl: hero?.url ?? null } : null };
@@ -1967,6 +1984,8 @@ export async function registerRoutes(
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     const group = await storage.getGroup(req.params.id);
     if (!group || group.leaderId !== userId) return res.status(403).json({ error: "Only the group leader can delete events" });
+    const event = await storage.getGroupEvent(req.params.eventId);
+    if (!event || event.groupId !== req.params.id) return res.status(404).json({ error: "Event not found in this group" });
     await storage.deleteGroupEvent(req.params.eventId);
     res.json({ success: true });
   });
@@ -2092,7 +2111,10 @@ export async function registerRoutes(
     const userId = req.session?.userId;
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     const event = await storage.getGroupEvent(req.params.eventId);
-    if (event?.ticketPriceNzd) {
+    if (!event) return res.status(404).json({ error: "Event not found" });
+    const member = await storage.getGroupMember(event.groupId, userId);
+    if (!member || member.status !== "approved") return res.status(403).json({ error: "You must be an approved group member to RSVP" });
+    if (event.ticketPriceNzd) {
       return res.status(402).json({ error: "This event requires a ticket", requiresTicket: true, eventId: event.id });
     }
     await storage.rsvpEvent(req.params.eventId, userId);
@@ -2120,6 +2142,10 @@ export async function registerRoutes(
   app.get("/api/events/:eventId/attendees", async (req, res) => {
     const authUserId = await authenticateRequest(req);
     if (!authUserId) return res.status(401).json({ message: "Not authenticated" });
+    const event = await storage.getGroupEvent(req.params.eventId);
+    if (!event) return res.status(404).json({ message: "Event not found" });
+    const member = await storage.getGroupMember(event.groupId, authUserId);
+    if (!member || member.status !== "approved") return res.status(403).json({ message: "You must be an approved group member to view attendees" });
     const attendees = await storage.getEventAttendees(req.params.eventId);
     res.json(attendees);
   });
@@ -2153,6 +2179,9 @@ export async function registerRoutes(
   app.patch("/api/notifications/:id/read", async (req, res) => {
     const userId = req.session?.userId;
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
+    const notification = await storage.getNotificationById(Number(req.params.id));
+    if (!notification) return res.status(404).json({ error: "Notification not found" });
+    if (notification.userId !== userId) return res.status(403).json({ error: "Not authorized" });
     await storage.markNotificationRead(Number(req.params.id));
     res.json({ success: true });
   });
@@ -2234,8 +2263,10 @@ export async function registerRoutes(
   // ─── Extend Socket.io for group campsite chat ─────────────────────────────
 
   io.on("connection", (socket) => {
-    socket.on("join_group", (groupId: string) => {
+    socket.on("join_group", async (groupId: string) => {
       if (!socket.data.userId) return;
+      const member = await storage.getGroupMember(groupId, socket.data.userId);
+      if (!member || member.status !== "approved") return;
       socket.join(`group:${groupId}`);
     });
 

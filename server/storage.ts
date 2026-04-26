@@ -38,6 +38,7 @@ export interface IStorage {
   getMessagesByMatch(matchId: string): Promise<Message[]>;
 
   createBucketItem(item: InsertBucketList): Promise<BucketListItem>;
+  getBucketItem(id: string): Promise<BucketListItem | undefined>;
   getBucketListByUser(userId: string): Promise<BucketListItem[]>;
   deleteBucketItem(id: string): Promise<void>;
 
@@ -92,6 +93,7 @@ export interface IStorage {
   createNotification(data: { userId: string; type: string; title: string; body?: string; data?: string }): Promise<Notification>;
   getNotificationsForUser(userId: string, limit?: number): Promise<Notification[]>;
   getUnreadNotificationCount(userId: string): Promise<number>;
+  getNotificationById(id: number): Promise<Notification | undefined>;
   markNotificationRead(id: number): Promise<void>;
   markAllNotificationsRead(userId: string): Promise<void>;
 
@@ -231,6 +233,11 @@ export class DatabaseStorage implements IStorage {
   async createBucketItem(item: InsertBucketList): Promise<BucketListItem> {
     const [created] = await db.insert(bucketList).values(item).returning();
     return created;
+  }
+
+  async getBucketItem(id: string): Promise<BucketListItem | undefined> {
+    const [item] = await db.select().from(bucketList).where(eq(bucketList.id, id));
+    return item;
   }
 
   async getBucketListByUser(userId: string): Promise<BucketListItem[]> {
@@ -513,6 +520,11 @@ export class DatabaseStorage implements IStorage {
     const rows = await db.select().from(notifications)
       .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
     return rows.length;
+  }
+
+  async getNotificationById(id: number): Promise<Notification | undefined> {
+    const [row] = await db.select().from(notifications).where(eq(notifications.id, id));
+    return row;
   }
 
   async markNotificationRead(id: number): Promise<void> {
