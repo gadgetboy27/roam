@@ -28,30 +28,41 @@ async function runStartupMigrations(): Promise<void> {
     // ── Orphan cleanup ────────────────────────────────────────────────────────
     const orphanSteps: Array<{ label: string; sql: string }> = [
       {
-        label: "orphaned messages (bad match_id or sender_id)",
+        // NOT EXISTS handles NULL foreign-key values that NOT IN silently skips
+        label: "orphaned messages (NULL or missing match_id / sender_id)",
         sql: `DELETE FROM messages
-              WHERE match_id  NOT IN (SELECT id FROM matches)
-                 OR sender_id NOT IN (SELECT id FROM users)`,
+              WHERE match_id  IS NULL
+                 OR sender_id IS NULL
+                 OR NOT EXISTS (SELECT 1 FROM matches WHERE matches.id = messages.match_id)
+                 OR NOT EXISTS (SELECT 1 FROM users  WHERE users.id  = messages.sender_id)`,
       },
       {
-        label: "orphaned photos (user deleted)",
-        sql: `DELETE FROM photos WHERE user_id NOT IN (SELECT id FROM users)`,
+        label: "orphaned photos (NULL or missing user_id)",
+        sql: `DELETE FROM photos
+              WHERE user_id IS NULL
+                 OR NOT EXISTS (SELECT 1 FROM users WHERE users.id = photos.user_id)`,
       },
       {
-        label: "orphaned notifications (user deleted)",
-        sql: `DELETE FROM notifications WHERE user_id NOT IN (SELECT id FROM users)`,
+        label: "orphaned notifications (NULL or missing user_id)",
+        sql: `DELETE FROM notifications
+              WHERE user_id IS NULL
+                 OR NOT EXISTS (SELECT 1 FROM users WHERE users.id = notifications.user_id)`,
       },
       {
-        label: "orphaned matches (either user deleted)",
+        label: "orphaned matches (NULL or missing user_a_id / user_b_id)",
         sql: `DELETE FROM matches
-              WHERE user_a_id NOT IN (SELECT id FROM users)
-                 OR user_b_id NOT IN (SELECT id FROM users)`,
+              WHERE user_a_id IS NULL
+                 OR user_b_id IS NULL
+                 OR NOT EXISTS (SELECT 1 FROM users WHERE users.id = matches.user_a_id)
+                 OR NOT EXISTS (SELECT 1 FROM users WHERE users.id = matches.user_b_id)`,
       },
       {
-        label: "orphaned group_members (user or group deleted)",
+        label: "orphaned group_members (NULL or missing user_id / group_id)",
         sql: `DELETE FROM group_members
-              WHERE user_id  NOT IN (SELECT id FROM users)
-                 OR group_id NOT IN (SELECT id FROM groups)`,
+              WHERE user_id  IS NULL
+                 OR group_id IS NULL
+                 OR NOT EXISTS (SELECT 1 FROM users   WHERE users.id   = group_members.user_id)
+                 OR NOT EXISTS (SELECT 1 FROM groups  WHERE groups.id  = group_members.group_id)`,
       },
     ];
 
