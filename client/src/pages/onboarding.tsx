@@ -11,19 +11,19 @@ const ADVENTURE_TYPES = [
     emoji: "🏔️",
     label: "Mountain & Alpine",
     subtitle: "Summits, ridgelines, big elevation",
-    tags: ["alpine hiking", "rock climbing", "ice climbing", "via ferrata", "canyoning"],
+    tags: ["alpine hiking", "rock climbing", "ice climbing", "via ferrata", "canyoning", "trad / crack climbing"],
   },
   {
     emoji: "🌊",
     label: "Ocean & Water",
     subtitle: "Surf, dive, paddle, sail",
-    tags: ["surfing", "kayaking", "scuba diving", "free diving", "boating / fishing"],
+    tags: ["surfing", "kayaking", "scuba diving", "free diving", "boating / fishing", "spearfishing", "whale watching", "surfing"],
   },
   {
     emoji: "❄️",
     label: "Snow & Ice",
     subtitle: "Powder days, frozen terrain",
-    tags: ["skiing", "snowboarding", "dog sledding"],
+    tags: ["skiing", "snowboarding", "dog sledding", "snowshoeing"],
   },
   {
     emoji: "🪂",
@@ -47,7 +47,7 @@ const ADVENTURE_TYPES = [
     emoji: "🚵",
     label: "Extreme & Technical",
     subtitle: "Bikes, ropes, adrenaline",
-    tags: ["extreme sports", "mountain biking", "bungee jumping", "horse riding"],
+    tags: ["extreme sports", "mountain biking", "bungee jumping", "horse riding", "parkour"],
   },
   {
     emoji: "🏝️",
