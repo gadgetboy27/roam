@@ -17,7 +17,7 @@ const ADVENTURE_TYPES = [
     emoji: "🌊",
     label: "Ocean & Water",
     subtitle: "Surf, dive, paddle, sail",
-    tags: ["surfing", "kayaking", "scuba diving", "free diving", "boating / fishing", "spearfishing", "whale watching"],
+    tags: ["surfing", "kayaking", "scuba diving", "free diving", "boating / rod fishing", "spearfishing", "whale watching"],
   },
   {
     emoji: "❄️",
@@ -29,7 +29,7 @@ const ADVENTURE_TYPES = [
     emoji: "🪂",
     label: "Sky & Air",
     subtitle: "Paragliders, base jumps, thermals",
-    tags: ["paragliding", "skydiving", "base jumping", "wingsuit"],
+    tags: ["paragliding", "skydiving", "base jumping"],
   },
   {
     emoji: "🌲",
@@ -41,19 +41,19 @@ const ADVENTURE_TYPES = [
     emoji: "🏙️",
     label: "Urban & Culture",
     subtitle: "Night markets, street food, wandering",
-    tags: ["urban roaming", "night markets", "food & wine trails", "couch surfing"],
+    tags: ["urban roaming", "night markets", "food & wine trails", "couch surfing", "parkour"],
   },
   {
     emoji: "🚵",
     label: "Extreme & Technical",
     subtitle: "Bikes, ropes, adrenaline",
-    tags: ["extreme sports", "mountain biking", "bungee jumping", "horse riding", "parkour"],
+    tags: ["extreme sports", "mountain biking", "bungee jumping", "horse riding"],
   },
   {
     emoji: "🏝️",
     label: "Coastal & Slow",
     subtitle: "Beaches, cliffs, slow mornings",
-    tags: ["coastal walks", "photography", "yoga / wellness", "walking"],
+    tags: ["coastal walks", "photography", "yoga / wellness", "walking", "beachcombing"],
   },
 ];
 
