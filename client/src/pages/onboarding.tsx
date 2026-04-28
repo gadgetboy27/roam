@@ -17,7 +17,7 @@ const ADVENTURE_TYPES = [
     emoji: "🌊",
     label: "Ocean & Water",
     subtitle: "Surf, dive, paddle, sail",
-    tags: ["surfing", "kayaking", "scuba diving", "free diving", "boating / fishing", "spearfishing", "whale watching", "surfing"],
+    tags: ["surfing", "kayaking", "scuba diving", "free diving", "boating / fishing", "spearfishing", "whale watching"],
   },
   {
     emoji: "❄️",
