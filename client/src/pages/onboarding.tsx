@@ -298,7 +298,7 @@ export default function Onboarding() {
       <div>
         <h2 className="font-serif text-3xl mb-1" style={{ color: "var(--roam-cream)" }}>What works here</h2>
         <p className="text-sm" style={{ color: "rgba(var(--roam-cream-rgb), 0.45)" }}>
-          Our AI reads adventure context in your photos. Here's the difference.
+          Our system reads adventure context in your photos. Here's the difference.
         </p>
       </div>
 

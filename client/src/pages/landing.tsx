@@ -110,7 +110,7 @@ export default function Landing() {
                   been
                 </h1>
                 <p className="text-base md:text-lg leading-relaxed max-w-md mb-8" style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>
-                  Post your adventure photos. Our AI matches you with people who share your kind of adventure — not just your look.
+                  Post your adventure photos. LetsRoamlife matches you with people who share your kind of adventure — not just your look.
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <Link href="/signup">
@@ -217,7 +217,7 @@ export default function Landing() {
                 Ready to <span className="italic" style={{ color: "var(--roam-electric)" }}>roam</span>?
               </h2>
               <p className="text-sm mb-6 max-w-md mx-auto" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
-                Join free. Upload your adventure photos. Let the AI find your people.
+                Join free. Upload your adventure photos. Let Roam.life find your people.
               </p>
               <Link href="/signup">
                 <button className="px-8 py-3.5 rounded-2xl text-sm font-mono tracking-wider uppercase font-medium inline-flex items-center gap-2 transition-all hover:-translate-y-0.5"
