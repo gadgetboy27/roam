@@ -244,7 +244,7 @@ export default function Signup() {
             Welcome to<br /><span className="italic" style={{ color: "var(--roam-electric)" }}>roam.</span>
           </h1>
           <p className="text-sm max-w-xs mb-6 animate-fade-up-1" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
-            Your adventure profile is ready. Upload your first photos and let the AI find your people.
+            Your adventure profile is ready. Upload your first photos and let LetsRoam.life find your people.
           </p>
           <div className="font-mono text-xs px-5 py-3 rounded-2xl mb-8 animate-fade-up-2"
                style={{ background: "var(--roam-moss)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)", color: "var(--roam-electric)" }}>
@@ -592,7 +592,7 @@ export default function Signup() {
                           <div className="mt-2.5 p-3 rounded-xl" style={{ background: "rgba(var(--roam-electric-rgb),0.06)", border: "1px solid rgba(var(--roam-electric-rgb),0.15)" }}>
                             <div className="font-mono text-[9px] tracking-[1px] uppercase mb-2" style={{ color: "var(--roam-electric)" }}>What you're agreeing to</div>
                             <div className="space-y-1.5">
-                              {["Non-exclusive — you keep full ownership", "We may sublicense to travel & tourism brands", "Royalties paid for sales above $200 NZD", "Opt out any photo, any time, no questions", "AI-rejected photos are never licensed"].map((t, i) => (
+                              {["Non-exclusive — you keep full ownership", "We may sublicense to travel & tourism brands", "Royalties paid for sales above $200 NZD", "Opt out any photo, any time, no questions", "LetsRoam.life-flagged photos are never licensed"].map((t, i) => (
                                 <div key={i} className="flex items-start gap-2 text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>
                                   <Check size={10} className="flex-shrink-0 mt-0.5" style={{ color: "var(--roam-electric)" }} />
                                   {t}

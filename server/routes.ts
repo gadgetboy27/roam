@@ -2028,9 +2028,9 @@ export async function registerRoutes(
         const { Resend } = await import("resend");
         const resend = new Resend(process.env.RESEND_API_KEY);
         await resend.emails.send({
-          from: "roam. <noreply@letsroam.life>",
+          from: "LetsRoam.life <noreply@letsroam.life>",
           to: normalised,
-          subject: `${inviterName} invited you to join ${group.name} on roam.`,
+          subject: `${inviterName} invited you to join ${group.name} on LetsRoam.life`,
           html: `
             <div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto;background:#0e1a0d;color:#e8dcc8;padding:32px;border-radius:16px">
               <h1 style="font-size:28px;margin-bottom:4px;color:#e8dcc8">roam.</h1>
@@ -2238,7 +2238,7 @@ export async function registerRoutes(
           method: "POST",
           headers: { "Authorization": `Bearer ${resendKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            from: "roam. <noreply@letsroam.life>",
+            from: "LetsRoam.life <noreply@letsroam.life>",
             to: recipients,
             subject: `💬 New feedback from ${userName || userEmail || "a roamer"}`,
             html: emailBody,

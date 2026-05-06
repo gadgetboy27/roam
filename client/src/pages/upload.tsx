@@ -139,7 +139,7 @@ export default function Upload() {
               Your <span className="italic" style={{ color: "var(--roam-electric)" }}>adventure</span><br />story
             </h1>
             <p className="text-[13px] mt-2 leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
-              Upload real photos from your travels and adventures. Our AI checks every photo before it goes live.
+              Upload real photos from your travels and adventures. LetsRoam.life checks every photo before it goes live.
             </p>
           </div>
 
@@ -226,7 +226,7 @@ export default function Upload() {
 
                         {p.status === "done" && (
                           <div className="text-[11px] font-mono mt-1" style={{ color: "var(--roam-electric)" }}>
-                            <Check size={10} className="inline mr-1" />Uploaded — AI screening in progress
+                            <Check size={10} className="inline mr-1" />Uploaded — LetsRoam.life screening in progress
                           </div>
                         )}
 
@@ -275,10 +275,10 @@ export default function Upload() {
 
           <div className="px-3.5 mt-8 animate-fade-up-2">
             <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
-              See how AI scoring works
+              See how LetsRoam.life scoring works
             </div>
             <p className="text-xs mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
-              Tap a sample photo to see what the AI checks
+              Tap a sample photo to see what LetsRoam.life checks
             </p>
             <div className="grid grid-cols-4 gap-1.5">
               {SCORE_DEMOS.map((p, i) => (
@@ -304,7 +304,7 @@ export default function Upload() {
                       onClick={runDemoAnalysis}
                       disabled={demoAnalysing}
                       data-testid="button-analyse">
-                {demoAnalysing ? "Analysing…" : `See AI score for "${demoSelected.label}"`}
+                {demoAnalysing ? "Analysing…" : `See LetsRoam.life score for "${demoSelected.label}"`}
               </button>
             )}
 
@@ -329,7 +329,7 @@ export default function Upload() {
                 <div className="px-4 py-3 flex items-center gap-2.5"
                      style={{ background: "rgba(var(--roam-electric-rgb),0.07)", borderBottom: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
                   <span className="font-mono text-[9px] font-medium tracking-[1px] uppercase py-0.5 px-2 rounded-lg"
-                        style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}>AI Verdict</span>
+                        style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}>LetsRoam.life Verdict</span>
                   <span className="font-mono text-[11px]" style={{ color: "var(--roam-sand)" }}>
                     {demoSelected.verdict.replace(/_/g, " ").toUpperCase()}
                   </span>

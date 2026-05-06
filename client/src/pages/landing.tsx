@@ -14,7 +14,7 @@ const FEATURES = [
   {
     icon: Camera,
     title: "Photo-First Matching",
-    desc: "Post your adventure photos. Our AI reads the places, not just your face.",
+    desc: "Post your adventure photos. LetsRoam.life reads the places, not just your face.",
   },
   {
     icon: Compass,

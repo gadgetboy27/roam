@@ -938,7 +938,7 @@ export default function Profile() {
                 <span className="font-mono text-[10px] tracking-wider uppercase" style={{ color: "var(--roam-electric)" }}>Profile tip</span>
               </div>
               <p className="text-xs leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.75)" }}>
-                Photos with you in them get 3x more matches. Add more adventure shots where you're visible — the AI
+                Photos with you in them get 3x more matches. Add more adventure shots where you're visible — LetsRoam.life
                 prioritizes photos that show the real you in real places.
               </p>
             </div>

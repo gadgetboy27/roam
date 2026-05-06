@@ -28,8 +28,8 @@ function addToCalendar(ev: any, groupName: string) {
     `SUMMARY:${ev.title}`,
     ev.location ? `LOCATION:${ev.location}` : null,
     ev.description ? `DESCRIPTION:${ev.description}` : null,
-    `ORGANIZER;CN=${groupName}:MAILTO:noreply@roam.app`,
-    `UID:${ev.id}@roam.app`,
+    `ORGANIZER;CN=${groupName}:MAILTO:noreply@letsroam.life`,
+    `UID:${ev.id}@letsroam.life`,
     "END:VEVENT",
     "END:VCALENDAR",
   ].filter(Boolean).join("\r\n");

@@ -298,7 +298,7 @@ export default function Onboarding() {
       <div>
         <h2 className="font-serif text-3xl mb-1" style={{ color: "var(--roam-cream)" }}>What works here</h2>
         <p className="text-sm" style={{ color: "rgba(var(--roam-cream-rgb), 0.45)" }}>
-          Our system reads adventure context in your photos. Here's the difference.
+          LetsRoam.life reads adventure context in your photos. Here's the difference.
         </p>
       </div>
 
@@ -508,7 +508,7 @@ export default function Onboarding() {
       <div>
         <h2 className="font-serif text-3xl mb-1" style={{ color: "var(--roam-cream)" }}>Add your adventure proof</h2>
         <p className="text-sm" style={{ color: "rgba(var(--roam-cream-rgb), 0.45)" }}>
-          Upload 1–6 photos. The AI reads context — where, what, how real.
+          Upload 1–6 photos. LetsRoam.life reads context — where, what, how real.
         </p>
       </div>
 
