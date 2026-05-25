@@ -117,14 +117,18 @@ export default function Onboarding() {
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Use server-side state as the source of truth — adventureTags being set
+  // means the user has completed onboarding at least once, regardless of device.
   useEffect(() => {
-    if (localStorage.getItem("roam_onboarding_done") === "1") {
+    if (user && (user as any).adventureTags?.length > 0) {
       navigate("/discover");
     }
-  }, []);
+  }, [user]);
 
-  const TOTAL_STEPS = 6;
+  const TOTAL_STEPS = 5;
   const progress = (step / (TOTAL_STEPS - 1)) * 100;
+  // Steps 1-3 are the meaningful setup steps shown in the counter (skip intro/complete)
+  const setupStep = step; // step 1=adventure, 2=destinations, 3=photos, 4=complete
   const approvedCount = photos.filter(p => p.status === "approved").length;
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
@@ -146,8 +150,8 @@ export default function Onboarding() {
   };
 
   const saveAdventuresAndNext = async () => {
-    if (!user) { setStep(3); return; }
-    if (selectedAdventures.size === 0) { setStep(3); return; }
+    if (!user) { setStep(2); return; }
+    if (selectedAdventures.size === 0) { setStep(2); return; }
     setSaving(true);
     try {
       const tags = [...selectedAdventures].flatMap(i => ADVENTURE_TYPES[i].tags);
@@ -157,12 +161,12 @@ export default function Onboarding() {
       console.warn("[onboarding] adventure tags save failed:", e);
     } finally {
       setSaving(false);
-      setStep(3);
+      setStep(2);
     }
   };
 
   const saveDestsAndNext = async () => {
-    if (!user || selectedDests.size === 0) { setStep(4); return; }
+    if (!user || selectedDests.size === 0) { setStep(3); return; }
     setSaving(true);
     try {
       await Promise.all(
@@ -177,7 +181,7 @@ export default function Onboarding() {
       console.warn("[onboarding] bucket list save failed:", e);
     } finally {
       setSaving(false);
-      setStep(4);
+      setStep(3);
     }
   };
 
@@ -237,10 +241,10 @@ export default function Onboarding() {
     color: "rgba(var(--roam-cream-rgb), 0.4)",
   } as const;
 
-  // ── Step 0: Intro ─────────────────────────────────────────────────────────────
+  // ── Step 0: Intro (merged with photo guidance) ────────────────────────────────
 
   const step0 = (
-    <div className="flex flex-col items-center text-center gap-8 px-6 py-10">
+    <div className="flex flex-col items-center text-center gap-7 px-6 py-10">
       <div>
         <h1 className="font-serif text-5xl tracking-tight mb-2" style={{ color: "var(--roam-cream)" }}>roam.</h1>
         <p className="text-[11px] tracking-[3px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb), 0.35)" }}>
@@ -253,26 +257,51 @@ export default function Onboarding() {
       </p>
 
       <div
-        className="w-full max-w-sm rounded-2xl p-5"
+        className="w-full max-w-sm rounded-2xl p-5 text-left"
         style={{ background: "rgba(var(--roam-cream-rgb), 0.04)", border: "1px solid rgba(var(--roam-cream-rgb), 0.1)" }}
       >
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-left">
-          <div className="flex flex-col gap-2">
-            <p className="text-[10px] tracking-widest uppercase mb-1" style={{ color: "var(--roam-electric)" }}>
-              ✓ Belongs here
-            </p>
-            {["Summit moments", "Surf & ocean", "Trail runs", "Dive trips", "Any real adventure"].map(t => (
-              <span key={t} className="flex items-center gap-2" style={{ color: "rgba(var(--roam-cream-rgb), 0.7)" }}>
+        <p className="text-[10px] tracking-widest uppercase mb-3 text-center" style={{ color: "rgba(var(--roam-cream-rgb), 0.35)" }}>
+          3 quick steps to your adventure profile
+        </p>
+        <div className="flex flex-col gap-3">
+          {[
+            { n: "1", label: "Pick your adventure style", sub: "Seeds your matching fingerprint" },
+            { n: "2", label: "Pin dream destinations", sub: "Get notified when a match shares one" },
+            { n: "3", label: "Add adventure photos", sub: "You in action beats landscapes alone" },
+          ].map(({ n, label, sub }) => (
+            <div key={n} className="flex items-center gap-3">
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
+                style={{ background: "var(--roam-electric)", color: "#0e1a0d" }}
+              >
+                {n}
+              </div>
+              <div className="text-left">
+                <div className="text-sm font-semibold" style={{ color: "var(--roam-cream)" }}>{label}</div>
+                <div className="text-xs" style={{ color: "rgba(var(--roam-cream-rgb), 0.38)" }}>{sub}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div
+        className="w-full max-w-sm rounded-2xl p-4"
+        style={{ background: "rgba(var(--roam-cream-rgb), 0.03)", border: "1px solid rgba(var(--roam-cream-rgb), 0.07)" }}
+      >
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+          <div className="flex flex-col gap-1.5">
+            <p className="text-[10px] tracking-widest uppercase mb-0.5" style={{ color: "var(--roam-electric)" }}>✓ Belongs here</p>
+            {["Summit moments", "Surf & ocean", "Trail runs", "Any real adventure"].map(t => (
+              <span key={t} className="flex items-center gap-1.5 text-xs" style={{ color: "rgba(var(--roam-cream-rgb), 0.65)" }}>
                 <Check className="w-3 h-3 shrink-0 text-green-400" /> {t}
               </span>
             ))}
           </div>
-          <div className="flex flex-col gap-2">
-            <p className="text-[10px] tracking-widest uppercase mb-1" style={{ color: "rgba(var(--roam-cream-rgb), 0.3)" }}>
-              ✗ Doesn't fit
-            </p>
-            {["Mirror selfies", "Club nights", "Pet portraits", "Food only", "Heavy filters"].map(t => (
-              <span key={t} className="flex items-center gap-2" style={{ color: "rgba(var(--roam-cream-rgb), 0.35)" }}>
+          <div className="flex flex-col gap-1.5">
+            <p className="text-[10px] tracking-widest uppercase mb-0.5" style={{ color: "rgba(var(--roam-cream-rgb), 0.3)" }}>✗ Doesn't fit</p>
+            {["Mirror selfies", "Club nights", "Pet portraits", "Heavy filters"].map(t => (
+              <span key={t} className="flex items-center gap-1.5 text-xs" style={{ color: "rgba(var(--roam-cream-rgb), 0.35)" }}>
                 <X className="w-3 h-3 shrink-0 text-red-400" /> {t}
               </span>
             ))}
@@ -286,80 +315,7 @@ export default function Onboarding() {
         style={electricBtn}
         data-testid="button-onboarding-start"
       >
-        Let's set you up <ChevronRight className="w-5 h-5" />
-      </button>
-    </div>
-  );
-
-  // ── Step 1: Photo examples ────────────────────────────────────────────────────
-
-  const step1 = (
-    <div className="flex flex-col gap-6 px-6 py-8">
-      <div>
-        <h2 className="font-serif text-3xl mb-1" style={{ color: "var(--roam-cream)" }}>What works here</h2>
-        <p className="text-sm" style={{ color: "rgba(var(--roam-cream-rgb), 0.45)" }}>
-          LetsRoam.life reads adventure context in your photos. Here's the difference.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-2">
-          <p className="text-[10px] tracking-widest uppercase" style={{ color: "var(--roam-electric)" }}>
-            ✓ Adventure proof
-          </p>
-          {GOOD_EXAMPLES.map(ex => (
-            <div key={ex.seed} className="relative rounded-xl overflow-hidden" style={{ aspectRatio: "3/4" }}>
-              <img
-                src={`https://picsum.photos/seed/${ex.seed}/300/400`}
-                alt={ex.label}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0" style={{ background: "linear-gradient(transparent 50%, rgba(0,0,0,0.75))" }} />
-              <div className="absolute bottom-0 left-0 right-0 p-2">
-                <span className="text-xs font-medium text-green-400">✓ {ex.label}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <p className="text-[10px] tracking-widest uppercase" style={{ color: "rgba(var(--roam-cream-rgb), 0.3)" }}>
-            ✗ Won't help
-          </p>
-          {BAD_EXAMPLES.map(ex => (
-            <div
-              key={ex.seed}
-              className="relative rounded-xl overflow-hidden"
-              style={{ aspectRatio: "3/4", filter: "grayscale(0.75) brightness(0.5)" }}
-            >
-              <img
-                src={`https://picsum.photos/seed/${ex.seed}/300/400`}
-                alt={ex.label}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0" style={{ background: "linear-gradient(transparent 50%, rgba(0,0,0,0.8))" }} />
-              <div className="absolute bottom-0 left-0 right-0 p-2">
-                <span className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>✗ {ex.label}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div
-        className="rounded-xl p-4 text-sm text-center"
-        style={{ background: "rgba(var(--roam-cream-rgb), 0.05)", color: "rgba(var(--roam-cream-rgb), 0.55)" }}
-      >
-        💡 You in the photo + recognisable adventure = better matches. Landscapes alone won't cut it.
-      </div>
-
-      <button
-        onClick={() => setStep(2)}
-        className="w-full py-4 rounded-xl font-semibold text-base"
-        style={electricBtn}
-        data-testid="button-onboarding-examples-next"
-      >
-        Got it — what's my vibe?
+        Let's go <ChevronRight className="w-5 h-5" />
       </button>
     </div>
   );

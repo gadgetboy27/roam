@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, RequireAuth } from "@/lib/auth";
 import { AdminAuthProvider, RequireAdminAuth } from "@/lib/adminAuth";
 import { ThemeProvider } from "@/lib/theme";
+import { ErrorBoundary } from "@/components/error-boundary";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Privacy from "@/pages/privacy";
@@ -91,18 +92,22 @@ function Router() {
 
 function App() {
   return (
-    <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <AuthProvider>
-            <AdminAuthProvider>
-              <Toaster />
-              <Router />
-            </AdminAuthProvider>
-          </AuthProvider>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <AuthProvider>
+              <AdminAuthProvider>
+                <Toaster />
+                <ErrorBoundary>
+                  <Router />
+                </ErrorBoundary>
+              </AdminAuthProvider>
+            </AuthProvider>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

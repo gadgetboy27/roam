@@ -1,5 +1,5 @@
 {
-  "name": "rest-express",
+  "name": "roam-app",
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
@@ -76,7 +76,6 @@
     "socket.io-client": "^4.8.3",
     "socket.io-parser": "^4.2.6",
     "stripe": "^20.0.0",
-    "stripe-replit-sync": "^1.0.0",
     "supertest": "^7.2.2",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
@@ -89,9 +88,6 @@
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
-    "@replit/vite-plugin-cartographer": "^0.4.4",
-    "@replit/vite-plugin-dev-banner": "^0.1.1",
-    "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
     "@tailwindcss/typography": "^0.5.15",
     "@tailwindcss/vite": "^4.1.18",
     "@types/connect-pg-simple": "^7.0.3",
@@ -116,11 +112,8 @@
       "@esbuild-kit/esm-loader": "npm:tsx@^4.20.4"
     },
     "uuid": "14.0.0",
-    "picomatch": "2.3.2",
-    "lodash": "4.18.1",
     "yaml": "2.8.3",
-    "brace-expansion": "2.0.3",
-    "postcss": "8.5.12"
+    "brace-expansion": "2.0.3"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"

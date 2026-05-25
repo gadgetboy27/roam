@@ -1,5 +1,41 @@
-node_modules
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.turbo/
+
+# Environment variables (never commit secrets)
+.env
+.env.local
+.env.production
+
+# OS artifacts
 .DS_Store
-server/public
-vite.config.ts.*
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Uploads (local dev only — production uses Supabase Storage)
+uploads/
+
+# Attached Replit assets (not needed in production)
+attached_assets/
+
+# Test coverage
+coverage/
+
+# Misc
 *.tar.gz
+vite.config.ts.*

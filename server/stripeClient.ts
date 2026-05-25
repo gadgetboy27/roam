@@ -1,6 +1,6 @@
 import Stripe from "stripe";
 
-const isProduction = process.env.REPLIT_DEPLOYMENT === "1";
+const isProduction = process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1";
 
 // STRIPE_TEST_MODE=true enables test keys in development
 // In all other cases (including when test secrets exist), live keys are used

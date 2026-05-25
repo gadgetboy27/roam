@@ -153,12 +153,12 @@ if (!process.env.SESSION_SECRET) {
   process.exit(1);
 }
 
-if (!process.env.STRIPE_PAYMENT_WEBHOOK_SECRET && (process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1")) {
+if (!process.env.STRIPE_PAYMENT_WEBHOOK_SECRET && process.env.NODE_ENV === "production") {
   console.error("FATAL: STRIPE_PAYMENT_WEBHOOK_SECRET is not set in production. Exiting.");
   process.exit(1);
 }
 
-if (!process.env.STRIPE_IDENTITY_WEBHOOK_SECRET && (process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1")) {
+if (!process.env.STRIPE_IDENTITY_WEBHOOK_SECRET && process.env.NODE_ENV === "production") {
   console.error("FATAL: STRIPE_IDENTITY_WEBHOOK_SECRET is not set in production. Exiting.");
   process.exit(1);
 }
@@ -191,7 +191,7 @@ app.use((_req, res, next) => {
   res.setHeader("X-XSS-Protection", "1; mode=block");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
-  if (process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1") {
+  if (process.env.NODE_ENV === "production") {
     res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
     res.setHeader(
       "Content-Security-Policy",

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { ArrowLeft, Check, X, Camera, Compass, ShieldAlert } from "lucide-react";
+import { Check, X, Compass, ShieldAlert } from "lucide-react";
 import { SiFacebook, SiGoogle } from "react-icons/si";
 
 const TIERS = [
@@ -27,7 +27,7 @@ const TIERS = [
     name: "Adventurer",
     badge: "Most popular",
     badgeColor: "electric",
-    price: "$12",
+    price: "$4.99",
     priceSub: "NZD / month",
     desc: "Unlimited matches, full messaging, and the Almost Met radar.",
     features: [
@@ -36,22 +36,6 @@ const TIERS = [
       { included: true, text: "Bucket List destination matching" },
       { included: true, text: "Almost Met alerts" },
       { included: true, text: "See who liked your profile" },
-    ],
-  },
-  {
-    id: "contributor" as const,
-    name: "Contributor",
-    badge: "Free access",
-    badgeColor: "ember",
-    price: "Free",
-    priceSub: "licence trade",
-    desc: "Get full Adventurer access free — in exchange for a non-exclusive licence to your photos.",
-    features: [
-      { included: true, text: "Everything in Adventurer — free", sky: true },
-      { included: true, text: "Photos may be licensed to travel brands", sky: true },
-      { included: true, text: "You keep full ownership — non-exclusive only", sky: true },
-      { included: true, text: "Earn royalties if a photo sells above $200 NZD", sky: true },
-      { included: true, text: "Opt out any photo at any time", sky: true },
     ],
   },
 ];
@@ -75,13 +59,6 @@ const CONSENTS = [
     required: true,
     label: "Authentic content",
     desc: "I'll only post real photos I took or appear in — no AI, stock, or heavily edited images.",
-  },
-  {
-    id: "photo_license",
-    required: false,
-    label: "Photo licensing (Contributor tier)",
-    desc: "I grant roam. a non-exclusive licence to pitch my approved photos to travel brands.",
-    isLicense: true,
   },
   {
     id: "marketing",
@@ -451,7 +428,7 @@ export default function Signup() {
                 <span className="italic" style={{ color: "var(--roam-electric)" }}>Choose</span> your<br />adventure plan
               </h2>
               <p className="text-[13px] mb-5 leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
-                You can change or cancel anytime. Contributor access is genuinely free.
+                Start free and upgrade anytime. Cancel your subscription whenever you like.
               </p>
 
               <div className="space-y-2.5 mb-5">
@@ -587,19 +564,6 @@ export default function Signup() {
                         <p className="text-[11px] mt-1 leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>{c.desc}</p>
                         {c.linkText && (
                           <span className="text-[11px] underline mt-1 inline-block" style={{ color: "var(--roam-electric)" }}>{c.linkText}</span>
-                        )}
-                        {c.isLicense && isChecked && (
-                          <div className="mt-2.5 p-3 rounded-xl" style={{ background: "rgba(var(--roam-electric-rgb),0.06)", border: "1px solid rgba(var(--roam-electric-rgb),0.15)" }}>
-                            <div className="font-mono text-[9px] tracking-[1px] uppercase mb-2" style={{ color: "var(--roam-electric)" }}>What you're agreeing to</div>
-                            <div className="space-y-1.5">
-                              {["Non-exclusive — you keep full ownership", "We may sublicense to travel & tourism brands", "Royalties paid for sales above $200 NZD", "Opt out any photo, any time, no questions", "LetsRoam.life-flagged photos are never licensed"].map((t, i) => (
-                                <div key={i} className="flex items-start gap-2 text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>
-                                  <Check size={10} className="flex-shrink-0 mt-0.5" style={{ color: "var(--roam-electric)" }} />
-                                  {t}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
                         )}
                       </div>
                     </div>

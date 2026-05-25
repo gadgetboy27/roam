@@ -1,9 +1,9 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { Server as SocketServer } from "socket.io";
+import { createHmac, timingSafeEqual } from "crypto";
 import { storage } from "./storage";
-import { signupSchema } from "@shared/schema";
-import { hashPassword, comparePassword } from "./auth";
+import { comparePassword } from "./auth";
 import { buildFingerprint, computeOverlap, detectAlmostMet, computeHonestyTier } from "./fingerprint";
 import { getUncachableStripeClient } from "./stripeClient";
 import session from "express-session";
@@ -14,7 +14,7 @@ import { supabaseAdmin } from "./supabaseAdmin";
 import { hashAdminPassword, compareAdminPassword, isAdminAuthenticated, getAdminFromSession } from "./admin-auth";
 
 const PgSessionStore = connectPgSimple(session);
-const isProd = process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1";
+const isProd = process.env.NODE_ENV === "production";
 
 function toPublicAd(ad: Record<string, any>) {
   return {
@@ -80,7 +80,6 @@ class PgRateLimitStore {
 // Declared here so they can be referenced in route registrations below.
 let loginLimiter: ReturnType<typeof rateLimit>;
 let adminLoginLimiter: ReturnType<typeof rateLimit>;
-let signupLimiter: ReturnType<typeof rateLimit>;
 let profileLimiter: ReturnType<typeof rateLimit>;
 let verifyLimiter: ReturnType<typeof rateLimit>;
 let uploadLimiter: ReturnType<typeof rateLimit>;
@@ -171,13 +170,34 @@ export async function registerRoutes(
   // Facebook Data Deletion Callback endpoint (POST).
   // Use this URL in Facebook App Settings → Data Deletion → Callback URL:
   //   https://letsroam.life/api/facebook/data-deletion
-  // Facebook sends a signed_request; we return a confirmation code + status URL.
+  // Facebook sends a signed_request (base64url header.payload signed with HMAC-SHA256).
   app.post("/api/facebook/data-deletion", (req, res) => {
     const { signed_request } = req.body || {};
+    const appSecret = process.env.FACEBOOK_APP_SECRET;
+
+    if (appSecret && signed_request) {
+      try {
+        const [encodedSig, payload] = (signed_request as string).split(".");
+        const expectedSig = createHmac("sha256", appSecret)
+          .update(payload)
+          .digest("base64url");
+        const sigBuf = Buffer.from(encodedSig, "base64url");
+        const expBuf = Buffer.from(expectedSig, "base64url");
+        if (sigBuf.length !== expBuf.length || !timingSafeEqual(sigBuf, expBuf)) {
+          console.warn("[facebook-deletion] invalid signature — rejecting");
+          return res.status(400).json({ error: "Invalid signature" });
+        }
+      } catch {
+        return res.status(400).json({ error: "Malformed signed_request" });
+      }
+    } else if (!signed_request) {
+      console.warn("[facebook-deletion] no signed_request present");
+    }
+
     const confirmationCode = `roam-del-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    console.log("[facebook-deletion] received callback, signed_request present:", !!signed_request);
+    const appUrl = process.env.APP_URL || "https://letsroam.life";
     return res.json({
-      url: `https://letsroam.life/data-deletion?confirmation=${confirmationCode}`,
+      url: `${appUrl}/data-deletion?confirmation=${confirmationCode}`,
       confirmation_code: confirmationCode,
     });
   });
@@ -274,7 +294,6 @@ export async function registerRoutes(
 
   loginLimiter      = makeLimiter(5,  15 * 60 * 1000, "Too many login attempts. Please try again in 15 minutes.");
   adminLoginLimiter = makeLimiter(3,  30 * 60 * 1000, "Too many admin login attempts. Please try again in 30 minutes.");
-  signupLimiter     = makeLimiter(10, 60 * 60 * 1000, "Too many sign-up attempts. Please try again later.");
   profileLimiter    = makeLimiter(10, 60 * 60 * 1000);
   verifyLimiter     = makeLimiter(3,  60 * 60 * 1000, "Too many verification attempts. Please try again in an hour.");
   uploadLimiter     = makeLimiter(30, 60 * 60 * 1000);
@@ -297,58 +316,6 @@ export async function registerRoutes(
       }),
     })
   );
-
-  app.post("/api/auth/signup", signupLimiter, async (req, res) => {
-    try {
-      const parsed = signupSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ message: parsed.error.errors[0]?.message || "Invalid data" });
-      }
-
-      const existing = await storage.getUserByEmail(parsed.data.email);
-      if (existing) {
-        return res.status(409).json({ message: "An account with this email already exists" });
-      }
-
-      const hashedPassword = await hashPassword(parsed.data.password);
-
-      // Create in Supabase so the user can log in via Supabase auth later.
-      // email_confirm: true skips the confirmation email since we handle
-      // verification ourselves via the signup flow.
-      try {
-        await supabaseAdmin.auth.admin.createUser({
-          email: parsed.data.email,
-          password: parsed.data.password,
-          email_confirm: true,
-        });
-      } catch (sbErr: any) {
-        // "User already registered" is fine — just means they're already in Supabase
-        if (!sbErr.message?.toLowerCase().includes("already")) {
-          console.warn("[signup] Supabase user creation failed:", sbErr.message);
-        }
-      }
-
-      const user = await storage.createUser({
-        name: parsed.data.name,
-        email: parsed.data.email,
-        password: hashedPassword,
-        dob: parsed.data.dob,
-        gender: parsed.data.gender,
-        ethnicity: parsed.data.ethnicity,
-        location: parsed.data.location,
-        tagline: parsed.data.tagline,
-        tier: parsed.data.tier,
-        photoLicenseAgreed: parsed.data.photoLicenseAgreed,
-      });
-
-      (req.session as any).userId = user.id;
-
-      const { password: _, ...safeUser } = user;
-      res.status(201).json(safeUser);
-    } catch (err: any) {
-      res.status(500).json({ message: err.message || "Server error" });
-    }
-  });
 
   app.post("/api/auth/login", loginLimiter, async (req, res) => {
     try {
@@ -429,7 +396,7 @@ export async function registerRoutes(
         isTierGifted: false,
       });
       if (isFoundingMember) {
-        console.log(`[founding] ${sbUser.email} is founding member #${allUsers.length + 1}/${FOUNDING_MEMBER_LIMIT}`);
+        console.log(`[founding] ${sbUser.email} is founding member #${foundingCount + 1}/${FOUNDING_MEMBER_LIMIT}`);
       }
 
       const { password: _, ...safe } = newUser;
@@ -949,7 +916,7 @@ export async function registerRoutes(
       if (!user) return res.status(404).json({ message: "User not found" });
 
       const stripe = await getUncachableStripeClient();
-      const domain = process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
+      const domain = process.env.APP_URL || process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
       const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
 
       const session = await stripe.checkout.sessions.create({
@@ -993,7 +960,7 @@ export async function registerRoutes(
       if (!user) return res.status(404).json({ message: "User not found" });
 
       const stripe = await getUncachableStripeClient();
-      const domain = process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
+      const domain = process.env.APP_URL || process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
       const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
 
       const session = await stripe.checkout.sessions.create({
@@ -1035,7 +1002,7 @@ export async function registerRoutes(
       if (user.isOrganiser) return res.status(400).json({ message: "Already a Squad Leader" });
 
       const stripe = await getUncachableStripeClient();
-      const domain = process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
+      const domain = process.env.APP_URL || process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
       const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
 
       const session = await stripe.checkout.sessions.create({
@@ -1079,7 +1046,7 @@ export async function registerRoutes(
       if (!user.isOrganiser) return res.status(403).json({ message: "Squad Leader account required" });
 
       const stripe = await getUncachableStripeClient();
-      const domain = process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
+      const domain = process.env.APP_URL || process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
       const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
 
       // Create Express account if not already created
@@ -1127,14 +1094,14 @@ export async function registerRoutes(
     } catch (err: any) {
       console.warn("[connect-return] Status check failed:", err.message);
     }
-    const domain = process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
+    const domain = process.env.APP_URL || process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
     const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
     return res.redirect(`${baseUrl}/profile?connect=success`);
   });
 
   // Refresh URL — link expired, generate a new one and redirect
   app.get("/api/stripe/connect/refresh", async (req, res) => {
-    const domain = process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
+    const domain = process.env.APP_URL || process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
     const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
     return res.redirect(`${baseUrl}/profile?connect=refresh`);
   });
@@ -1189,7 +1156,7 @@ export async function registerRoutes(
       if (existing?.ticketPaid) return res.status(400).json({ message: "You already have a ticket" });
 
       const stripe = await getUncachableStripeClient();
-      const domain = process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
+      const domain = process.env.APP_URL || process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
       const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
 
       // ticketPriceNzd is what the organiser receives; attendee pays +10%
@@ -1255,7 +1222,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "No active subscription found" });
       }
       const stripe = await getUncachableStripeClient();
-      const domain = process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
+      const domain = process.env.APP_URL || process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
       const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
       const portal = await stripe.billingPortal.sessions.create({
         customer: user.stripeCustomerId,
@@ -1495,7 +1462,7 @@ export async function registerRoutes(
       if (webhookSecret && sig) {
         event = stripe.webhooks.constructEvent(req.rawBody as Buffer, sig, webhookSecret);
       } else {
-        if (process.env.REPLIT_DEPLOYMENT === "1") {
+        if (process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1") {
           return res.status(400).json({ error: "Webhook signature verification required in production" });
         }
         event = req.body;
@@ -1624,7 +1591,7 @@ export async function registerRoutes(
 
     try {
       const stripe = await getUncachableStripeClient();
-      const domain = process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
+      const domain = process.env.APP_URL || process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
       const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
 
       const session = await stripe.identity.verificationSessions.create({
