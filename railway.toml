@@ -1,6 +1,6 @@
 [build]
 builder = "railpack"
-buildCommand = "pnpm install --no-frozen-lockfile && pnpm run build"
+buildCommand = "corepack enable && pnpm install --no-frozen-lockfile && pnpm run build"
 
 [deploy]
 startCommand = "pnpm run start"
