@@ -916,8 +916,8 @@ export async function registerRoutes(
       if (!user) return res.status(404).json({ message: "User not found" });
 
       const stripe = await getUncachableStripeClient();
-      const domain = process.env.APP_URL || process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
-      const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
+      const domain = process.env.APP_URL || "http://localhost:5000";
+      const baseUrl = domain.startsWith("http") ? domain : `https://${domain}`;
 
       const session = await stripe.checkout.sessions.create({
         mode: "subscription",
@@ -960,8 +960,8 @@ export async function registerRoutes(
       if (!user) return res.status(404).json({ message: "User not found" });
 
       const stripe = await getUncachableStripeClient();
-      const domain = process.env.APP_URL || process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
-      const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
+      const domain = process.env.APP_URL || "http://localhost:5000";
+      const baseUrl = domain.startsWith("http") ? domain : `https://${domain}`;
 
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
@@ -1002,8 +1002,8 @@ export async function registerRoutes(
       if (user.isOrganiser) return res.status(400).json({ message: "Already a Squad Leader" });
 
       const stripe = await getUncachableStripeClient();
-      const domain = process.env.APP_URL || process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
-      const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
+      const domain = process.env.APP_URL || "http://localhost:5000";
+      const baseUrl = domain.startsWith("http") ? domain : `https://${domain}`;
 
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
@@ -1046,8 +1046,8 @@ export async function registerRoutes(
       if (!user.isOrganiser) return res.status(403).json({ message: "Squad Leader account required" });
 
       const stripe = await getUncachableStripeClient();
-      const domain = process.env.APP_URL || process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
-      const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
+      const domain = process.env.APP_URL || "http://localhost:5000";
+      const baseUrl = domain.startsWith("http") ? domain : `https://${domain}`;
 
       // Create Express account if not already created
       let accountId = user.stripeConnectAccountId;
@@ -1094,15 +1094,15 @@ export async function registerRoutes(
     } catch (err: any) {
       console.warn("[connect-return] Status check failed:", err.message);
     }
-    const domain = process.env.APP_URL || process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
-    const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
+    const domain = process.env.APP_URL || "http://localhost:5000";
+    const baseUrl = domain.startsWith("http") ? domain : `https://${domain}`;
     return res.redirect(`${baseUrl}/profile?connect=success`);
   });
 
   // Refresh URL — link expired, generate a new one and redirect
   app.get("/api/stripe/connect/refresh", async (req, res) => {
-    const domain = process.env.APP_URL || process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
-    const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
+    const domain = process.env.APP_URL || "http://localhost:5000";
+    const baseUrl = domain.startsWith("http") ? domain : `https://${domain}`;
     return res.redirect(`${baseUrl}/profile?connect=refresh`);
   });
 
@@ -1156,8 +1156,8 @@ export async function registerRoutes(
       if (existing?.ticketPaid) return res.status(400).json({ message: "You already have a ticket" });
 
       const stripe = await getUncachableStripeClient();
-      const domain = process.env.APP_URL || process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
-      const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
+      const domain = process.env.APP_URL || "http://localhost:5000";
+      const baseUrl = domain.startsWith("http") ? domain : `https://${domain}`;
 
       // ticketPriceNzd is what the organiser receives; attendee pays +10%
       const organiserCents = Math.round(event.ticketPriceNzd * 100);
@@ -1222,8 +1222,8 @@ export async function registerRoutes(
         return res.status(400).json({ message: "No active subscription found" });
       }
       const stripe = await getUncachableStripeClient();
-      const domain = process.env.APP_URL || process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
-      const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
+      const domain = process.env.APP_URL || "http://localhost:5000";
+      const baseUrl = domain.startsWith("http") ? domain : `https://${domain}`;
       const portal = await stripe.billingPortal.sessions.create({
         customer: user.stripeCustomerId,
         return_url: `${baseUrl}/profile`,
@@ -1462,7 +1462,7 @@ export async function registerRoutes(
       if (webhookSecret && sig) {
         event = stripe.webhooks.constructEvent(req.rawBody as Buffer, sig, webhookSecret);
       } else {
-        if (process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1") {
+        if (process.env.NODE_ENV === "production") {
           return res.status(400).json({ error: "Webhook signature verification required in production" });
         }
         event = req.body;
@@ -1591,8 +1591,8 @@ export async function registerRoutes(
 
     try {
       const stripe = await getUncachableStripeClient();
-      const domain = process.env.APP_URL || process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost:5000";
-      const baseUrl = domain.startsWith("localhost") ? `http://${domain}` : `https://${domain}`;
+      const domain = process.env.APP_URL || "http://localhost:5000";
+      const baseUrl = domain.startsWith("http") ? domain : `https://${domain}`;
 
       const session = await stripe.identity.verificationSessions.create({
         type: "document",
@@ -1643,7 +1643,7 @@ export async function registerRoutes(
           webhookSecret
         );
       } else {
-        if (process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1") {
+        if (process.env.NODE_ENV === "production") {
           return res.status(400).json({ error: "Webhook signature verification required in production" });
         }
         event = req.body;
