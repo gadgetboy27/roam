@@ -6,6 +6,7 @@ import { seedDatabase } from "./seed";
 import { seedInitialAdmin } from "./admin-auth";
 import path from "path";
 import pg from "pg";
+import { pgConnectConfig } from "./db";
 
 /**
  * Idempotent startup migration — runs inside a single transaction.
@@ -19,7 +20,7 @@ import pg from "pg";
  * so the deployment fails loudly rather than starting in a broken state.
  */
 async function runStartupMigrations(): Promise<void> {
-  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+  const pool = new pg.Pool(pgConnectConfig(process.env.DATABASE_URL));
   const client = await pool.connect();
 
   try {

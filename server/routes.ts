@@ -12,6 +12,7 @@ import pg from "pg";
 import rateLimit from "express-rate-limit";
 import { supabaseAdmin } from "./supabaseAdmin";
 import { hashAdminPassword, compareAdminPassword, isAdminAuthenticated, getAdminFromSession } from "./admin-auth";
+import { pgConnectConfig } from "./db";
 
 const PgSessionStore = connectPgSimple(session);
 const isProd = process.env.NODE_ENV === "production";
@@ -266,7 +267,7 @@ export async function registerRoutes(
   await supabaseAdmin.storage.createBucket("photos", { public: true }).catch(() => {});
 
 
-  const sessionPool = new pg.Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+  const sessionPool = new pg.Pool(pgConnectConfig(process.env.DATABASE_URL));
 
   // Ensure the rate_limits table exists (idempotent)
   await sessionPool.query(`
@@ -2179,7 +2180,7 @@ export async function registerRoutes(
         if (u) { userName = u.name; userEmail = u.email; }
       }
       const { Pool } = await import("pg");
-      const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
       await pool.query(
         "INSERT INTO feedback (user_id, user_name, user_email, message, page) VALUES ($1,$2,$3,$4,$5)",
         [userId || null, userName, userEmail, message.trim(), page || null]
@@ -2223,7 +2224,7 @@ export async function registerRoutes(
     if (!(await isAdminAuthenticated(req))) return res.status(401).json({ message: "Admin authentication required" });
     try {
       const { Pool } = await import("pg");
-      const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
       const { rows } = await pool.query("SELECT * FROM feedback ORDER BY created_at DESC LIMIT 200");
       await pool.end();
       return res.json(rows);
