@@ -4,9 +4,10 @@ import AppNav from "@/components/app-nav";
 import { useAuth } from "@/lib/auth";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Check, X } from "lucide-react";
+import { Check, X, ShieldCheck, Flag } from "lucide-react";
 import type { HonestyTier } from "@/lib/fingerprint";
 import AdCard, { type LiveAd } from "@/components/ad-card";
+import ReportBlockModal from "@/components/report-block-modal";
 import {
   Mountain, Waves, Camera, ShoppingBag, Building2,
   Backpack, TreePine, Bike, Tent, Compass, Footprints,
@@ -121,6 +122,7 @@ export default function Discover() {
   const [matchCelebration, setMatchCelebration] = useState<{
     name: string; hero: string; sharedTags: string[]; almostMet: typeof DEMO_PROFILES[0]["almostMet"];
   } | null>(null);
+  const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [welcomeTier, setWelcomeTier] = useState<"free" | "adventurer" | "contributor">("adventurer");
   const [welcomePaying, setWelcomePaying] = useState(false);
@@ -479,13 +481,24 @@ export default function Discover() {
         )}
 
         <div className="absolute flex flex-col items-end gap-5" style={{ top: "80px", right: "14px" }}>
+          {/* Report/Flag button — always visible for real profiles */}
+          {user && profile.id !== user.id && !profile.id.startsWith("demo-") && (
+            <button
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl backdrop-blur-md"
+              style={{ background: "rgba(0,0,0,0.38)", border: "1px solid rgba(var(--roam-cream-rgb),0.18)" }}
+              onClick={e => { e.stopPropagation(); setReportTarget({ id: profile.id, name: profile.name }); }}
+              data-testid="button-report-user">
+              <Flag size={12} style={{ color: "rgba(255,255,255,0.55)" }} />
+            </button>
+          )}
+
           {isVerifiedUser && (
             <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl backdrop-blur-md"
                     style={{ background: "rgba(0,0,0,0.38)", border: "1px solid rgba(var(--roam-electric-rgb),0.42)" }}
                     onClick={() => navigate("/profile")}
                     data-testid="badge-verified">
               <span className="font-mono text-[11px] font-bold" style={{ color: "var(--roam-electric)" }}>✓</span>
-              <span className="font-mono text-[8px] tracking-wider" style={{ color: "rgba(255,255,255,0.8)" }}>verified</span>
+              <span className="font-mono text-[8px] tracking-wider" style={{ color: "rgba(255,255,255,0.8)" }}>ID verified</span>
             </button>
           )}
 
@@ -795,6 +808,29 @@ export default function Discover() {
           </div>
         </div>
       )}
+      {/* Safety mode banner */}
+      {user?.safetyModeEnabled && (
+        <div className="fixed left-1/2 -translate-x-1/2 z-[55] flex items-center gap-2 px-3 py-1.5 rounded-xl"
+             style={{ bottom: "80px", background: "rgba(var(--roam-electric-rgb),0.12)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)" }}>
+          <ShieldCheck size={12} style={{ color: "var(--roam-electric)" }} />
+          <span className="font-mono text-[10px] tracking-wider" style={{ color: "var(--roam-electric)" }}>Safety mode · verified only</span>
+        </div>
+      )}
+
+      {/* Report / Block modal */}
+      {reportTarget && (
+        <ReportBlockModal
+          userId={reportTarget.id}
+          userName={reportTarget.name}
+          onClose={() => setReportTarget(null)}
+          onBlocked={() => {
+            setReportTarget(null);
+            setProfileIdx(i => i + 1);
+            setAnimKey(k => k + 1);
+          }}
+        />
+      )}
+
     </div>
   );
 }

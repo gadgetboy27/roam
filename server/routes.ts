@@ -552,7 +552,29 @@ export async function registerRoutes(
 
     const myFp = buildFingerprint(currentPhotos, currentUser.adventureTags);
     const interactedSet = new Set(interactedIds);
-    const candidates = allUsers.filter(u => u.id !== userId && !interactedSet.has(u.id));
+
+    // Load block lists — exclude anyone the user blocked or who blocked them
+    let blockedIds = new Set<string>();
+    try {
+      const { Pool } = await import("pg");
+      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
+      const { rows } = await pool.query(
+        `SELECT blocked_id FROM blocks WHERE blocker_id = $1
+         UNION SELECT blocker_id FROM blocks WHERE blocked_id = $1`,
+        [userId]
+      );
+      await pool.end();
+      blockedIds = new Set(rows.map((r: any) => r.blocked_id ?? r.blocker_id));
+    } catch { /* non-fatal — degrade gracefully */ }
+
+    const candidates = allUsers.filter(u => {
+      if (u.id === userId) return false;
+      if (interactedSet.has(u.id)) return false;
+      if (blockedIds.has(u.id)) return false;
+      // Safety mode: only show verified users to users who enabled it
+      if (currentUser.safetyModeEnabled && !u.identityVerified) return false;
+      return true;
+    });
 
     // Bulk-load all candidate photos in one query (eliminates N+1)
     const allCandidatePhotos = await storage.getAllPhotosForUsers(candidates.map(c => c.id));
@@ -2121,6 +2143,93 @@ export async function registerRoutes(
     if (!member || member.status !== "approved") return res.status(403).json({ message: "You must be an approved group member to view attendees" });
     const attendees = await storage.getEventAttendees(req.params.eventId);
     res.json(attendees);
+  });
+
+  // ─── Safety mode toggle ───────────────────────────────────────────────────
+
+  app.patch("/api/users/:id/safety-mode", async (req, res) => {
+    const sessionUserId = req.session?.userId;
+    if (!sessionUserId || sessionUserId !== req.params.id) return res.status(401).json({ error: "Unauthorised" });
+    const { safetyModeEnabled } = req.body;
+    const updated = await storage.updateUser(req.params.id, { safetyModeEnabled: !!safetyModeEnabled });
+    res.json({ safetyModeEnabled: updated?.safetyModeEnabled });
+  });
+
+  // ─── Block a user ─────────────────────────────────────────────────────────
+
+  app.post("/api/users/:id/block", async (req, res) => {
+    const sessionUserId = req.session?.userId;
+    if (!sessionUserId) return res.status(401).json({ error: "Unauthorised" });
+    if (sessionUserId === req.params.id) return res.status(400).json({ error: "Cannot block yourself" });
+    try {
+      const { Pool } = await import("pg");
+      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
+      await pool.query(
+        `INSERT INTO blocks (blocker_id, blocked_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+        [sessionUserId, req.params.id]
+      );
+      await pool.end();
+      res.json({ blocked: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/users/:id/block", async (req, res) => {
+    const sessionUserId = req.session?.userId;
+    if (!sessionUserId) return res.status(401).json({ error: "Unauthorised" });
+    try {
+      const { Pool } = await import("pg");
+      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
+      await pool.query(
+        `DELETE FROM blocks WHERE blocker_id = $1 AND blocked_id = $2`,
+        [sessionUserId, req.params.id]
+      );
+      await pool.end();
+      res.json({ blocked: false });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/me/blocks", async (req, res) => {
+    const sessionUserId = req.session?.userId;
+    if (!sessionUserId) return res.status(401).json({ error: "Unauthorised" });
+    try {
+      const { Pool } = await import("pg");
+      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
+      const { rows } = await pool.query(
+        `SELECT blocked_id FROM blocks WHERE blocker_id = $1`,
+        [sessionUserId]
+      );
+      await pool.end();
+      res.json(rows.map((r: any) => r.blocked_id));
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ─── Report a user ────────────────────────────────────────────────────────
+
+  app.post("/api/users/:id/report", async (req, res) => {
+    const sessionUserId = req.session?.userId;
+    if (!sessionUserId) return res.status(401).json({ error: "Unauthorised" });
+    if (sessionUserId === req.params.id) return res.status(400).json({ error: "Cannot report yourself" });
+    const { reason, detail } = req.body;
+    if (!reason) return res.status(400).json({ error: "Reason required" });
+    try {
+      const { Pool } = await import("pg");
+      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
+      await pool.query(
+        `INSERT INTO reports (reporter_id, reported_id, reason, detail) VALUES ($1, $2, $3, $4)`,
+        [sessionUserId, req.params.id, reason, detail || null]
+      );
+      await pool.end();
+      console.log(`[safety] Report filed: user ${sessionUserId} reported ${req.params.id} for "${reason}"`);
+      res.json({ reported: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   // ─── Open to roaming toggle ───────────────────────────────────────────────

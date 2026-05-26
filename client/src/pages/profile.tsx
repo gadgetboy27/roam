@@ -310,6 +310,8 @@ export default function Profile() {
   const [notifications, setNotifications] = useState({ matches: true, messages: true, bucketList: false });
   const [openToRoaming, setOpenToRoaming] = useState<boolean>(!!(user as any)?.openToRoaming);
   const [savingRoaming, setSavingRoaming] = useState(false);
+  const [safetyMode, setSafetyMode] = useState<boolean>(!!(user as any)?.safetyModeEnabled);
+  const [savingSafety, setSavingSafety] = useState(false);
 
   const { data: myGroups = [] } = useQuery<any[]>({
     queryKey: ["/api/groups"],
@@ -327,6 +329,19 @@ export default function Profile() {
       setOpenToRoaming(!val);
     } finally {
       setSavingRoaming(false);
+    }
+  };
+
+  const toggleSafetyMode = async (val: boolean) => {
+    if (!user) return;
+    setSavingSafety(true);
+    setSafetyMode(val);
+    try {
+      await apiRequest("PATCH", `/api/users/${user.id}/safety-mode`, { safetyModeEnabled: val });
+    } catch {
+      setSafetyMode(!val);
+    } finally {
+      setSavingSafety(false);
     }
   };
 
@@ -452,22 +467,22 @@ export default function Profile() {
               )}
             </div>
 
-            {upgraded && !user?.identityVerified && (
+            {!user?.identityVerified && (
               <div className="mb-4 rounded-2xl overflow-hidden"
-                   style={{ border: "1px solid rgba(var(--roam-electric-rgb),0.35)", background: "rgba(var(--roam-electric-rgb),0.07)" }}>
+                   style={{ border: "1.5px solid rgba(var(--roam-electric-rgb),0.4)", background: "rgba(var(--roam-electric-rgb),0.07)" }}>
                 <div className="px-4 pt-4 pb-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span style={{ color: "var(--roam-electric)" }}>✦</span>
-                    <span className="font-mono text-[11px] font-semibold" style={{ color: "var(--roam-electric)" }}>Welcome to Adventurer!</span>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[16px]">🛡️</span>
+                    <span className="font-serif text-[15px] font-black" style={{ color: "var(--roam-electric)" }}>Verify your identity</span>
                   </div>
-                  <div className="font-mono text-[10px] leading-relaxed mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
-                    All features unlocked. Add a ✓ verified badge to your profile — it builds trust and gets you more matches.
+                  <div className="font-mono text-[10px] leading-relaxed mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>
+                    A government ID + selfie check — takes 2 minutes. Verified profiles get a ✓ badge, appear in Safety Mode searches, and build real trust with matches.
                   </div>
                   <button onClick={handleStartVerification} disabled={verifying}
-                          className="w-full py-3 rounded-xl font-mono text-[11px] tracking-wider uppercase font-medium transition-all"
+                          className="w-full py-3 rounded-xl font-mono text-[11px] tracking-wider uppercase font-semibold transition-all"
                           style={{ background: "var(--roam-electric)", color: "var(--roam-forest)", opacity: verifying ? 0.7 : 1 }}
-                          data-testid="button-verify-after-upgrade">
-                    {verifying ? "Starting…" : "Get verified now →"}
+                          data-testid="button-verify-identity">
+                    {verifying ? "Starting…" : "Verify my identity →"}
                   </button>
                 </div>
               </div>
@@ -1169,6 +1184,28 @@ export default function Profile() {
             >
               <div className="w-4 h-4 rounded-full absolute top-1 transition-all"
                    style={{ background: "white", left: openToRoaming ? "calc(100% - 20px)" : "4px" }} />
+            </button>
+          </div>
+
+          <div className="flex items-start gap-3 p-4 rounded-2xl mb-4"
+               style={{ background: "rgba(var(--roam-electric-rgb),0.05)", border: "1px solid rgba(var(--roam-electric-rgb),0.2)" }}>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 text-sm font-semibold mb-0.5" style={{ color: "var(--roam-cream)" }}>
+                🛡️ Safety Mode
+              </div>
+              <div className="text-[11px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
+                Only show you ID-verified profiles in discover. Fewer matches, but every person has confirmed their real identity with a government ID.
+              </div>
+            </div>
+            <button
+              className="w-11 h-6 rounded-full relative transition-all flex-shrink-0 mt-0.5"
+              style={{ background: safetyMode ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.12)" }}
+              onClick={() => toggleSafetyMode(!safetyMode)}
+              disabled={savingSafety}
+              data-testid="toggle-safety-mode"
+            >
+              <div className="w-4 h-4 rounded-full absolute top-1 transition-all"
+                   style={{ background: "white", left: safetyMode ? "calc(100% - 20px)" : "4px" }} />
             </button>
           </div>
 

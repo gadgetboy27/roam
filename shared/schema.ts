@@ -28,6 +28,7 @@ export const users = pgTable("users", {
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   openToRoaming: boolean("open_to_roaming").default(false),
+  safetyModeEnabled: boolean("safety_mode_enabled").default(false),
   isFoundingMember: boolean("is_founding_member").default(false),
   isTierGifted: boolean("is_tier_gifted").default(false),
   boostExpiresAt: timestamp("boost_expires_at"),
@@ -257,6 +258,32 @@ export const adminAuditLog = pgTable("admin_audit_log", {
 
 export type AdminAuditLog = typeof adminAuditLog.$inferSelect;
 export type InsertAdminAuditLog = typeof adminAuditLog.$inferInsert;
+
+export const blocks = pgTable("blocks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  blockerId: varchar("blocker_id").notNull(),
+  blockedId: varchar("blocked_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_blocks_blocker").on(table.blockerId),
+  index("idx_blocks_blocked").on(table.blockedId),
+]);
+
+export const reports = pgTable("reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  reporterId: varchar("reporter_id").notNull(),
+  reportedId: varchar("reported_id").notNull(),
+  reason: text("reason").notNull(),
+  detail: text("detail"),
+  reviewed: boolean("reviewed").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_reports_reported").on(table.reportedId),
+  index("idx_reports_reviewed").on(table.reviewed),
+]);
+
+export type Block = typeof blocks.$inferSelect;
+export type Report = typeof reports.$inferSelect;
 
 export const signupSchema = z.object({
   name: z.string().min(1, "Name is required"),
