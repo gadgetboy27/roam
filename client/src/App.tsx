@@ -32,6 +32,7 @@ import GroupPage from "@/pages/group";
 import InvitePage from "@/pages/invite";
 import WhatsOn from "@/pages/whats-on";
 import Onboarding from "@/pages/onboarding";
+import Safety from "@/pages/safety";
 
 function Router() {
   return (
@@ -59,6 +60,9 @@ function Router() {
       </Route>
       <Route path="/profile">
         <RequireAuth><Profile /></RequireAuth>
+      </Route>
+      <Route path="/safety">
+        <RequireAuth><Safety /></RequireAuth>
       </Route>
       <Route path="/plans">
         <RequireAuth><Plans /></RequireAuth>

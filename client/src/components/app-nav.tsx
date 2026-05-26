@@ -3,7 +3,7 @@ import { useLocation, Link } from "wouter";
 import {
   Compass, MessageCircle, Plus, User, Palette, Check, Users, CalendarDays,
   Camera, X, ChevronRight, Tent, Ship, Mountain, Building2, ArrowRight, Megaphone, Zap,
-  MessageSquarePlus, Send, CheckCircle2,
+  MessageSquarePlus, Send, CheckCircle2, ShieldCheck,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { path: "/groups",   label: "Groups",      icon: Users },
   { path: "/matches",  label: "Matches",     icon: MessageCircle },
   { path: "/profile",  label: "Profile",     icon: User },
+  { path: "/safety",   label: "Safety",      icon: ShieldCheck },
 ];
 
 const QUICK_TYPES = [
@@ -48,6 +49,13 @@ export default function AppNav() {
   const { data: ledGroups = [] } = useQuery<any[]>({
     queryKey: ["/api/groups/my-led"],
     enabled: !!user,
+  });
+
+  const { data: activeCheckins = [] } = useQuery<any[]>({
+    queryKey: ["/api/safety/checkins"],
+    enabled: !!user,
+    select: (data: any[]) => data.filter((c: any) => !c.confirmed_at && !c.cancelled_at),
+    refetchInterval: 60_000,
   });
 
   const { data: eligibility } = useQuery<{ eligible: boolean }>({
@@ -215,6 +223,7 @@ export default function AppNav() {
              }}>
           {NAV_ITEMS.map(item => {
             const active = location === item.path || (item.path === "/groups" && location.startsWith("/groups/"));
+            const hasSafetyBadge = item.path === "/safety" && activeCheckins.length > 0;
             return (
               <Link key={item.path} href={item.path}>
                 <button title={item.label}
@@ -228,6 +237,10 @@ export default function AppNav() {
                   {active && (
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
                          style={{ background: "var(--roam-electric)" }} />
+                  )}
+                  {hasSafetyBadge && (
+                    <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
+                         style={{ background: "#ef4444", boxShadow: "0 0 0 1.5px var(--roam-forest)" }} />
                   )}
                 </button>
               </Link>

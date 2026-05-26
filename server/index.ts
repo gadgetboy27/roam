@@ -149,6 +149,64 @@ async function runStartupMigrations(): Promise<void> {
   }
 }
 
+function startSafetyWorker() {
+  async function runCheckinWorker() {
+    const pool = new pg.Pool(pgConnectConfig(process.env.DATABASE_URL));
+    try {
+      const now = new Date();
+      const { rows: missed } = await pool.query(
+        `SELECT sc.*, u.name as user_name
+         FROM safety_checkins sc
+         JOIN users u ON u.id = sc.user_id
+         WHERE sc.confirmed_at IS NULL AND sc.cancelled_at IS NULL
+           AND sc.alert_level < 2 AND sc.scheduled_at < $1`,
+        [now.toISOString()]
+      );
+      for (const c of missed) {
+        const minsPast = (now.getTime() - new Date(c.scheduled_at).getTime()) / 60000;
+        const isL1 = c.alert_level === 0 && minsPast >= 15;
+        const isL2 = c.alert_level === 1 && minsPast >= 45;
+        if (!isL1 && !isL2) continue;
+        const newLevel = isL2 ? 2 : 1;
+        const alertType = isL2 ? "checkin_miss_2" : "checkin_miss_1";
+        const title = isL2 ? "URGENT — Missed safety check-in" : "Safety check-in missed";
+        const body = isL2
+          ? `${c.user_name} has not checked in for ${Math.round(minsPast)} min${c.place ? ` — last known location: ${c.place}` : ""}${c.meeting_with ? ` (meeting: ${c.meeting_with})` : ""}. Please check on them immediately.`
+          : `${c.user_name} missed their safety check-in${c.place ? ` at ${c.place}` : ""}${c.meeting_with ? ` (meeting: ${c.meeting_with})` : ""}. Please reach out to check they're OK.`;
+        const { rows: contacts } = await pool.query(
+          "SELECT contact_user_id FROM safety_contacts WHERE user_id = $1", [c.user_id]
+        );
+        const contactIds: string[] = contacts.map((r: any) => r.contact_user_id);
+        for (const contactId of contactIds) {
+          await pool.query(
+            `INSERT INTO notifications (user_id, type, title, body, data) VALUES ($1,$2,$3,$4,$5)`,
+            [contactId, alertType, title, body, JSON.stringify({
+              reportingUserId: c.user_id, checkinId: c.id, place: c.place,
+              meetingWith: c.meeting_with, scheduledAt: c.scheduled_at,
+              minutesPast: Math.round(minsPast), triggeredAt: now.toISOString(),
+            })]
+          );
+        }
+        if (contactIds.length > 0) {
+          await pool.query(
+            `INSERT INTO safety_alert_log (user_id, type, checkin_id, place, contacts_notified) VALUES ($1,$2,$3,$4,$5)`,
+            [c.user_id, alertType, c.id, c.place || null, contactIds]
+          );
+        }
+        await pool.query("UPDATE safety_checkins SET alert_level = $1 WHERE id = $2", [newLevel, c.id]);
+        console.log(`[safety-worker] ${alertType} for checkin ${c.id} (${c.user_name}), ${contactIds.length} contacts alerted`);
+      }
+    } catch (err: any) {
+      console.error("[safety-worker] Error:", err.message);
+    } finally {
+      await pool.end().catch(() => {});
+    }
+  }
+  setTimeout(runCheckinWorker, 30_000);
+  setInterval(runCheckinWorker, 5 * 60_000);
+  console.log("[safety-worker] Started — checks every 5 min, alerts at +15 min and +45 min overdue");
+}
+
 if (!process.env.SESSION_SECRET) {
   console.error("FATAL: SESSION_SECRET environment variable is not set. Exiting.");
   process.exit(1);
@@ -287,6 +345,7 @@ process.on("unhandledRejection", (reason) => {
     await runStartupMigrations();
 
     await registerRoutes(httpServer, app);
+    startSafetyWorker();
 
     await seedDatabase().catch((err) => {
       console.error("Seed error (non-fatal):", err.message);

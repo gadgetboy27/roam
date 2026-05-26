@@ -285,6 +285,43 @@ export const reports = pgTable("reports", {
 export type Block = typeof blocks.$inferSelect;
 export type Report = typeof reports.$inferSelect;
 
+export const safetyContacts = pgTable("safety_contacts", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  contactUserId: varchar("contact_user_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_safety_contacts_user").on(table.userId),
+]);
+
+export const safetyCheckins = pgTable("safety_checkins", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  scheduledAt: timestamp("scheduled_at").notNull(),
+  confirmedAt: timestamp("confirmed_at"),
+  place: text("place"),
+  meetingWith: text("meeting_with"),
+  alertLevel: integer("alert_level").default(0),
+  cancelledAt: timestamp("cancelled_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_safety_checkins_user").on(table.userId),
+  index("idx_safety_checkins_scheduled").on(table.scheduledAt),
+]);
+
+export const safetyAlertLog = pgTable("safety_alert_log", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  type: text("type").notNull(),
+  checkinId: varchar("checkin_id"),
+  place: text("place"),
+  contactsNotified: text("contacts_notified").array(),
+  triggeredAt: timestamp("triggered_at").defaultNow(),
+}, (table) => [
+  index("idx_safety_alert_log_user").on(table.userId),
+  index("idx_safety_alert_log_triggered").on(table.triggeredAt),
+]);
+
 export const signupSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Valid email required"),
