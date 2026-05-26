@@ -132,9 +132,9 @@ async function runStartupMigrations(): Promise<void> {
     }
 
     // ── Indexes ───────────────────────────────────────────────────────────────
+    // rate_limits table and its index are created in registerRoutes() — don't reference it here
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_users_boost_expires ON users(boost_expires_at);
-      CREATE INDEX IF NOT EXISTS idx_rate_limits_reset   ON rate_limits(reset_at);
     `);
 
     await client.query("COMMIT");
