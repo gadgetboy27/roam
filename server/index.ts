@@ -265,8 +265,21 @@ if (process.env.NODE_ENV === "production") {
 
 // Bind the port immediately so health checks pass while setup continues
 const port = parseInt(process.env.PORT || "5000", 10);
-httpServer.listen({ port, host: "0.0.0.0", reusePort: true }, () => {
+httpServer.on("error", (err) => {
+  console.error("HTTP server error:", err);
+  process.exit(1);
+});
+httpServer.listen(port, "0.0.0.0", () => {
   log(`serving on port ${port}`);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught exception:", err);
+  process.exit(1);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled rejection:", reason);
+  process.exit(1);
 });
 
 (async () => {
