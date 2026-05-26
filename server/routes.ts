@@ -266,7 +266,7 @@ export async function registerRoutes(
   await supabaseAdmin.storage.createBucket("photos", { public: true }).catch(() => {});
 
 
-  const sessionPool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+  const sessionPool = new pg.Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 
   // Ensure the rate_limits table exists (idempotent)
   await sessionPool.query(`
@@ -2179,7 +2179,7 @@ export async function registerRoutes(
         if (u) { userName = u.name; userEmail = u.email; }
       }
       const { Pool } = await import("pg");
-      const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+      const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
       await pool.query(
         "INSERT INTO feedback (user_id, user_name, user_email, message, page) VALUES ($1,$2,$3,$4,$5)",
         [userId || null, userName, userEmail, message.trim(), page || null]
@@ -2223,7 +2223,7 @@ export async function registerRoutes(
     if (!(await isAdminAuthenticated(req))) return res.status(401).json({ message: "Admin authentication required" });
     try {
       const { Pool } = await import("pg");
-      const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+      const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
       const { rows } = await pool.query("SELECT * FROM feedback ORDER BY created_at DESC LIMIT 200");
       await pool.end();
       return res.json(rows);

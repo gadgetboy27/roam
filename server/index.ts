@@ -19,7 +19,7 @@ import pg from "pg";
  * so the deployment fails loudly rather than starting in a broken state.
  */
 async function runStartupMigrations(): Promise<void> {
-  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
   const client = await pool.connect();
 
   try {
