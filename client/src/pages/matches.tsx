@@ -373,12 +373,12 @@ export default function Matches() {
                   mutual roamers
                 </div>
                 <h1 className="font-serif text-[28px] font-black leading-[1.05]" data-testid="text-match-count">
-                  {isDemo ? "0" : realConnections.length} connections
+                  {isDemo ? "0" : realConnections.length} adventurers
                 </h1>
                 <p className="text-[11px] mt-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
                   {isDemo
-                    ? "No mutual matches yet — head to Discover to find your people"
-                    : "You and these adventurers have both said yes. Start planning."}
+                    ? "No adventure links yet — head to Discover to find your people"
+                    : "You share adventure DNA with these people. Start planning."}
                 </p>
                 {isDemo && (
                   <div className="mt-3 px-3 py-2 rounded-xl inline-block"
