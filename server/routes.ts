@@ -980,7 +980,7 @@ export async function registerRoutes(
       const user = await storage.getUser(userId);
       if (!user) return res.status(404).json({ message: "User not found" });
 
-      const stripe = await getUncachableStripeClient();
+      const stripe = getUncachableStripeClient();
       const domain = process.env.APP_URL || "http://localhost:5000";
       const baseUrl = domain.startsWith("http") ? domain : `https://${domain}`;
 
@@ -1024,7 +1024,7 @@ export async function registerRoutes(
       const user = await storage.getUser(userId);
       if (!user) return res.status(404).json({ message: "User not found" });
 
-      const stripe = await getUncachableStripeClient();
+      const stripe = getUncachableStripeClient();
       const domain = process.env.APP_URL || "http://localhost:5000";
       const baseUrl = domain.startsWith("http") ? domain : `https://${domain}`;
 
@@ -1066,7 +1066,7 @@ export async function registerRoutes(
       if (!user) return res.status(404).json({ message: "User not found" });
       if (user.isOrganiser) return res.status(400).json({ message: "Already a Squad Leader" });
 
-      const stripe = await getUncachableStripeClient();
+      const stripe = getUncachableStripeClient();
       const domain = process.env.APP_URL || "http://localhost:5000";
       const baseUrl = domain.startsWith("http") ? domain : `https://${domain}`;
 
@@ -1110,7 +1110,7 @@ export async function registerRoutes(
       if (!user) return res.status(404).json({ message: "User not found" });
       if (!user.isOrganiser) return res.status(403).json({ message: "Squad Leader account required" });
 
-      const stripe = await getUncachableStripeClient();
+      const stripe = getUncachableStripeClient();
       const domain = process.env.APP_URL || "http://localhost:5000";
       const baseUrl = domain.startsWith("http") ? domain : `https://${domain}`;
 
@@ -1150,7 +1150,7 @@ export async function registerRoutes(
     try {
       const user = userId ? await storage.getUser(userId) : null;
       if (user?.stripeConnectAccountId) {
-        const stripe = await getUncachableStripeClient();
+        const stripe = getUncachableStripeClient();
         const account = await stripe.accounts.retrieve(user.stripeConnectAccountId);
         if (account.charges_enabled && account.payouts_enabled) {
           await storage.updateUser(userId, { stripeConnectOnboarded: true });
@@ -1180,7 +1180,7 @@ export async function registerRoutes(
       if (!user?.stripeConnectAccountId) {
         return res.json({ status: "not_started", chargesEnabled: false, payoutsEnabled: false });
       }
-      const stripe = await getUncachableStripeClient();
+      const stripe = getUncachableStripeClient();
       const account = await stripe.accounts.retrieve(user.stripeConnectAccountId);
       const onboarded = account.charges_enabled && account.payouts_enabled;
       // Keep DB in sync
@@ -1220,7 +1220,7 @@ export async function registerRoutes(
       const existing = await storage.getEventAttendee(event.id, userId);
       if (existing?.ticketPaid) return res.status(400).json({ message: "You already have a ticket" });
 
-      const stripe = await getUncachableStripeClient();
+      const stripe = getUncachableStripeClient();
       const domain = process.env.APP_URL || "http://localhost:5000";
       const baseUrl = domain.startsWith("http") ? domain : `https://${domain}`;
 
@@ -1286,7 +1286,7 @@ export async function registerRoutes(
       if (!user?.stripeCustomerId) {
         return res.status(400).json({ message: "No active subscription found" });
       }
-      const stripe = await getUncachableStripeClient();
+      const stripe = getUncachableStripeClient();
       const domain = process.env.APP_URL || "http://localhost:5000";
       const baseUrl = domain.startsWith("http") ? domain : `https://${domain}`;
       const portal = await stripe.billingPortal.sessions.create({
@@ -1320,7 +1320,7 @@ export async function registerRoutes(
     const ad = await storage.createAd({ advertiserName, advertiserEmail, advertiserCompany, tier, headline, tagline, ctaText, ctaUrl, imageUrl, videoUrl, contentType: contentType || "image", status: "pending_payment", adType: adType || "standard", submittedByUserId: submittedByUserId || null, linkedGroupId: linkedGroupId || null, linkedEventId: linkedEventId || null, eventStartAt: eventStartAt ? new Date(eventStartAt) : null, eventLocation: eventLocation || null });
 
     try {
-      const stripe = await getUncachableStripeClient();
+      const stripe = getUncachableStripeClient();
       const origin = req.headers.origin || "https://letsroam.life";
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
@@ -1523,7 +1523,7 @@ export async function registerRoutes(
     const webhookSecret = process.env.STRIPE_PAYMENT_WEBHOOK_SECRET;
     let event: any;
     try {
-      const stripe = await getUncachableStripeClient();
+      const stripe = getUncachableStripeClient();
       if (webhookSecret && sig) {
         event = stripe.webhooks.constructEvent(req.rawBody as Buffer, sig, webhookSecret);
       } else {
@@ -1625,7 +1625,7 @@ export async function registerRoutes(
       const user = await storage.getUser(userId);
       if (!user) return res.status(404).json({ message: "User not found" });
 
-      const stripe = await getUncachableStripeClient();
+      const stripe = getUncachableStripeClient();
       if (user.stripeSubscriptionId) {
         try {
           await stripe.subscriptions.cancel(user.stripeSubscriptionId);
@@ -1655,7 +1655,7 @@ export async function registerRoutes(
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
 
     try {
-      const stripe = await getUncachableStripeClient();
+      const stripe = getUncachableStripeClient();
       const domain = process.env.APP_URL || "http://localhost:5000";
       const baseUrl = domain.startsWith("http") ? domain : `https://${domain}`;
 
@@ -1700,7 +1700,7 @@ export async function registerRoutes(
 
     let event: any;
     try {
-      const stripe = await getUncachableStripeClient();
+      const stripe = getUncachableStripeClient();
       if (webhookSecret && sig) {
         event = stripe.webhooks.constructEvent(
           req.rawBody as Buffer,
