@@ -112,7 +112,7 @@ export default function Plans() {
             <PlanCard
               title="Adventurer"
               badge="Most popular · cancel anytime"
-              price="$4.99"
+              price="$5"
               period="NZD / month"
               accent="electric"
               features={[
@@ -185,7 +185,7 @@ export default function Plans() {
             <PlanCard
               title="Squad Leader"
               badge="For group organisers · one-time, yours forever"
-              price="$19.99"
+              price="$20"
               period="NZD · one time"
               accent="ember"
               features={[

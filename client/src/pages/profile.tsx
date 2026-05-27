@@ -489,7 +489,7 @@ export default function Profile() {
                     <div>
                       <div className="font-mono text-[12px] font-semibold" style={{ color: "var(--roam-cream)" }}>Unlock Adventurer</div>
                       <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
-                        Unlimited matches · full messaging · $4.99/mo NZD
+                        Unlimited matches · full messaging · $5/mo NZD
                       </div>
                     </div>
                   </div>
@@ -512,7 +512,7 @@ export default function Profile() {
                   <div>
                     <div className="font-mono text-[12px] font-semibold" style={{ color: "var(--roam-cream)" }}>Become a Squad Leader</div>
                     <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
-                      Run groups & ticketed events · $19.99 one-time NZD
+                      Run groups & ticketed events · $20 one-time NZD
                     </div>
                   </div>
                 </div>
@@ -529,7 +529,7 @@ export default function Profile() {
                   <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>Top of discovery for 24 hours</div>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className="font-mono text-[14px] font-bold" style={{ color: "var(--roam-cream)" }}>$1</span>
+                  <span className="font-mono text-[14px] font-bold" style={{ color: "var(--roam-cream)" }}>$5</span>
                   <button onClick={handleBoost} disabled={boosting}
                           className="py-1.5 px-4 rounded-xl font-mono text-[10px] font-semibold transition-all"
                           style={{ background: "rgba(var(--roam-electric-rgb),0.12)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)", color: "var(--roam-electric)", opacity: boosting ? 0.7 : 1 }}

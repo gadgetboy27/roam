@@ -711,7 +711,7 @@ export default function Discover() {
                   {
                     id: "adventurer" as const,
                     name: "Adventurer", badge: "Most popular", badgeColor: "electric",
-                    price: "$12", priceSub: "NZD / month",
+                    price: "$5", priceSub: "NZD / month",
                     desc: "Unlimited matches, full messaging, Almost Met radar.",
                     features: [
                       { yes: true, text: "Unlimited photo uploads" },
@@ -795,7 +795,7 @@ export default function Discover() {
                   }
                 }}
                 data-testid="button-welcome-continue">
-                {welcomePaying ? "Redirecting…" : welcomeTier === "adventurer" ? "Continue → Pay $12 NZD/mo" : "Continue with " + (welcomeTier === "contributor" ? "Contributor" : "Explorer (free)")}
+                {welcomePaying ? "Redirecting…" : welcomeTier === "adventurer" ? "Continue → Pay $5 NZD/mo" : "Continue with " + (welcomeTier === "contributor" ? "Contributor" : "Explorer (free)")}
               </button>
               <button
                 className="w-full py-2.5 mb-4 font-mono text-[11px] tracking-wider"

@@ -27,7 +27,7 @@ const TIERS = [
     name: "Adventurer",
     badge: "Most popular",
     badgeColor: "electric",
-    price: "$4.99",
+    price: "$5",
     priceSub: "NZD / month",
     desc: "Unlimited matches, full messaging, and the Almost Met radar.",
     features: [

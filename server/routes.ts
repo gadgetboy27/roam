@@ -576,8 +576,33 @@ export async function registerRoutes(
       return true;
     });
 
-    // Bulk-load all candidate photos in one query (eliminates N+1)
-    const allCandidatePhotos = await storage.getAllPhotosForUsers(candidates.map(c => c.id));
+    // Bulk-load all candidate photos + bucket lists in parallel (eliminates N+1)
+    const candidateIds = candidates.map(c => c.id);
+    const [allCandidatePhotos] = await Promise.all([
+      storage.getAllPhotosForUsers(candidateIds),
+    ]);
+
+    // Bucket List matching — fetch current user's and all candidates' pinned destinations
+    let myBucketList = new Set<string>();
+    const candidateBucketMap = new Map<string, Set<string>>();
+    try {
+      const { Pool } = await import("pg");
+      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
+      const [myBL, candidateBLs] = await Promise.all([
+        pool.query("SELECT destination_name FROM bucket_list WHERE user_id = $1", [userId]),
+        candidateIds.length > 0
+          ? pool.query("SELECT user_id, destination_name FROM bucket_list WHERE user_id = ANY($1)", [candidateIds])
+          : Promise.resolve({ rows: [] }),
+      ]);
+      await pool.end();
+      myBucketList = new Set(myBL.rows.map((r: any) => (r.destination_name as string).toLowerCase().trim()));
+      for (const row of candidateBLs.rows) {
+        if (!candidateBucketMap.has(row.user_id)) candidateBucketMap.set(row.user_id, new Set());
+        candidateBucketMap.get(row.user_id)!.add((row.destination_name as string).toLowerCase().trim());
+      }
+    } catch { /* non-fatal — degrade gracefully */ }
+
+    const now = Date.now();
 
     const scored = candidates.map(candidate => {
       const candidatePhotos = allCandidatePhotos[candidate.id] ?? [];
@@ -587,6 +612,14 @@ export async function registerRoutes(
       const age = candidate.dob
         ? Math.floor((Date.now() - new Date(candidate.dob).getTime()) / (365.25 * 24 * 3600 * 1000))
         : null;
+
+      // Bucket list bonus: each shared destination adds 0.05, capped at 0.25
+      const candidateBL = candidateBucketMap.get(candidate.id) ?? new Set<string>();
+      const sharedDestinations = [...myBucketList].filter(d => candidateBL.has(d));
+      const bucketBonus = Math.min(sharedDestinations.length * 0.05, 0.25);
+
+      const isBoostActive = !!(candidate.boostExpiresAt && new Date(candidate.boostExpiresAt).getTime() > now);
+
       return {
         id: candidate.id,
         name: candidate.name,
@@ -597,16 +630,25 @@ export async function registerRoutes(
         adventureTags: candidate.adventureTags,
         identityVerified: candidate.identityVerified,
         openToRoaming: candidate.openToRoaming,
-        overlapScore: score,
+        overlapScore: score + bucketBonus,
         sharedTags,
+        sharedDestinations,
         almostMet,
+        isBoostActive,
+        tier: candidate.tier,
       };
     });
 
     scored.sort((a, b) => {
+      // 1. Active boosts always surface first
+      if (a.isBoostActive !== b.isBoostActive) return a.isBoostActive ? -1 : 1;
+      // 2. Almost Met — shared physical location is the strongest signal
       if (a.almostMet && !b.almostMet) return -1;
       if (!a.almostMet && b.almostMet) return 1;
-      return b.overlapScore - a.overlapScore;
+      // 3. Adventurer tier gets a small priority bump (0.05) for paying for the service
+      const aTierBonus = a.tier === "adventurer" ? 0.05 : 0;
+      const bTierBonus = b.tier === "adventurer" ? 0.05 : 0;
+      return (b.overlapScore + bTierBonus) - (a.overlapScore + aTierBonus);
     });
 
     res.json(scored);
@@ -954,7 +996,7 @@ export async function registerRoutes(
               description: "Unlimited connections · Full messaging · Almost Met radar · Bucket List matching · Priority discovery",
               images: [],
             },
-            unit_amount: 499,
+            unit_amount: 500,
             recurring: { interval: "month" },
           },
           quantity: 1,
@@ -973,7 +1015,7 @@ export async function registerRoutes(
   });
 
   // ---------------------------------------------------------------------------
-  // Profile Boost — $1 NZD one-time, 24 hours of boosted discovery visibility
+  // Profile Boost — $5 NZD one-time, 24 hours of boosted discovery visibility
   // ---------------------------------------------------------------------------
   app.post("/api/checkout/boost", checkoutLimiter, async (req, res) => {
     const userId = await authenticateRequest(req);
@@ -997,7 +1039,7 @@ export async function registerRoutes(
               name: "roam. Profile Boost",
               description: "Get seen first in discovery for 24 hours",
             },
-            unit_amount: 100,
+            unit_amount: 500,
           },
           quantity: 1,
         }],
@@ -1014,7 +1056,7 @@ export async function registerRoutes(
   });
 
   // ---------------------------------------------------------------------------
-  // Squad Leader Plan — $19.99 NZD one-time, permanent organiser tools
+  // Squad Leader Plan — $20 NZD one-time, permanent organiser tools
   // ---------------------------------------------------------------------------
   app.post("/api/checkout/organiser", checkoutLimiter, async (req, res) => {
     const userId = await authenticateRequest(req);
@@ -1039,7 +1081,7 @@ export async function registerRoutes(
               name: "roam. Squad Leader",
               description: "Create unlimited groups · Ticketed events · Member management · Custom invites — one-time, yours forever",
             },
-            unit_amount: 1999,
+            unit_amount: 2000,
           },
           quantity: 1,
         }],
