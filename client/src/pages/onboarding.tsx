@@ -537,7 +537,7 @@ export default function Onboarding() {
 
       {photos.length > 0 && (
         <button
-          onClick={() => setStep(5)}
+          onClick={() => setStep(4)}
           disabled={approvedCount === 0}
           className="w-full py-4 rounded-xl font-semibold text-base"
           style={approvedCount > 0 ? electricBtn : dimBtn}
@@ -550,7 +550,7 @@ export default function Onboarding() {
       )}
 
       <button
-        onClick={() => setStep(5)}
+        onClick={() => setStep(4)}
         className="text-center text-sm py-2"
         style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}
         data-testid="button-onboarding-upload-skip"
@@ -631,7 +631,7 @@ export default function Onboarding() {
 
   // ── Layout ────────────────────────────────────────────────────────────────────
 
-  const STEPS = [step0, step1, step2, step3, step4, step5];
+  const STEPS = [step0, step2, step3, step4, step5];
 
   return (
     <div className="min-h-screen" style={{ background: "var(--roam-base, #0e1a0d)" }}>
@@ -649,7 +649,7 @@ export default function Onboarding() {
       )}
 
       {/* Back button — show on steps 1-4 */}
-      {step > 0 && step < 5 && (
+      {step > 0 && step < 4 && (
         <button
           onClick={() => setStep(s => Math.max(0, s - 1))}
           className="fixed top-4 left-4 z-10 p-2 rounded-full"

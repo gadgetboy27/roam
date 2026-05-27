@@ -159,7 +159,7 @@ export default function Plans() {
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
                 <div className="text-right">
-                  <div className="font-serif text-[18px] font-bold" style={{ color: "var(--roam-cream)" }}>$1</div>
+                  <div className="font-serif text-[18px] font-bold" style={{ color: "var(--roam-cream)" }}>$5</div>
                   <div className="font-mono text-[8px]" style={{ color: "rgba(var(--roam-cream-rgb),0.58)" }}>NZD</div>
                 </div>
                 <button

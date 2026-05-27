@@ -437,7 +437,7 @@ export default function Matches() {
                                title: "Adventurer tier unlocks this 🔒",
                                description: "Upgrade to see match photos and start conversations.",
                                action: (
-                                 <ToastAction altText="Upgrade now" onClick={() => navigate("/profile")}>
+                                 <ToastAction altText="Upgrade now" onClick={() => navigate("/plans")}>
                                    Upgrade now
                                  </ToastAction>
                                ),

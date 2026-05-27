@@ -53,7 +53,7 @@ const GROUP_TYPE_RANGE: Record<string, string> = {
 };
 
 const ELIGIBILITY_ITEMS = [
-  { key: "tier", label: "Adventurer tier (or Founding Member)", action: "/profile", actionLabel: "Upgrade →" },
+  { key: "tier", label: "Adventurer tier (or Founding Member)", action: "/plans", actionLabel: "Upgrade →" },
   { key: "photo", label: "At least one approved adventure photo", action: "/upload", actionLabel: "Upload →" },
   { key: "tagline", label: "Profile tagline set", action: "/profile", actionLabel: "Edit profile →" },
   { key: "tags", label: "3+ adventure tags on profile", action: "/profile", actionLabel: "Edit profile →" },

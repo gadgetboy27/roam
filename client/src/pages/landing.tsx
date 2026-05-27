@@ -110,7 +110,7 @@ export default function Landing() {
                   been
                 </h1>
                 <p className="text-base md:text-lg leading-relaxed max-w-md mb-8" style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>
-                  Post your adventure photos. LetsRoamlife matches you with people who share your kind of adventure — not just your look.
+                  Post your adventure photos. LetsRoam.life matches you with people who share your kind of adventure — not just your look.
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <Link href="/signup">
@@ -120,11 +120,11 @@ export default function Landing() {
                       Start Your Adventure
                     </button>
                   </Link>
-                  <Link href="/discover">
+                  <Link href="/signup">
                     <button className="px-7 py-3.5 rounded-2xl text-sm font-mono tracking-wider uppercase transition-all border"
                             style={{ borderColor: "rgba(var(--roam-cream-rgb),0.15)", color: "rgba(var(--roam-cream-rgb),0.6)" }}
                             data-testid="button-explore">
-                      Explore Demo
+                      See how it works
                     </button>
                   </Link>
                 </div>
