@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Camera, Edit3, Settings, Star, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2, Trash2, Megaphone, Download, Banknote, ExternalLink, AlertCircle } from "lucide-react";
+import { MapPin, Camera, Edit3, Settings, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2, Trash2, Banknote, ExternalLink, AlertCircle, ShieldCheck, Zap } from "lucide-react";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { computeVibeWord } from "@/lib/fingerprint";
 
@@ -21,29 +21,20 @@ const PROFILE_PHOTOS = [
 ];
 
 const ALL_DNA_TAGS = [
-  // water
   "surfing", "kayaking", "scuba diving", "free diving", "kitesurfing",
   "stand up paddle", "boating / fishing", "wild swimming", "coastal walks",
-  // mountain & vertical
   "rock climbing", "alpine hiking", "bouldering", "canyoning", "via ferrata",
   "mountain biking", "skiing", "snowboarding", "paragliding",
-  // trail & land
   "trail running", "forest trails", "backpacking", "camping & bushcraft",
   "cycling", "horse riding", "slacklining",
-  // extreme
   "skydiving", "bungee jumping", "extreme sports", "caving",
-  // urban & social
   "skateboarding", "urban roaming", "night markets", "food & wine trails",
   "pub games", "couch surfing",
-  // fitness
   "gym / fitness", "crossfit", "yoga / wellness", "martial arts",
   "dance / movement", "swimming",
-  // sports (grouped)
   "team sports", "field sports", "racquet sports",
-  // indoor & creative
   "geocaching", "chess", "board games", "escape rooms", "photography",
   "cooking / food", "music", "art & galleries", "astronomy",
-  // nature
   "foraging", "wildlife watching",
 ];
 
@@ -94,12 +85,12 @@ export default function Profile() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
-  const [upgraded, setUpgraded] = useState(false);
   const [upgradeError, setUpgradeError] = useState("");
   const [boosting, setBoosting] = useState(false);
   const [boosted, setBoosted] = useState(false);
   const [organisingUp, setOrganisingUp] = useState(false);
   const [squadLeader, setSquadLeader] = useState(false);
+  const [upgraded, setUpgraded] = useState(false);
   const [connectingStripe, setConnectingStripe] = useState(false);
   const [connectSuccess, setConnectSuccess] = useState(false);
   const [connectRefresh, setConnectRefresh] = useState(false);
@@ -121,35 +112,12 @@ export default function Profile() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("verified") === "1") {
-      setVerifySubmitted(true);
-      window.history.replaceState({}, "", "/profile");
-      refresh();
-    }
-    if (params.get("upgraded") === "1") {
-      setUpgraded(true);
-      window.history.replaceState({}, "", "/profile");
-      refresh();
-    }
-    if (params.get("boosted") === "1") {
-      setBoosted(true);
-      window.history.replaceState({}, "", "/profile");
-      refresh();
-    }
-    if (params.get("squad") === "1") {
-      setSquadLeader(true);
-      window.history.replaceState({}, "", "/profile");
-      refresh();
-    }
-    if (params.get("connect") === "success") {
-      setConnectSuccess(true);
-      window.history.replaceState({}, "", "/profile");
-      refetchConnect();
-    }
-    if (params.get("connect") === "refresh") {
-      setConnectRefresh(true);
-      window.history.replaceState({}, "", "/profile");
-    }
+    if (params.get("verified") === "1") { setVerifySubmitted(true); window.history.replaceState({}, "", "/profile"); refresh(); }
+    if (params.get("upgraded") === "1") { setUpgraded(true); window.history.replaceState({}, "", "/profile"); refresh(); }
+    if (params.get("boosted") === "1") { setBoosted(true); window.history.replaceState({}, "", "/profile"); refresh(); }
+    if (params.get("squad") === "1") { setSquadLeader(true); window.history.replaceState({}, "", "/profile"); refresh(); }
+    if (params.get("connect") === "success") { setConnectSuccess(true); window.history.replaceState({}, "", "/profile"); refetchConnect(); }
+    if (params.get("connect") === "refresh") { setConnectRefresh(true); window.history.replaceState({}, "", "/profile"); }
   }, []);
 
   const handleBoost = async () => {
@@ -158,11 +126,7 @@ export default function Profile() {
       const res = await apiRequest("POST", "/api/checkout/boost");
       const data = await res.json();
       if (data.url) window.location.href = data.url;
-    } catch {
-      /* silent */
-    } finally {
-      setBoosting(false);
-    }
+    } catch { /* silent */ } finally { setBoosting(false); }
   };
 
   const handleOrganiser = async () => {
@@ -171,11 +135,7 @@ export default function Profile() {
       const res = await apiRequest("POST", "/api/checkout/organiser");
       const data = await res.json();
       if (data.url) window.location.href = data.url;
-    } catch {
-      /* silent */
-    } finally {
-      setOrganisingUp(false);
-    }
+    } catch { /* silent */ } finally { setOrganisingUp(false); }
   };
 
   const handleConnectStripe = async () => {
@@ -186,21 +146,11 @@ export default function Profile() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        toast({
-          title: "Stripe Connect failed",
-          description: data.message || "Could not start bank account setup. Please try again.",
-          variant: "destructive",
-        });
+        toast({ title: "Stripe Connect failed", description: data.message || "Could not start bank account setup.", variant: "destructive" });
       }
     } catch (err: any) {
-      toast({
-        title: "Connection error",
-        description: err?.message || "Could not reach payment service. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setConnectingStripe(false);
-    }
+      toast({ title: "Connection error", description: err?.message || "Could not reach payment service.", variant: "destructive" });
+    } finally { setConnectingStripe(false); }
   };
 
   const handleUpgrade = async () => {
@@ -213,9 +163,7 @@ export default function Profile() {
       else setUpgradeError("Could not start checkout. Please try again.");
     } catch (err: any) {
       setUpgradeError(err?.message || "Something went wrong.");
-    } finally {
-      setUpgrading(false);
-    }
+    } finally { setUpgrading(false); }
   };
 
   const handleManageSubscription = async () => {
@@ -223,23 +171,17 @@ export default function Profile() {
       const res = await apiRequest("POST", "/api/checkout/portal");
       const data = await res.json();
       if (data.url) window.location.href = data.url;
-    } catch {
-      setUpgradeError("Could not open billing portal. Please try again.");
-    }
+    } catch { setUpgradeError("Could not open billing portal. Please try again."); }
   };
 
   useEffect(() => {
     if (!user?.identityVerificationId || user?.identityVerified) return;
     let attempts = 0;
-    const maxAttempts = 10;
     setVerifyTimedOut(false);
     const interval = setInterval(async () => {
       attempts++;
       await refresh();
-      if (attempts >= maxAttempts) {
-        clearInterval(interval);
-        setVerifyTimedOut(true);
-      }
+      if (attempts >= 10) { clearInterval(interval); setVerifyTimedOut(true); }
     }, 3000);
     return () => clearInterval(interval);
   }, [user?.identityVerificationId, user?.identityVerified]);
@@ -250,11 +192,7 @@ export default function Profile() {
       await apiRequest("POST", "/api/verify/reset");
       setVerifyTimedOut(false);
       await refresh();
-    } catch {
-      setVerifyError("Could not reset verification. Please try again.");
-    } finally {
-      setResetting(false);
-    }
+    } catch { setVerifyError("Could not reset. Please try again."); } finally { setResetting(false); }
   };
 
   const handleDeleteAccount = async () => {
@@ -263,10 +201,7 @@ export default function Profile() {
       await apiRequest("DELETE", "/api/account");
       await logout();
       navigate("/");
-    } catch (err: any) {
-      setConfirmDelete(false);
-      setDeleting(false);
-    }
+    } catch { setConfirmDelete(false); setDeleting(false); }
   };
 
   const handleStartVerification = async () => {
@@ -276,16 +211,11 @@ export default function Profile() {
     try {
       const res = await apiRequest("POST", "/api/verify/start");
       const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        setVerifyError("Could not start verification. Please try again.");
-      }
+      if (data.url) window.location.href = data.url;
+      else setVerifyError("Could not start verification. Please try again.");
     } catch (err: any) {
-      setVerifyError(err?.message || "Something went wrong. Please try again.");
-    } finally {
-      setVerifying(false);
-    }
+      setVerifyError(err?.message || "Something went wrong.");
+    } finally { setVerifying(false); }
   };
 
   const calcAge = (dob: string | null) => {
@@ -323,26 +253,16 @@ export default function Profile() {
     if (!user) return;
     setSavingRoaming(true);
     setOpenToRoaming(val);
-    try {
-      await apiRequest("PATCH", `/api/users/${user.id}/open-to-roaming`, { openToRoaming: val });
-    } catch {
-      setOpenToRoaming(!val);
-    } finally {
-      setSavingRoaming(false);
-    }
+    try { await apiRequest("PATCH", `/api/users/${user.id}/open-to-roaming`, { openToRoaming: val }); }
+    catch { setOpenToRoaming(!val); } finally { setSavingRoaming(false); }
   };
 
   const toggleSafetyMode = async (val: boolean) => {
     if (!user) return;
     setSavingSafety(true);
     setSafetyMode(val);
-    try {
-      await apiRequest("PATCH", `/api/users/${user.id}/safety-mode`, { safetyModeEnabled: val });
-    } catch {
-      setSafetyMode(!val);
-    } finally {
-      setSavingSafety(false);
-    }
+    try { await apiRequest("PATCH", `/api/users/${user.id}/safety-mode`, { safetyModeEnabled: val }); }
+    catch { setSafetyMode(!val); } finally { setSavingSafety(false); }
   };
 
   const openEdit = () => { setEditForm({ ...profileData }); setSaveError(""); setEditOpen(true); };
@@ -364,9 +284,7 @@ export default function Profile() {
       setEditOpen(false);
     } catch (err: any) {
       setSaveError(err?.message || "Failed to save. Please try again.");
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   const toggleDnaTag = (tag: string) => {
@@ -383,48 +301,49 @@ export default function Profile() {
     try {
       const reader = new FileReader();
       reader.onload = ev => {
-        const dataUrl = ev.target?.result as string;
-        setEditForm(f => ({ ...f, avatarUrl: dataUrl }));
+        setEditForm(f => ({ ...f, avatarUrl: ev.target?.result as string }));
         setUploadingAvatar(false);
       };
       reader.readAsDataURL(file);
-    } catch {
-      setUploadingAvatar(false);
-    }
+    } catch { setUploadingAvatar(false); }
   };
+
+  const vibeWord = computeVibeWord(profileData.dna);
+  const boostActive = (user as any)?.boostExpiresAt && new Date((user as any).boostExpiresAt) > new Date();
 
   return (
     <div className="min-h-screen relative" data-testid="page-profile">
       <div className="topo-bg" />
       <div className="relative z-10">
         <AppNav />
-        <div className="max-w-lg mx-auto pb-8 pr-14">
+        <div className="max-w-lg mx-auto pb-10 pr-14">
+
+          {/* ── Hero ── */}
           <div className="relative h-56 overflow-hidden" style={{ userSelect: "none" }}
                onContextMenu={e => e.preventDefault()}>
-            <img src={profileData.avatarUrl || FALLBACK_HERO}
-                 alt="Profile hero"
-                 className="w-full h-full object-cover"
-                 draggable={false}
+            <img src={profileData.avatarUrl || FALLBACK_HERO} alt="Profile hero"
+                 className="w-full h-full object-cover" draggable={false}
                  style={{ pointerEvents: "none" }} />
-            <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.28) 50%, transparent 100%)", pointerEvents: "none" }} />
+            <div className="absolute inset-0"
+                 style={{ background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.28) 50%, transparent 100%)", pointerEvents: "none" }} />
 
             <div className="absolute top-3 right-3 flex gap-2">
               <button className="w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-lg transition-all hover:scale-105"
                       style={{ background: "rgba(0,0,0,0.45)", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.88)" }}
-                      onClick={openEdit}
-                      data-testid="button-edit-profile">
+                      onClick={openEdit} data-testid="button-edit-profile">
                 <Edit3 size={14} />
               </button>
               <button className="w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-lg transition-all hover:scale-105"
                       style={{ background: "rgba(0,0,0,0.45)", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.88)" }}
-                      onClick={() => setSettingsOpen(true)}
-                      data-testid="button-settings">
+                      onClick={() => setSettingsOpen(true)} data-testid="button-settings">
                 <Settings size={14} />
               </button>
             </div>
 
             <div className="absolute bottom-4 left-5">
-              <h1 className="font-serif text-3xl font-black" style={{ color: "rgba(255,255,255,0.96)" }} data-testid="text-profile-name">{profileData.name}, {profileData.age}</h1>
+              <h1 className="font-serif text-3xl font-black" style={{ color: "rgba(255,255,255,0.96)" }} data-testid="text-profile-name">
+                {profileData.name}, {profileData.age}
+              </h1>
               <p className="text-[13px] italic mt-1" style={{ color: "rgba(255,255,255,0.65)" }}>
                 "{profileData.tagline}"
               </p>
@@ -435,67 +354,53 @@ export default function Profile() {
             </div>
           </div>
 
-          <div className="px-4 pt-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.75)" }}>
-                  Your tier
+          <div className="px-4 pt-4">
+
+            {/* ── Tier + badges row ── */}
+            <div className="flex items-center gap-2 flex-wrap mb-4">
+              <span className="font-mono text-[9px] tracking-wider uppercase py-1 px-2.5 rounded-lg"
+                    style={{
+                      background: user?.tier === "free" ? "rgba(var(--roam-sky-rgb),0.15)" : user?.tier === "contributor" ? "rgba(var(--roam-ember-rgb),0.15)" : "rgba(var(--roam-electric-rgb),0.15)",
+                      color: user?.tier === "free" ? "var(--roam-sky)" : user?.tier === "contributor" ? "var(--roam-ember)" : "var(--roam-electric)",
+                    }}>
+                {user?.tier === "free" ? "Explorer" : user?.tier === "contributor" ? "Contributor" : "Adventurer"}
+              </span>
+              <span className="font-mono text-[9px] tracking-wider py-1 px-2.5 rounded-lg"
+                    style={{ background: "rgba(var(--roam-electric-rgb),0.08)", border: "1px solid rgba(var(--roam-electric-rgb),0.2)", color: "var(--roam-electric)" }}
+                    data-testid="badge-vibe-word">
+                {vibeWord}
+              </span>
+              {user?.identityVerified && (
+                <span className="flex items-center gap-1 font-mono text-[9px] tracking-wider py-1 px-2.5 rounded-lg"
+                      style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.35)", color: "var(--roam-electric)" }}
+                      data-testid="badge-verified-user">
+                  <span className="font-bold">✓</span> ID verified
                 </span>
-                <span className="font-mono text-[9px] tracking-wider uppercase py-0.5 px-2 rounded-lg"
-                      style={{
-                        background: user?.tier === "free"
-                          ? "rgba(var(--roam-sky-rgb),0.15)"
-                          : user?.tier === "contributor"
-                            ? "rgba(var(--roam-ember-rgb),0.15)"
-                            : "rgba(var(--roam-electric-rgb),0.15)",
-                        color: user?.tier === "free"
-                          ? "var(--roam-sky)"
-                          : user?.tier === "contributor"
-                            ? "var(--roam-ember)"
-                            : "var(--roam-electric)",
-                      }}>
-                  {user?.tier === "free" ? "Explorer" : user?.tier === "contributor" ? "Contributor" : "Adventurer"}
+              )}
+              {boostActive && (
+                <span className="flex items-center gap-1 font-mono text-[9px] py-1 px-2.5 rounded-lg"
+                      style={{ background: "rgba(var(--roam-electric-rgb),0.1)", color: "var(--roam-electric)" }}>
+                  ⚡ Boosted
                 </span>
-              </div>
+              )}
               {user?.tier === "adventurer" && user?.stripeCustomerId && (
                 <button onClick={handleManageSubscription}
-                        className="font-mono text-[10px] tracking-wider"
-                        style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}
+                        className="ml-auto font-mono text-[9px] tracking-wider"
+                        style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}
                         data-testid="button-manage-subscription">
                   Manage subscription →
                 </button>
               )}
             </div>
 
-            {!user?.identityVerified && (
-              <div className="mb-4 rounded-2xl overflow-hidden"
-                   style={{ border: "1.5px solid rgba(var(--roam-electric-rgb),0.4)", background: "rgba(var(--roam-electric-rgb),0.07)" }}>
-                <div className="px-4 pt-4 pb-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[16px]">🛡️</span>
-                    <span className="font-serif text-[15px] font-black" style={{ color: "var(--roam-electric)" }}>Verify your identity</span>
-                  </div>
-                  <div className="font-mono text-[10px] leading-relaxed mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>
-                    A government ID + selfie check — takes 2 minutes. Verified profiles get a ✓ badge, appear in Safety Mode searches, and build real trust with matches.
-                  </div>
-                  <button onClick={handleStartVerification} disabled={verifying}
-                          className="w-full py-3 rounded-xl font-mono text-[11px] tracking-wider uppercase font-semibold transition-all"
-                          style={{ background: "var(--roam-electric)", color: "var(--roam-forest)", opacity: verifying ? 0.7 : 1 }}
-                          data-testid="button-verify-identity">
-                    {verifying ? "Starting…" : "Verify my identity →"}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {upgraded && user?.identityVerified && (
+            {/* ── Return banners ── */}
+            {upgraded && (
               <div className="mb-4 px-4 py-3 rounded-2xl flex items-center gap-3"
                    style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)" }}>
                 <span style={{ color: "var(--roam-electric)" }}>✦</span>
                 <span className="font-mono text-[11px]" style={{ color: "var(--roam-electric)" }}>Welcome to Adventurer! All features unlocked.</span>
               </div>
             )}
-
             {boosted && (
               <div className="mb-4 px-4 py-3 rounded-2xl flex items-center gap-3"
                    style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)" }}>
@@ -503,366 +408,139 @@ export default function Profile() {
                 <span className="font-mono text-[11px]" style={{ color: "var(--roam-electric)" }}>Profile boosted! You're at the top of discovery for 24 hours.</span>
               </div>
             )}
-
             {squadLeader && (
               <div className="mb-4 px-4 py-3 rounded-2xl flex items-center gap-3"
                    style={{ background: "rgba(var(--roam-ember-rgb),0.1)", border: "1px solid rgba(var(--roam-ember-rgb),0.3)" }}>
                 <span style={{ color: "var(--roam-ember)" }}>🏕️</span>
-                <span className="font-mono text-[11px]" style={{ color: "var(--roam-ember)" }}>Squad Leader unlocked! You can now create and run groups & ticketed events.</span>
+                <span className="font-mono text-[11px]" style={{ color: "var(--roam-ember)" }}>Squad Leader unlocked! Create groups & run ticketed events.</span>
               </div>
             )}
 
-            {user?.tier === "free" && (
-              <div className="mb-4 rounded-2xl overflow-hidden"
-                   style={{ border: "1.5px solid rgba(var(--roam-electric-rgb),0.4)", background: "linear-gradient(135deg, rgba(var(--roam-electric-rgb),0.08) 0%, rgba(var(--roam-electric-rgb),0.03) 100%)" }}>
-                <div className="px-4 pt-4 pb-4">
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <div>
-                      <div className="font-serif text-[17px] font-black mb-0.5" style={{ color: "var(--roam-cream)" }}>
-                        Unlock Adventurer
-                      </div>
-                      <div className="font-mono text-[9px] tracking-wider uppercase" style={{ color: "var(--roam-electric)" }}>
-                        Most popular · cancel anytime
-                      </div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <div className="font-serif text-[22px] font-bold" style={{ color: "var(--roam-cream)" }}>$4.99</div>
-                      <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>NZD / mo</div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 mb-3">
-                    {["Unlimited connections", "Full messaging", "Almost Met radar", "Bucket List matching", "Priority in discovery", "Join unlimited groups"].map(f => (
-                      <div key={f} className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>
-                        <span style={{ color: "var(--roam-electric)" }}>✓</span> {f}
-                      </div>
-                    ))}
-                  </div>
-                  {upgradeError && (
-                    <div className="mb-2 text-[11px] font-mono px-3 py-2 rounded-xl"
-                         style={{ background: "rgba(232,98,26,0.1)", color: "var(--roam-ember)" }}>
-                      {upgradeError}
-                    </div>
-                  )}
-                  <button onClick={handleUpgrade} disabled={upgrading}
-                          className="w-full py-3.5 rounded-xl font-mono text-[12px] tracking-wider uppercase font-semibold transition-all"
-                          style={{ background: "var(--roam-electric)", color: "var(--roam-forest)", opacity: upgrading ? 0.7 : 1 }}
-                          data-testid="button-upgrade-adventurer">
-                    {upgrading ? "Redirecting…" : "Upgrade to Adventurer →"}
-                  </button>
-                  <div className="text-center mt-2 font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
-                    Powered by Stripe · Cancel anytime
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ── Stripe Connect — shown to Squad Leaders ── */}
-            {isOrganiser && (
-              <div className="mb-4 rounded-2xl overflow-hidden"
-                   style={{ border: `1px solid ${connectStatus?.status === "active" ? "rgba(var(--roam-electric-rgb),0.35)" : "rgba(var(--roam-ember-rgb),0.3)"}`, background: connectStatus?.status === "active" ? "linear-gradient(135deg, rgba(var(--roam-electric-rgb),0.07) 0%, rgba(var(--roam-electric-rgb),0.02) 100%)" : "linear-gradient(135deg, rgba(var(--roam-ember-rgb),0.06) 0%, rgba(var(--roam-ember-rgb),0.02) 100%)" }}>
-                <div className="px-4 pt-4 pb-4">
-
-                  {/* Header */}
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                           style={{ background: connectStatus?.status === "active" ? "rgba(var(--roam-electric-rgb),0.14)" : "rgba(var(--roam-ember-rgb),0.12)" }}>
-                        <Banknote size={17} style={{ color: connectStatus?.status === "active" ? "var(--roam-electric)" : "var(--roam-ember)" }} />
-                      </div>
+            {/* ── Identity verification — single compact card ── */}
+            {!user?.identityVerified && (
+              <div className="mb-4 rounded-2xl"
+                   style={{ border: "1px solid rgba(var(--roam-electric-rgb),0.3)", background: "rgba(var(--roam-electric-rgb),0.05)" }}
+                   data-testid="section-verified-user">
+                <div className="px-4 py-3.5">
+                  {user?.identityVerificationId && !verifyTimedOut ? (
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 rounded-full animate-spin flex-shrink-0"
+                           style={{ border: "2px solid rgba(var(--roam-electric-rgb),0.2)", borderTopColor: "var(--roam-electric)" }} />
                       <div>
-                        <div className="font-serif text-[15px] font-black leading-tight" style={{ color: "var(--roam-cream)" }}>Stripe Payouts</div>
-                        <div className="font-mono text-[9px] tracking-wider uppercase mt-0.5" style={{ color: connectStatus?.status === "active" ? "var(--roam-electric)" : "var(--roam-ember)" }}>
-                          {connectStatus?.status === "active" ? "Connected · payouts active" : connectStatus?.status === "pending" ? "Setup incomplete" : "Not connected yet"}
-                        </div>
+                        <div className="font-mono text-[11px] font-semibold" style={{ color: "var(--roam-cream)" }}>Verification in progress</div>
+                        <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>Usually under a minute — hang tight</div>
                       </div>
                     </div>
-                    {connectStatus?.status === "active" && (
-                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg flex-shrink-0"
-                           style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)" }}>
-                        <Check size={11} style={{ color: "var(--roam-electric)" }} />
-                        <span className="font-mono text-[9px]" style={{ color: "var(--roam-electric)" }}>Active</span>
+                  ) : verifyTimedOut ? (
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="font-mono text-[11px] font-semibold" style={{ color: "var(--roam-ember)" }}>Verification is taking longer than expected</div>
+                        <div className="font-mono text-[10px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>Documents can take a moment to process</div>
                       </div>
-                    )}
-                  </div>
-
-                  {/* Return banner */}
-                  {connectSuccess && connectStatus?.status === "active" && (
-                    <div className="mb-3 px-3 py-2 rounded-xl flex items-center gap-2"
-                         style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)" }}>
-                      <Check size={13} style={{ color: "var(--roam-electric)" }} />
-                      <span className="font-mono text-[11px]" style={{ color: "var(--roam-electric)" }}>Bank account connected — ticket sales will be paid out automatically.</span>
+                      <button onClick={handleResetVerification} disabled={resetting}
+                              className="flex-shrink-0 px-3 py-2 rounded-xl font-mono text-[10px] font-semibold"
+                              style={{ background: "rgba(var(--roam-cream-rgb),0.08)", border: "1px solid rgba(var(--roam-cream-rgb),0.15)", color: "rgba(var(--roam-cream-rgb),0.6)" }}
+                              data-testid="button-retry-verification">
+                        {resetting ? "Resetting…" : "Start over"}
+                      </button>
                     </div>
-                  )}
-
-                  {/* Refresh banner */}
-                  {connectRefresh && (
-                    <div className="mb-3 px-3 py-2 rounded-xl flex items-center gap-2"
-                         style={{ background: "rgba(var(--roam-ember-rgb),0.1)", border: "1px solid rgba(var(--roam-ember-rgb),0.25)" }}>
-                      <AlertCircle size={13} style={{ color: "var(--roam-ember)" }} />
-                      <span className="font-mono text-[11px]" style={{ color: "var(--roam-ember)" }}>The setup link expired. Click below to restart.</span>
+                  ) : verifySubmitted ? (
+                    <div className="flex items-center gap-3">
+                      <span style={{ fontSize: "16px" }}>⏳</span>
+                      <div>
+                        <div className="font-mono text-[11px] font-semibold" style={{ color: "var(--roam-electric)" }}>Verification submitted</div>
+                        <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>You'll get your ✓ badge shortly</div>
+                      </div>
                     </div>
-                  )}
-
-                  {/* Description */}
-                  {connectStatus?.status !== "active" && (
-                    <p className="font-mono text-[11px] leading-relaxed mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.72)" }}>
-                      Connect your bank account so Stripe can automatically pay you your ticket revenue when attendees purchase tickets. roam. keeps only the 10% platform fee — the rest goes directly to you.
-                    </p>
-                  )}
-
-                  {connectStatus?.status === "active" && (
-                    <div className="grid grid-cols-2 gap-2 mb-3">
-                      {[
-                        { label: "Your cut per ticket", value: "90%" },
-                        { label: "Platform fee", value: "10%" },
-                        { label: "Payouts", value: "Automatic" },
-                        { label: "Settlement", value: "T+2 days" },
-                      ].map(s => (
-                        <div key={s.label} className="px-3 py-2 rounded-xl"
-                             style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
-                          <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>{s.label}</div>
-                          <div className="font-mono text-[13px] font-semibold mt-0.5" style={{ color: "var(--roam-cream)" }}>{s.value}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* CTA */}
-                  {connectStatus?.status === "active" ? (
-                    <a href={connectStatus.dashboardUrl} target="_blank" rel="noopener noreferrer"
-                       className="w-full py-2.5 rounded-xl font-mono text-[11px] tracking-wider uppercase font-semibold flex items-center justify-center gap-2 transition-all"
-                       style={{ background: "rgba(var(--roam-electric-rgb),0.12)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)", color: "var(--roam-electric)" }}
-                       data-testid="link-stripe-dashboard">
-                      <ExternalLink size={12} /> Open Stripe dashboard
-                    </a>
                   ) : (
-                    <button onClick={handleConnectStripe} disabled={connectingStripe}
-                            className="w-full py-2.5 rounded-xl font-mono text-[11px] tracking-wider uppercase font-semibold flex items-center justify-center gap-2 transition-all"
-                            style={{ background: "rgba(var(--roam-ember-rgb),0.15)", border: "1px solid rgba(var(--roam-ember-rgb),0.4)", color: "var(--roam-ember)", opacity: connectingStripe ? 0.7 : 1 }}
-                            data-testid="button-connect-stripe">
-                      {connectingStripe ? <Loader2 size={13} className="animate-spin" /> : <Banknote size={13} />}
-                      {connectingStripe ? "Opening Stripe…" : connectStatus?.status === "pending" ? "Continue bank setup →" : "Connect bank account →"}
-                    </button>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span style={{ fontSize: "14px" }}>🛡️</span>
+                          <span className="font-mono text-[12px] font-semibold" style={{ color: "var(--roam-cream)" }}>Verify your identity</span>
+                        </div>
+                        <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                          Gov ID + selfie · 2 min · builds real trust with matches
+                        </div>
+                        {verifyError && <div className="font-mono text-[10px] mt-1" style={{ color: "var(--roam-ember)" }}>{verifyError}</div>}
+                      </div>
+                      <button onClick={handleStartVerification} disabled={verifying}
+                              className="flex-shrink-0 py-2 px-4 rounded-xl font-mono text-[11px] font-semibold transition-all"
+                              style={{ background: "var(--roam-electric)", color: "var(--roam-forest)", opacity: verifying ? 0.7 : 1 }}
+                              data-testid="button-verify-identity">
+                        {verifying ? "Starting…" : "Verify →"}
+                      </button>
+                    </div>
                   )}
-                  <div className="text-center mt-2 font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
-                    Powered by Stripe Connect · Bank-grade security · NZ accounts supported
-                  </div>
                 </div>
               </div>
             )}
 
-            {!(user as any)?.isOrganiser && (
-              <div className="mb-4 rounded-2xl overflow-hidden"
-                   style={{ border: "1px solid rgba(var(--roam-ember-rgb),0.3)", background: "linear-gradient(135deg, rgba(var(--roam-ember-rgb),0.06) 0%, rgba(var(--roam-ember-rgb),0.02) 100%)" }}>
-                <div className="px-4 pt-4 pb-4">
-                  <div className="flex items-start justify-between gap-3 mb-1.5">
+            {/* ── Upgrade prompt — compact, links to /plans ── */}
+            {user?.tier === "free" && (
+              <Link href="/plans">
+                <div className="mb-4 flex items-center justify-between px-4 py-3.5 rounded-2xl cursor-pointer transition-all hover:scale-[1.01]"
+                     style={{ background: "rgba(var(--roam-electric-rgb),0.07)", border: "1px solid rgba(var(--roam-electric-rgb),0.2)" }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                         style={{ background: "rgba(var(--roam-electric-rgb),0.12)" }}>
+                      <Zap size={15} style={{ color: "var(--roam-electric)" }} />
+                    </div>
                     <div>
-                      <div className="font-serif text-[15px] font-black mb-0.5" style={{ color: "var(--roam-cream)" }}>
-                        Squad Leader
-                      </div>
-                      <div className="font-mono text-[9px] tracking-wider uppercase" style={{ color: "var(--roam-ember)" }}>
-                        For group organisers
+                      <div className="font-mono text-[12px] font-semibold" style={{ color: "var(--roam-cream)" }}>Unlock Adventurer</div>
+                      <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                        Unlimited matches · full messaging · $4.99/mo NZD
                       </div>
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      <div className="font-serif text-[20px] font-bold" style={{ color: "var(--roam-cream)" }}>$19.99</div>
-                      <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>NZD · one-time</div>
-                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 mb-3">
-                    {["Create unlimited groups", "Run ticketed events", "Member management tools", "Custom invite links", "Event notifications", "Yours forever"].map(f => (
-                      <div key={f} className="flex items-center gap-1.5 font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
-                        <span style={{ color: "var(--roam-ember)" }}>✓</span> {f}
-                      </div>
-                    ))}
-                  </div>
-                  <button onClick={handleOrganiser} disabled={organisingUp}
-                          className="w-full py-3 rounded-xl font-mono text-[11px] tracking-wider uppercase font-semibold transition-all"
-                          style={{ background: "rgba(var(--roam-ember-rgb),0.15)", border: "1px solid rgba(var(--roam-ember-rgb),0.4)", color: "var(--roam-ember)", opacity: organisingUp ? 0.7 : 1 }}
-                          data-testid="button-upgrade-organiser">
-                    {organisingUp ? "Redirecting…" : "Unlock Squad Leader →"}
-                  </button>
-                  <div className="text-center mt-2 font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
-                    Pay once · no subscription · create your first group today
-                  </div>
+                  <ChevronRight size={15} style={{ color: "rgba(var(--roam-electric-rgb),0.7)" }} />
                 </div>
-              </div>
+              </Link>
             )}
 
-            <div className="mb-4 rounded-2xl overflow-hidden"
-                 style={{ border: "1px solid rgba(var(--roam-cream-rgb),0.1)", background: "rgba(var(--roam-cream-rgb),0.02)" }}>
-              <div className="px-4 py-3 flex items-center justify-between">
-                <div>
-                  <div className="font-serif text-[14px] font-black mb-0.5" style={{ color: "var(--roam-cream)" }}>⚡ Boost your profile</div>
-                  <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.7)" }}>
-                    Appear at the top of discovery for 24 hours
+            {/* ── Squad Leader upsell — compact ── */}
+            {!isOrganiser && (
+              <button onClick={handleOrganiser} disabled={organisingUp}
+                      className="w-full mb-4 flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all hover:scale-[1.01] text-left"
+                      style={{ background: "rgba(var(--roam-ember-rgb),0.05)", border: "1px solid rgba(var(--roam-ember-rgb),0.2)" }}
+                      data-testid="button-upgrade-organiser">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                       style={{ background: "rgba(var(--roam-ember-rgb),0.1)" }}>
+                    <span style={{ fontSize: "15px" }}>🏕️</span>
                   </div>
+                  <div>
+                    <div className="font-mono text-[12px] font-semibold" style={{ color: "var(--roam-cream)" }}>Become a Squad Leader</div>
+                    <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                      Run groups & ticketed events · $19.99 one-time NZD
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={15} style={{ color: "rgba(var(--roam-ember-rgb),0.6)" }} />
+              </button>
+            )}
+
+            {/* ── Boost ── */}
+            {!boostActive && (
+              <div className="mb-4 flex items-center justify-between px-4 py-3 rounded-2xl"
+                   style={{ background: "rgba(var(--roam-cream-rgb),0.03)", border: "1px solid rgba(var(--roam-cream-rgb),0.08)" }}>
+                <div>
+                  <div className="font-mono text-[12px] font-semibold" style={{ color: "var(--roam-cream)" }}>⚡ Boost your profile</div>
+                  <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>Top of discovery for 24 hours</div>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
-                  <div className="text-right">
-                    <div className="font-serif text-[16px] font-bold" style={{ color: "var(--roam-cream)" }}>$1</div>
-                    <div className="font-mono text-[8px]" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>NZD</div>
-                  </div>
+                  <span className="font-mono text-[14px] font-bold" style={{ color: "var(--roam-cream)" }}>$1</span>
                   <button onClick={handleBoost} disabled={boosting}
-                          className="py-2 px-4 rounded-xl font-mono text-[10px] tracking-wider uppercase font-semibold transition-all flex-shrink-0"
+                          className="py-1.5 px-4 rounded-xl font-mono text-[10px] font-semibold transition-all"
                           style={{ background: "rgba(var(--roam-electric-rgb),0.12)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)", color: "var(--roam-electric)", opacity: boosting ? 0.7 : 1 }}
                           data-testid="button-boost-profile">
                     {boosting ? "…" : "Boost"}
                   </button>
                 </div>
               </div>
-            </div>
+            )}
 
-            {(() => {
-              const vibeWord = computeVibeWord(profileData.dna);
-              return (
-                <div className="flex items-center gap-2 mb-5">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
-                       style={{ background: "rgba(var(--roam-electric-rgb),0.08)", border: "1px solid rgba(var(--roam-electric-rgb),0.2)" }}
-                       data-testid="badge-vibe-word">
-                    <span className="font-mono text-[9px] tracking-widest uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>Vibe</span>
-                    <span className="font-mono text-[10px] tracking-wider" style={{ color: "var(--roam-electric)" }}>{vibeWord}</span>
-                  </div>
-                  {user?.identityVerified && (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
-                         style={{ background: "rgba(var(--roam-electric-rgb),0.08)", border: "1px solid rgba(var(--roam-electric-rgb),0.35)" }}
-                         data-testid="badge-verified-user">
-                      <span className="font-mono text-[11px] font-bold" style={{ color: "var(--roam-electric)" }}>✓</span>
-                      <span className="font-mono text-[10px] tracking-wider" style={{ color: "var(--roam-electric)" }}>Verified User</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-
-            <div className="mb-5 rounded-2xl overflow-hidden"
-                 id="verified"
-                 data-testid="section-verified-user"
-                 style={{ border: user?.identityVerified ? "1px solid rgba(var(--roam-electric-rgb),0.35)" : "1px solid rgba(var(--roam-cream-rgb),0.1)" }}>
-
-              {user?.identityVerified ? (
-                <div className="px-4 py-4 flex items-start gap-3"
-                     style={{ background: "rgba(var(--roam-electric-rgb),0.06)" }}>
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                       style={{ background: "rgba(var(--roam-electric-rgb),0.18)", border: "1px solid rgba(var(--roam-electric-rgb),0.45)" }}>
-                    <span className="font-mono text-[16px] font-bold" style={{ color: "var(--roam-electric)" }}>✓</span>
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-mono text-[11px] tracking-wider font-semibold mb-1" style={{ color: "var(--roam-electric)" }}>
-                      Identity Verified
-                    </div>
-                    <div className="font-mono text-[10px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.78)" }}>
-                      Government ID + selfie confirmed. You're a verified real person.
-                    </div>
-                    {user.identityVerifiedAt && (
-                      <div className="font-mono text-[9px] mt-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.58)" }}>
-                        Verified {new Date(user.identityVerifiedAt).toLocaleDateString("en-NZ", { day: "numeric", month: "long", year: "numeric" })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : user?.identityVerificationId && !user?.identityVerified ? (
-                <div className="px-4 py-4 flex items-start gap-3"
-                     style={{ background: "rgba(var(--roam-cream-rgb),0.03)" }}>
-                  {verifyTimedOut ? (
-                    <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 flex-none"
-                         style={{ background: "rgba(var(--roam-ember-rgb),0.12)", border: "1px solid rgba(var(--roam-ember-rgb),0.3)" }}>
-                      <span style={{ fontSize: "15px" }}>!</span>
-                    </div>
-                  ) : (
-                    <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 animate-spin"
-                         style={{ border: "2px solid rgba(var(--roam-electric-rgb),0.2)", borderTopColor: "var(--roam-electric)" }}>
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <div className="font-mono text-[11px] tracking-wider font-semibold mb-1"
-                         style={{ color: verifyTimedOut ? "rgba(var(--roam-ember-rgb),0.85)" : "rgba(var(--roam-cream-rgb),0.7)" }}>
-                      {verifyTimedOut ? "Verification is taking longer than expected" : "Verification in progress"}
-                    </div>
-                    <div className="font-mono text-[10px] leading-relaxed mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.72)" }}>
-                      {verifyTimedOut
-                        ? "This sometimes happens when documents take a moment to process. You can wait or start again."
-                        : "We're confirming your identity. This usually takes less than a minute."}
-                    </div>
-                    {verifyTimedOut && (
-                      <button
-                        className="font-mono text-[10px] tracking-wider uppercase font-semibold px-3 py-2 rounded-xl transition-all"
-                        style={{ background: "rgba(var(--roam-cream-rgb),0.08)", border: "1px solid rgba(var(--roam-cream-rgb),0.15)", color: "rgba(var(--roam-cream-rgb),0.6)", opacity: resetting ? 0.6 : 1 }}
-                        onClick={handleResetVerification}
-                        disabled={resetting}
-                        data-testid="button-retry-verification">
-                        {resetting ? "Resetting…" : "Start over"}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ) : verifySubmitted ? (
-                <div className="px-4 py-4 flex items-start gap-3"
-                     style={{ background: "rgba(var(--roam-electric-rgb),0.04)" }}>
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                       style={{ background: "rgba(var(--roam-electric-rgb),0.12)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)" }}>
-                    <span style={{ fontSize: "16px" }}>⏳</span>
-                  </div>
-                  <div>
-                    <div className="font-mono text-[11px] tracking-wider font-semibold mb-1" style={{ color: "var(--roam-electric)" }}>
-                      Verification submitted
-                    </div>
-                    <div className="font-mono text-[10px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.75)" }}>
-                      Your documents are being reviewed. You'll get your ✓ badge shortly — usually under a minute.
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div style={{ background: "rgba(var(--roam-cream-rgb),0.02)" }}>
-                  <div className="px-4 pt-4 pb-3 flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                         style={{ background: "rgba(var(--roam-cream-rgb),0.06)", border: "1px solid rgba(var(--roam-cream-rgb),0.12)" }}>
-                      <Shield size={16} style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }} />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-mono text-[11px] tracking-wider font-semibold mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.7)" }}>
-                        Verify your identity
-                      </div>
-                      <div className="font-mono text-[10px] leading-relaxed mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.72)" }}>
-                        Takes 2 minutes. Upload a government ID + selfie. Your documents go directly to Stripe's secure servers — we never see or store them.
-                      </div>
-                      <div className="flex flex-wrap gap-1.5 mb-3">
-                        {["Driver's licence", "Passport", "Selfie liveness check"].map(item => (
-                          <span key={item} className="font-mono text-[8px] tracking-wider px-2 py-0.5 rounded-lg"
-                                style={{ background: "rgba(var(--roam-cream-rgb),0.06)", border: "1px solid rgba(var(--roam-cream-rgb),0.1)", color: "rgba(var(--roam-cream-rgb),0.72)" }}>
-                            {item}
-                          </span>
-                        ))}
-                      </div>
-                      {verifyError && (
-                        <div className="font-mono text-[10px] mb-2" style={{ color: "var(--roam-ember)" }}>
-                          {verifyError}
-                        </div>
-                      )}
-                      <button
-                        className="flex items-center gap-2 font-mono text-[10px] tracking-wider uppercase font-semibold px-4 py-2.5 rounded-xl transition-all"
-                        style={{ background: "var(--roam-electric)", color: "var(--roam-forest)", opacity: verifying ? 0.7 : 1 }}
-                        onClick={handleStartVerification}
-                        disabled={verifying}
-                        data-testid="button-start-verification">
-                        {verifying ? (
-                          <><Loader2 size={11} className="animate-spin" /> Starting…</>
-                        ) : (
-                          <><Shield size={11} /> Get Verified</>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="px-4 py-2.5 flex items-center gap-2"
-                       style={{ borderTop: "1px solid rgba(var(--roam-cream-rgb),0.06)", background: "rgba(var(--roam-cream-rgb),0.02)" }}>
-                    <span className="font-mono text-[8px]" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
-                      Powered by Stripe Identity · Documents never stored on roam. servers
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-
+            {/* ── Adventure DNA ── */}
             <div className="mb-5">
               <div className="flex items-center justify-between mb-3">
                 <div className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
@@ -870,8 +548,7 @@ export default function Profile() {
                 </div>
                 <button className="flex items-center gap-1 font-mono text-[9px] tracking-wider uppercase py-1 px-2.5 rounded-lg transition-all"
                         style={{ background: "rgba(var(--roam-electric-rgb),0.1)", color: "var(--roam-electric)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)" }}
-                        onClick={openEdit}
-                        data-testid="button-edit-dna">
+                        onClick={openEdit} data-testid="button-edit-dna">
                   <Plus size={10} /> Edit
                 </button>
               </div>
@@ -885,6 +562,7 @@ export default function Profile() {
               </div>
             </div>
 
+            {/* ── My groups ── */}
             {myGroups.length > 0 && (
               <div className="mb-5">
                 <div className="flex items-center justify-between mb-3">
@@ -892,7 +570,7 @@ export default function Profile() {
                     My groups
                   </div>
                   <Link href="/groups">
-                    <span className="text-[11px] font-mono" style={{ color: "rgba(var(--roam-electric-rgb),0.7)" }}>See all →</span>
+                    <span className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-electric-rgb),0.7)" }}>See all →</span>
                   </Link>
                 </div>
                 <div className="space-y-2">
@@ -921,126 +599,68 @@ export default function Profile() {
               </div>
             )}
 
-            <div className="mb-5">
-              <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
-                Your photos
-              </div>
-              <div className="grid grid-cols-3 gap-1.5">
-                {PROFILE_PHOTOS.map((p, i) => (
-                  <div key={i} className="aspect-square rounded-xl overflow-hidden relative" style={{ userSelect: "none" }}
-                       onContextMenu={e => e.preventDefault()} data-testid={`profile-photo-${i}`}>
-                    <img src={p.url} alt="" className="w-full h-full object-cover" loading="lazy"
-                         draggable={false} style={{ pointerEvents: "none" }} />
-                    <div className="absolute bottom-0 left-0 right-0 p-1.5">
-                      <div className="flex flex-wrap gap-1">
-                        {p.tags.slice(0, 2).map(t => (
-                          <span key={t} className="font-mono text-[7px] tracking-wider px-1.5 py-0.5 rounded-md"
-                                style={{ background: "rgba(var(--roam-forest-rgb),0.85)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)", color: "var(--roam-electric)" }}>
-                            {t}
-                          </span>
-                        ))}
-                      </div>
+            {/* ── Adventure photos CTA ── */}
+            <Link href="/upload">
+              <div className="mb-4 flex items-center justify-between px-4 py-3.5 rounded-2xl cursor-pointer transition-all hover:scale-[1.01]"
+                   style={{ background: "rgba(var(--roam-cream-rgb),0.03)", border: "1px solid rgba(var(--roam-cream-rgb),0.08)" }}>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                       style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.15)" }}>
+                    <Camera size={15} style={{ color: "var(--roam-electric)" }} />
+                  </div>
+                  <div>
+                    <div className="font-mono text-[12px] font-semibold" style={{ color: "var(--roam-cream)" }}>Your adventure photos</div>
+                    <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                      Photos with you get 3× more matches
                     </div>
                   </div>
-                ))}
+                </div>
+                <ChevronRight size={14} style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }} />
               </div>
-            </div>
+            </Link>
 
-            <div className="rounded-2xl p-4"
-                 style={{ background: "rgba(var(--roam-electric-rgb),0.05)", border: "1px solid rgba(var(--roam-electric-rgb),0.12)" }}>
-              <div className="flex items-center gap-2 mb-2">
-                <Star size={14} style={{ color: "var(--roam-electric)" }} />
-                <span className="font-mono text-[10px] tracking-wider uppercase" style={{ color: "var(--roam-electric)" }}>Profile tip</span>
+            {/* ── Safety net ── */}
+            <Link href="/safety">
+              <div className="mb-4 flex items-center justify-between px-4 py-3.5 rounded-2xl cursor-pointer transition-all hover:scale-[1.01]"
+                   style={{ background: "rgba(var(--roam-electric-rgb),0.04)", border: "1px solid rgba(var(--roam-electric-rgb),0.15)" }}>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                       style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.15)" }}>
+                    <ShieldCheck size={15} style={{ color: "var(--roam-electric)" }} />
+                  </div>
+                  <div>
+                    <div className="font-mono text-[12px] font-semibold" style={{ color: "var(--roam-cream)" }}>Safety net</div>
+                    <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                      Contacts, check-ins & emergency SOS
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight size={14} style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }} />
               </div>
-              <p className="text-xs leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.75)" }}>
-                Photos with you in them get 3x more matches. Add more adventure shots where you're visible — LetsRoam.life
-                prioritizes photos that show the real you in real places.
-              </p>
-            </div>
+            </Link>
 
+            {/* ── Year in adventure ── */}
             <button
-              className="w-full flex items-center gap-3.5 p-4 rounded-2xl mt-4 text-left transition-all hover:scale-[1.01]"
+              className="w-full flex items-center gap-3.5 p-4 rounded-2xl text-left transition-all hover:scale-[1.01]"
               style={{ background: "linear-gradient(135deg, rgba(var(--roam-electric-rgb),0.08), rgba(var(--roam-sky-rgb),0.06))", border: "1px solid rgba(var(--roam-electric-rgb),0.2)" }}
               onClick={() => setShowYearCard(true)}
               data-testid="button-year-in-adventure">
-              <span style={{ fontSize: "26px" }}>🌍</span>
+              <span style={{ fontSize: "24px" }}>🌍</span>
               <div className="flex-1">
-                <div className="font-semibold text-[14px] mb-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.9)" }}>Your 2025 in Adventure</div>
-                <div className="font-mono text-[10px] tracking-wider" style={{ color: "var(--roam-electric)" }}>47 adventures · 12 locations · 3 matches</div>
+                <div className="font-mono text-[12px] font-semibold mb-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.9)" }}>Your 2025 in Adventure</div>
+                <div className="font-mono text-[10px]" style={{ color: "var(--roam-electric)" }}>47 adventures · 12 locations · 3 matches</div>
               </div>
-              <div className="font-mono text-[10px] font-medium px-3 py-1.5 rounded-xl flex-shrink-0"
+              <div className="font-mono text-[10px] font-semibold px-3 py-1.5 rounded-xl flex-shrink-0"
                    style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}>
                 View &amp; Share
               </div>
             </button>
 
-            <Link href="/advertise">
-              <button
-                className="w-full flex items-center gap-3.5 p-4 rounded-2xl mt-2 text-left transition-all hover:scale-[1.01]"
-                style={{ background: "linear-gradient(135deg, rgba(var(--roam-electric-rgb),0.06), rgba(var(--roam-sky-rgb),0.04))", border: "1px solid rgba(var(--roam-electric-rgb),0.15)" }}
-                data-testid="button-advertise-with-us">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                     style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.2)" }}>
-                  <Megaphone size={15} style={{ color: "var(--roam-electric)" }} />
-                </div>
-                <div className="flex-1">
-                  <div className="font-semibold text-[13px] mb-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.85)" }}>Advertise on roam.</div>
-                  <div className="font-mono text-[9px] tracking-wider" style={{ color: "rgba(var(--roam-electric-rgb),0.65)" }}>Reach adventure seekers · from $49 NZD</div>
-                </div>
-                <ChevronRight size={13} style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }} />
-              </button>
-            </Link>
-
-            <div className="mt-6 rounded-2xl overflow-hidden"
-                 style={{ border: "1px solid rgba(var(--roam-ember-rgb),0.18)" }}>
-              <div className="px-4 py-3"
-                   style={{ background: "rgba(var(--roam-ember-rgb),0.06)", borderBottom: "1px solid rgba(var(--roam-ember-rgb),0.1)" }}>
-                <span className="font-mono text-[10px] tracking-wider uppercase"
-                      style={{ color: "rgba(var(--roam-ember-rgb),0.7)" }}>Account</span>
-              </div>
-              <div className="px-4 py-4" style={{ background: "rgba(var(--roam-ember-rgb),0.03)" }}>
-                {!confirmDelete ? (
-                  <button
-                    className="flex items-center gap-2.5 font-mono text-[11px] tracking-wider transition-all"
-                    style={{ color: "rgba(var(--roam-ember-rgb),0.6)" }}
-                    onClick={() => setConfirmDelete(true)}
-                    data-testid="button-delete-account-prompt">
-                    <Trash2 size={13} />
-                    Delete my account and all data
-                  </button>
-                ) : (
-                  <div>
-                    <p className="font-mono text-[11px] leading-relaxed mb-3"
-                       style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>
-                      This permanently deletes your profile, photos, matches, and messages. This cannot be undone.
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        className="flex items-center gap-2 font-mono text-[10px] tracking-wider uppercase font-semibold px-4 py-2.5 rounded-xl transition-all"
-                        style={{ background: "var(--roam-ember)", color: "#fff", opacity: deleting ? 0.7 : 1 }}
-                        onClick={handleDeleteAccount}
-                        disabled={deleting}
-                        data-testid="button-delete-account-confirm">
-                        {deleting ? <><Loader2 size={11} className="animate-spin" /> Deleting…</> : <><Trash2 size={11} /> Yes, delete everything</>}
-                      </button>
-                      <button
-                        className="font-mono text-[10px] tracking-wider uppercase px-4 py-2.5 rounded-xl transition-all"
-                        style={{ background: "rgba(var(--roam-cream-rgb),0.07)", color: "rgba(var(--roam-cream-rgb),0.5)" }}
-                        onClick={() => setConfirmDelete(false)}
-                        disabled={deleting}
-                        data-testid="button-delete-account-cancel">
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
           </div>
         </div>
       </div>
 
+      {/* ── Edit profile sheet ── */}
       <Sheet open={editOpen} onClose={() => setEditOpen(false)} title="Edit profile">
         <div className="space-y-4">
           <div>
@@ -1049,15 +669,13 @@ export default function Profile() {
             </label>
             <div className="flex items-center gap-3">
               <div className="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0" style={{ border: "2px solid rgba(var(--roam-electric-rgb),0.3)" }}>
-                <img src={editForm.avatarUrl || FALLBACK_HERO} alt="Avatar preview"
-                     className="w-full h-full object-cover" />
+                <img src={editForm.avatarUrl || FALLBACK_HERO} alt="Avatar preview" className="w-full h-full object-cover" />
               </div>
               <input ref={avatarInputRef} type="file" accept="image/*" className="hidden"
                      onChange={handleAvatarChange} data-testid="input-avatar-file" />
               <button className="flex items-center gap-2 py-2 px-4 rounded-xl text-[12px] font-mono tracking-wider"
                       style={{ background: "rgba(var(--roam-cream-rgb),0.06)", border: "1px solid rgba(var(--roam-cream-rgb),0.15)", color: "rgba(var(--roam-cream-rgb),0.7)" }}
-                      onClick={() => avatarInputRef.current?.click()}
-                      disabled={uploadingAvatar}
+                      onClick={() => avatarInputRef.current?.click()} disabled={uploadingAvatar}
                       data-testid="button-upload-avatar">
                 {uploadingAvatar ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
                 {uploadingAvatar ? "Uploading…" : "Change photo"}
@@ -1067,32 +685,22 @@ export default function Profile() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
-                Name
-              </label>
+              <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>Name</label>
               <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={inputStyle}
-                     value={editForm.name}
-                     onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                     value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
                      data-testid="input-edit-name" />
             </div>
             <div>
-              <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
-                Age
-              </label>
-              <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none"
-                     style={{ ...inputStyle, opacity: 0.5 }}
-                     value={editForm.age} type="number" min="18" max="99" disabled
-                     data-testid="input-edit-age" />
+              <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>Age</label>
+              <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={{ ...inputStyle, opacity: 0.5 }}
+                     value={editForm.age} type="number" min="18" max="99" disabled data-testid="input-edit-age" />
             </div>
           </div>
 
           <div>
-            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
-              Tagline
-            </label>
+            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>Tagline</label>
             <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={inputStyle}
-                   value={editForm.tagline} maxLength={60}
-                   placeholder="e.g. Chasing summits and night markets"
+                   value={editForm.tagline} maxLength={60} placeholder="e.g. Chasing summits and night markets"
                    onChange={e => setEditForm(f => ({ ...f, tagline: e.target.value }))}
                    data-testid="input-edit-tagline" />
             <p className="text-[10px] font-mono mt-1 text-right" style={{ color: "rgba(var(--roam-cream-rgb),0.58)" }}>
@@ -1101,22 +709,19 @@ export default function Profile() {
           </div>
 
           <div>
-            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
-              Base location
-            </label>
+            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>Base location</label>
             <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={inputStyle}
-                   value={editForm.location}
-                   placeholder="e.g. Auckland, NZ"
+                   value={editForm.location} placeholder="e.g. Auckland, NZ"
                    onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))}
                    data-testid="input-edit-location" />
           </div>
 
           <div>
             <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
-              Adventure DNA — tap to select your activities
+              Adventure DNA — tap to select
             </label>
             <p className="text-[11px] mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
-              These are also auto-detected from your photos. Your manual picks always show first.
+              These are auto-detected from your photos too. Manual picks always show first.
             </p>
             <div className="flex flex-wrap gap-1.5" data-testid="dna-selector">
               {ALL_DNA_TAGS.map(tag => {
@@ -1148,26 +753,21 @@ export default function Profile() {
 
           <button className="w-full py-3.5 rounded-2xl font-mono text-sm tracking-wider uppercase font-medium transition-all hover:-translate-y-0.5 mt-2 flex items-center justify-center gap-2 disabled:opacity-50"
                   style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
-                  onClick={saveEdit}
-                  disabled={saving}
-                  data-testid="button-save-profile">
-            {saving ? (
-              <><Loader2 size={14} className="animate-spin" /> Saving…</>
-            ) : (
-              <>
-                <Check size={14} /> Save changes
-              </>
-            )}
+                  onClick={saveEdit} disabled={saving} data-testid="button-save-profile">
+            {saving ? <><Loader2 size={14} className="animate-spin" /> Saving…</> : <><Check size={14} /> Save changes</>}
           </button>
         </div>
       </Sheet>
 
+      {/* ── Settings sheet ── */}
       <Sheet open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Settings">
         <div className="space-y-2">
+
           <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
-            Groups
+            Discover preferences
           </div>
-          <div className="flex items-center justify-between p-4 rounded-2xl mb-4"
+
+          <div className="flex items-center justify-between p-4 rounded-2xl mb-2"
                style={{ background: "var(--roam-moss)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
             <div>
               <div className="text-sm font-medium">Open to roaming</div>
@@ -1175,13 +775,10 @@ export default function Profile() {
                 Show an <span className="font-serif font-black" style={{ color: "var(--roam-electric)" }}>r.</span> badge on your discover card
               </div>
             </div>
-            <button
-              className="w-11 h-6 rounded-full relative transition-all flex-shrink-0"
-              style={{ background: openToRoaming ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.12)" }}
-              onClick={() => toggleOpenToRoaming(!openToRoaming)}
-              disabled={savingRoaming}
-              data-testid="toggle-open-to-roaming"
-            >
+            <button className="w-11 h-6 rounded-full relative transition-all flex-shrink-0"
+                    style={{ background: openToRoaming ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.12)" }}
+                    onClick={() => toggleOpenToRoaming(!openToRoaming)} disabled={savingRoaming}
+                    data-testid="toggle-open-to-roaming">
               <div className="w-4 h-4 rounded-full absolute top-1 transition-all"
                    style={{ background: "white", left: openToRoaming ? "calc(100% - 20px)" : "4px" }} />
             </button>
@@ -1194,16 +791,13 @@ export default function Profile() {
                 🛡️ Safety Mode
               </div>
               <div className="text-[11px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
-                Only show you ID-verified profiles in discover. Fewer matches, but every person has confirmed their real identity with a government ID.
+                Only show ID-verified profiles in discover. Fewer matches, but every person has confirmed their real identity.
               </div>
             </div>
-            <button
-              className="w-11 h-6 rounded-full relative transition-all flex-shrink-0 mt-0.5"
-              style={{ background: safetyMode ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.12)" }}
-              onClick={() => toggleSafetyMode(!safetyMode)}
-              disabled={savingSafety}
-              data-testid="toggle-safety-mode"
-            >
+            <button className="w-11 h-6 rounded-full relative transition-all flex-shrink-0 mt-0.5"
+                    style={{ background: safetyMode ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.12)" }}
+                    onClick={() => toggleSafetyMode(!safetyMode)} disabled={savingSafety}
+                    data-testid="toggle-safety-mode">
               <div className="w-4 h-4 rounded-full absolute top-1 transition-all"
                    style={{ background: "white", left: safetyMode ? "calc(100% - 20px)" : "4px" }} />
             </button>
@@ -1214,7 +808,7 @@ export default function Profile() {
           </div>
 
           {[
-            { key: "matches" as const, label: "New matches", desc: "When someone's adventure DNA aligns with yours" },
+            { key: "matches" as const, label: "New matches", desc: "When your adventure DNA aligns with someone's" },
             { key: "messages" as const, label: "Messages", desc: "When a match sends you a message" },
             { key: "bucketList" as const, label: "Bucket list alerts", desc: "When matches share a destination you've pinned" },
           ].map(item => (
@@ -1234,83 +828,138 @@ export default function Profile() {
             </div>
           ))}
 
-          <div className="pt-4">
-            <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
-              Account
-            </div>
-            <div className="space-y-2">
-              {[
-                { icon: Shield, label: "Privacy settings", desc: "Who can see your profile" },
-                { icon: Camera, label: "Photo licensing", desc: "Manage your contributor licence" },
-                { icon: Bell, label: "Email preferences", desc: "Adventure inspiration & updates" },
-              ].map((item, i) => (
-                <button key={i} className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all"
-                        style={{ background: "var(--roam-moss)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}
-                        data-testid={`settings-item-${i}`}>
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                       style={{ background: "rgba(var(--roam-cream-rgb),0.06)" }}>
-                    <item.icon size={15} style={{ color: "rgba(var(--roam-cream-rgb),0.72)" }} />
+          {/* Stripe Connect — organisers only */}
+          {isOrganiser && (
+            <>
+              <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-3 mt-2" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
+                Organiser
+              </div>
+              <div className="rounded-2xl overflow-hidden mb-2"
+                   style={{ border: `1px solid ${connectStatus?.status === "active" ? "rgba(var(--roam-electric-rgb),0.35)" : "rgba(var(--roam-ember-rgb),0.3)"}`, background: connectStatus?.status === "active" ? "rgba(var(--roam-electric-rgb),0.05)" : "rgba(var(--roam-ember-rgb),0.05)" }}>
+                <div className="px-4 py-4">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <Banknote size={15} style={{ color: connectStatus?.status === "active" ? "var(--roam-electric)" : "var(--roam-ember)" }} />
+                    <div>
+                      <div className="font-mono text-[12px] font-semibold" style={{ color: "var(--roam-cream)" }}>Stripe Payouts</div>
+                      <div className="font-mono text-[10px]" style={{ color: connectStatus?.status === "active" ? "rgba(var(--roam-electric-rgb),0.7)" : "rgba(var(--roam-ember-rgb),0.7)" }}>
+                        {connectStatus?.status === "active" ? "Connected · payouts active · 90% yours" : connectStatus?.status === "pending" ? "Setup incomplete" : "Connect bank to receive ticket revenue"}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium">{item.label}</div>
-                    <div className="text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>{item.desc}</div>
-                  </div>
-                  <ChevronRight size={15} style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }} />
-                </button>
-              ))}
-            </div>
-          </div>
+                  {connectSuccess && connectStatus?.status === "active" && (
+                    <div className="mb-3 px-3 py-2 rounded-xl flex items-center gap-2"
+                         style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)" }}>
+                      <Check size={12} style={{ color: "var(--roam-electric)" }} />
+                      <span className="font-mono text-[10px]" style={{ color: "var(--roam-electric)" }}>Bank account connected — ticket sales paid out automatically.</span>
+                    </div>
+                  )}
+                  {connectRefresh && (
+                    <div className="mb-3 px-3 py-2 rounded-xl flex items-center gap-2"
+                         style={{ background: "rgba(var(--roam-ember-rgb),0.1)", border: "1px solid rgba(var(--roam-ember-rgb),0.25)" }}>
+                      <AlertCircle size={12} style={{ color: "var(--roam-ember)" }} />
+                      <span className="font-mono text-[10px]" style={{ color: "var(--roam-ember)" }}>Setup link expired. Click below to restart.</span>
+                    </div>
+                  )}
+                  {connectStatus?.status === "active" ? (
+                    <a href={connectStatus.dashboardUrl} target="_blank" rel="noopener noreferrer"
+                       className="w-full py-2.5 rounded-xl font-mono text-[11px] tracking-wider uppercase font-semibold flex items-center justify-center gap-2 transition-all"
+                       style={{ background: "rgba(var(--roam-electric-rgb),0.12)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)", color: "var(--roam-electric)" }}
+                       data-testid="link-stripe-dashboard">
+                      <ExternalLink size={12} /> Open Stripe dashboard
+                    </a>
+                  ) : (
+                    <button onClick={handleConnectStripe} disabled={connectingStripe}
+                            className="w-full py-2.5 rounded-xl font-mono text-[11px] tracking-wider uppercase font-semibold flex items-center justify-center gap-2 transition-all"
+                            style={{ background: "rgba(var(--roam-ember-rgb),0.15)", border: "1px solid rgba(var(--roam-ember-rgb),0.4)", color: "var(--roam-ember)", opacity: connectingStripe ? 0.7 : 1 }}
+                            data-testid="button-connect-stripe">
+                      {connectingStripe ? <Loader2 size={13} className="animate-spin" /> : <Banknote size={13} />}
+                      {connectingStripe ? "Opening Stripe…" : connectStatus?.status === "pending" ? "Continue bank setup →" : "Connect bank account →"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
 
-          <div className="pt-2 pb-1">
-            <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-2 pt-2" style={{ color: "rgba(var(--roam-cream-rgb),0.62)", borderTop: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
+          <div className="pt-3 pb-1">
+            <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-2"
+                 style={{ color: "rgba(var(--roam-cream-rgb),0.45)", borderTop: "1px solid rgba(var(--roam-cream-rgb),0.07)", paddingTop: "12px" }}>
               Signed in as
             </div>
             <div className="font-mono text-[11px] mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.75)" }}>
               {user?.email}
             </div>
           </div>
+
           {canInstall && (
-            <div className="pt-1">
-              <button className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all mb-2"
-                      style={{ background: "rgba(var(--roam-electric-rgb),0.06)", border: "1px solid rgba(var(--roam-electric-rgb),0.18)" }}
-                      onClick={isIos ? undefined : triggerInstall}
-                      data-testid="button-install-pwa">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                     style={{ background: "rgba(var(--roam-electric-rgb),0.12)" }}>
-                  <Download size={15} style={{ color: "var(--roam-electric)" }} />
-                </div>
-                <div>
-                  <div className="text-sm font-medium" style={{ color: "var(--roam-electric)" }}>
-                    {isIos ? "Add to Home Screen" : "Install roam. app"}
-                  </div>
-                  {isIos && (
-                    <div className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-electric-rgb),0.6)" }}>
-                      Tap Share → Add to Home Screen
-                    </div>
-                  )}
-                </div>
-              </button>
-            </div>
-          )}
-          <div className="pt-1">
-            <button className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all"
-                    style={{ background: "rgba(232,98,26,0.06)", border: "1px solid rgba(232,98,26,0.15)" }}
-                    onClick={async () => { await logout(); navigate("/login"); }}
-                    data-testid="button-logout">
+            <button className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all mb-2"
+                    style={{ background: "rgba(var(--roam-electric-rgb),0.06)", border: "1px solid rgba(var(--roam-electric-rgb),0.18)" }}
+                    onClick={isIos ? undefined : triggerInstall} data-testid="button-install-pwa">
               <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                   style={{ background: "rgba(232,98,26,0.1)" }}>
-                <LogOut size={15} style={{ color: "var(--roam-ember)" }} />
+                   style={{ background: "rgba(var(--roam-electric-rgb),0.12)" }}>
+                <Shield size={15} style={{ color: "var(--roam-electric)" }} />
               </div>
-              <span className="text-sm font-medium" style={{ color: "var(--roam-ember)" }}>Sign out</span>
+              <div>
+                <div className="text-sm font-medium" style={{ color: "var(--roam-electric)" }}>
+                  {isIos ? "Add to Home Screen" : "Install roam. app"}
+                </div>
+                {isIos && (
+                  <div className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-electric-rgb),0.6)" }}>
+                    Tap Share → Add to Home Screen
+                  </div>
+                )}
+              </div>
             </button>
+          )}
+
+          <button className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all"
+                  style={{ background: "rgba(232,98,26,0.06)", border: "1px solid rgba(232,98,26,0.15)" }}
+                  onClick={async () => { await logout(); navigate("/login"); }}
+                  data-testid="button-logout">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                 style={{ background: "rgba(232,98,26,0.1)" }}>
+              <LogOut size={15} style={{ color: "var(--roam-ember)" }} />
+            </div>
+            <span className="text-sm font-medium" style={{ color: "var(--roam-ember)" }}>Sign out</span>
+          </button>
+
+          {/* Delete account */}
+          <div className="mt-4 pt-4" style={{ borderTop: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
+            {!confirmDelete ? (
+              <button className="flex items-center gap-2.5 font-mono text-[11px] tracking-wider transition-all w-full"
+                      style={{ color: "rgba(var(--roam-ember-rgb),0.5)" }}
+                      onClick={() => setConfirmDelete(true)} data-testid="button-delete-account-prompt">
+                <Trash2 size={13} />
+                Delete my account and all data
+              </button>
+            ) : (
+              <div>
+                <p className="font-mono text-[11px] leading-relaxed mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>
+                  This permanently deletes your profile, photos, matches, and messages. Cannot be undone.
+                </p>
+                <div className="flex gap-2">
+                  <button className="flex items-center gap-2 font-mono text-[10px] tracking-wider uppercase font-semibold px-4 py-2.5 rounded-xl transition-all"
+                          style={{ background: "var(--roam-ember)", color: "#fff", opacity: deleting ? 0.7 : 1 }}
+                          onClick={handleDeleteAccount} disabled={deleting} data-testid="button-delete-account-confirm">
+                    {deleting ? <><Loader2 size={11} className="animate-spin" /> Deleting…</> : <><Trash2 size={11} /> Yes, delete everything</>}
+                  </button>
+                  <button className="font-mono text-[10px] tracking-wider uppercase px-4 py-2.5 rounded-xl transition-all"
+                          style={{ background: "rgba(var(--roam-cream-rgb),0.07)", color: "rgba(var(--roam-cream-rgb),0.5)" }}
+                          onClick={() => setConfirmDelete(false)} disabled={deleting} data-testid="button-delete-account-cancel">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
+
         </div>
       </Sheet>
 
+      {/* ── Year in adventure overlay ── */}
       {showYearCard && (
         <div className="fixed inset-0 z-[60] overflow-y-auto" style={{ background: "var(--roam-forest)" }} data-testid="overlay-year-in-adventure">
           <div className="h-5" />
-
           <div className="mx-3.5 mb-8 rounded-[24px] overflow-hidden"
                style={{ background: "linear-gradient(160deg, var(--roam-moss) 0%, var(--roam-forest) 100%)", border: "1px solid rgba(var(--roam-electric-rgb),0.15)", boxShadow: "0 16px 48px rgba(0,0,0,0.55)" }}>
 
@@ -1412,13 +1061,11 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Thumb-friendly close button at the bottom */}
           <div className="px-3.5 py-5">
-            <button
-              onClick={() => setShowYearCard(false)}
-              className="w-full py-4 rounded-2xl font-mono text-[12px] tracking-wider uppercase font-semibold flex items-center justify-center gap-2 transition-all"
-              style={{ background: "rgba(var(--roam-cream-rgb),0.06)", border: "1px solid rgba(var(--roam-cream-rgb),0.12)", color: "rgba(var(--roam-cream-rgb),0.7)" }}
-              data-testid="button-close-year-bottom">
+            <button onClick={() => setShowYearCard(false)}
+                    className="w-full py-4 rounded-2xl font-mono text-[12px] tracking-wider uppercase font-semibold flex items-center justify-center gap-2 transition-all"
+                    style={{ background: "rgba(var(--roam-cream-rgb),0.06)", border: "1px solid rgba(var(--roam-cream-rgb),0.12)", color: "rgba(var(--roam-cream-rgb),0.7)" }}
+                    data-testid="button-close-year-bottom">
               ← Back to profile
             </button>
           </div>
