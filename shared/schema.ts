@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp, real, serial, pgEnum, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, timestamp, real, serial, pgEnum, index, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -82,9 +82,19 @@ export const messages = pgTable("messages", {
   matchId: varchar("match_id").notNull(),
   senderId: varchar("sender_id").notNull(),
   content: text("content").notNull(),
+  read: boolean("read").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("idx_messages_match").on(table.matchId, table.createdAt),
+]);
+
+export const typingIndicators = pgTable("typing_indicators", {
+  matchId: text("match_id").notNull(),
+  userId: text("user_id").notNull(),
+  typing: boolean("typing").notNull().default(false),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+}, (table) => [
+  primaryKey({ columns: [table.matchId, table.userId] }),
 ]);
 
 export const bucketList = pgTable("bucket_list", {
