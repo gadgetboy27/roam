@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Check, X, ChevronRight, ChevronLeft, CloudUpload, Compass } from "lucide-react";
+import { Check, X, ChevronRight, ChevronLeft, CloudUpload, Compass, Plus, ImagePlus, Loader2, MapPin } from "lucide-react";
 
 // ─── Adventure types — tags map directly into buildFingerprint() ──────────────
 
@@ -117,6 +117,14 @@ export default function Onboarding() {
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Custom dream destinations the user types in (saved alongside the presets)
+  const [customDests, setCustomDests] = useState<{ id: string; name: string; dataUrl?: string; preview?: string }[]>([]);
+  const [showAddDest, setShowAddDest] = useState(false);
+  const [newDestName, setNewDestName] = useState("");
+  const [destImage, setDestImage] = useState<{ preview: string; dataUrl: string } | null>(null);
+  const [destError, setDestError] = useState("");
+  const destFileRef = useRef<HTMLInputElement>(null);
+
   // Use server-side state as the source of truth — adventureTags being set
   // means the user has completed onboarding at least once, regardless of device.
   useEffect(() => {
@@ -165,18 +173,53 @@ export default function Onboarding() {
     }
   };
 
+  const pickDestImage = async (file: File | undefined) => {
+    if (!file) return;
+    setDestError("");
+    if (file.size > 8 * 1024 * 1024) { setDestError("Image must be under 8 MB."); return; }
+    try { setDestImage({ preview: URL.createObjectURL(file), dataUrl: await readFileAsDataUrl(file) }); }
+    catch { setDestError("Couldn't read that image."); }
+  };
+
+  const addCustomDest = () => {
+    const name = newDestName.trim();
+    if (!name) { setDestError("Give your destination a name."); return; }
+    if (name.length > 80) { setDestError("Keep it under 80 characters."); return; }
+    const dup = customDests.some(d => d.name.toLowerCase() === name.toLowerCase())
+      || [...selectedDests].some(i => DESTINATIONS[i].name.toLowerCase() === name.toLowerCase());
+    if (dup) { setDestError("You've already added that one."); return; }
+    setCustomDests(prev => [...prev, { id: `${Date.now()}-${Math.random()}`, name, dataUrl: destImage?.dataUrl, preview: destImage?.preview }]);
+    setNewDestName(""); setDestImage(null); setDestError(""); setShowAddDest(false);
+  };
+
+  const removeCustomDest = (id: string) => setCustomDests(prev => prev.filter(d => d.id !== id));
+
+  const totalDests = selectedDests.size + customDests.length;
+
   const saveDestsAndNext = async () => {
-    if (!user || selectedDests.size === 0) { setStep(3); return; }
+    if (!user || totalDests === 0) { setStep(3); return; }
     setSaving(true);
     try {
-      await Promise.all(
-        [...selectedDests].map(i =>
+      await Promise.all([
+        // Preset picks
+        ...[...selectedDests].map(i =>
           apiRequest("POST", "/api/bucket-list", {
             destinationName: DESTINATIONS[i].name,
             imageUrl: `https://picsum.photos/seed/${DESTINATIONS[i].seed}/300/200`,
           }).catch(() => {})
-        )
-      );
+        ),
+        // Custom destinations — upload a photo first if one was added
+        ...customDests.map(async (d) => {
+          try {
+            let imageUrl: string | undefined;
+            if (d.dataUrl) {
+              const up = await apiRequest("POST", "/api/bucket-list/image", { dataUrl: d.dataUrl });
+              imageUrl = (await up.json()).url;
+            }
+            await apiRequest("POST", "/api/bucket-list", { destinationName: d.name, imageUrl });
+          } catch { /* skip a failed one, keep the rest */ }
+        }),
+      ]);
     } catch (e) {
       console.warn("[onboarding] bucket list save failed:", e);
     } finally {
@@ -394,17 +437,53 @@ export default function Onboarding() {
             Pin dream destinations. You'll be notified when a match shares one.
           </p>
         </div>
-        {selectedDests.size > 0 && (
+        {totalDests > 0 && (
           <span
             className="shrink-0 px-3 py-1 rounded-full text-sm font-semibold mt-1"
             style={{ background: "var(--roam-electric)", color: "#0e1a0d" }}
           >
-            {selectedDests.size}
+            {totalDests}
           </span>
         )}
       </div>
 
       <div className="grid grid-cols-3 gap-2">
+        {/* Custom destinations the user typed in */}
+        {customDests.map((d) => (
+          <div key={d.id} className="relative rounded-xl overflow-hidden"
+               style={{ aspectRatio: "3/4", border: "2px solid var(--roam-electric)" }}
+               data-testid={`card-custom-dest-${d.name.replace(/\s+/g, "-")}`}>
+            {d.preview
+              ? <img src={d.preview} alt={d.name} className="w-full h-full object-cover" />
+              : <div className="w-full h-full flex items-center justify-center" style={{ background: "rgba(164,230,58,0.12)" }}>
+                  <MapPin className="w-6 h-6" style={{ color: "var(--roam-electric)" }} />
+                </div>}
+            <div className="absolute inset-0" style={{ background: "linear-gradient(transparent 35%, rgba(0,0,0,0.85))" }} />
+            <button onClick={() => removeCustomDest(d.id)}
+                    className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center"
+                    style={{ background: "rgba(0,0,0,0.6)" }}
+                    aria-label={`Remove ${d.name}`}
+                    data-testid={`remove-custom-dest-${d.name.replace(/\s+/g, "-")}`}>
+              <X className="w-3.5 h-3.5" style={{ color: "#fff" }} />
+            </button>
+            <div className="absolute bottom-0 left-0 right-0 p-2">
+              <div className="text-xs font-semibold leading-tight" style={{ color: "var(--roam-cream)" }}>{d.name}</div>
+              <div className="text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb), 0.45)" }}>Your pick</div>
+            </div>
+          </div>
+        ))}
+
+        {/* Add-your-own tile */}
+        <button
+          onClick={() => { setShowAddDest(true); setDestError(""); }}
+          className="rounded-xl flex flex-col items-center justify-center gap-1.5"
+          style={{ aspectRatio: "3/4", border: "2px dashed rgba(var(--roam-cream-rgb),0.2)", background: "rgba(var(--roam-cream-rgb),0.03)" }}
+          data-testid="button-add-custom-dest"
+        >
+          <Plus className="w-6 h-6" style={{ color: "var(--roam-electric)" }} />
+          <span className="text-[10px] font-mono tracking-wider uppercase text-center px-1" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>Add your own</span>
+        </button>
+
         {DESTINATIONS.map((dest, idx) => {
           const selected = selectedDests.has(idx);
           return (
@@ -441,17 +520,68 @@ export default function Onboarding() {
         })}
       </div>
 
+      {/* Composer for a custom destination */}
+      {showAddDest && (
+        <div className="rounded-2xl p-3.5" style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.1)" }}>
+          <div className="flex gap-3">
+            <button
+              onClick={() => destFileRef.current?.click()}
+              className="w-16 h-16 rounded-xl flex-shrink-0 overflow-hidden flex items-center justify-center"
+              style={{ border: "1.5px dashed rgba(var(--roam-cream-rgb),0.2)", background: "rgba(var(--roam-cream-rgb),0.04)" }}
+              data-testid="button-pick-custom-dest-image"
+            >
+              {destImage
+                ? <img src={destImage.preview} alt="" className="w-full h-full object-cover" />
+                : <ImagePlus className="w-5 h-5" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }} />}
+            </button>
+            <input ref={destFileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif"
+                   className="hidden" onChange={e => { pickDestImage(e.target.files?.[0]); e.target.value = ""; }}
+                   data-testid="input-custom-dest-image" />
+            <div className="flex-1 min-w-0">
+              <input
+                value={newDestName}
+                onChange={e => { setNewDestName(e.target.value); setDestError(""); }}
+                onKeyDown={e => { if (e.key === "Enter") addCustomDest(); }}
+                placeholder="Where do you dream of going?"
+                maxLength={80}
+                autoFocus
+                className="w-full py-2 px-3 rounded-lg text-sm outline-none"
+                style={{ background: "rgba(var(--roam-cream-rgb),0.06)", border: "1px solid rgba(var(--roam-cream-rgb),0.1)", color: "var(--roam-cream)" }}
+                data-testid="input-custom-dest-name"
+              />
+              <div className="flex gap-2 mt-2">
+                <button onClick={addCustomDest}
+                        className="flex-1 py-2 rounded-lg font-semibold text-sm"
+                        style={electricBtn}
+                        data-testid="button-confirm-custom-dest">
+                  Add
+                </button>
+                <button onClick={() => { setShowAddDest(false); setNewDestName(""); setDestImage(null); setDestError(""); }}
+                        className="px-3 py-2 rounded-lg text-sm"
+                        style={{ background: "rgba(var(--roam-cream-rgb),0.06)", color: "rgba(var(--roam-cream-rgb),0.6)" }}
+                        data-testid="button-cancel-custom-dest">
+                  Cancel
+                </button>
+              </div>
+              {destError
+                ? <p className="text-[11px] mt-1.5" style={{ color: "var(--roam-ember)" }}>{destError}</p>
+                : <p className="text-[10px] mt-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.35)" }}>Photo optional · JPEG/PNG/WebP, max 8 MB</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
       <button
         onClick={saveDestsAndNext}
         disabled={saving}
         className="w-full py-4 rounded-xl font-semibold text-base"
-        style={selectedDests.size > 0 ? electricBtn : dimBtn}
+        style={totalDests > 0 ? electricBtn : dimBtn}
         data-testid="button-onboarding-save-dests"
       >
         {saving
           ? "Pinning…"
-          : selectedDests.size > 0
-          ? `Pin ${selectedDests.size} destination${selectedDests.size !== 1 ? "s" : ""} →`
+          : totalDests > 0
+          ? `Pin ${totalDests} destination${totalDests !== 1 ? "s" : ""} →`
           : "Skip for now"}
       </button>
     </div>
