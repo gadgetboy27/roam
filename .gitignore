@@ -39,3 +39,6 @@ coverage/
 # Misc
 *.tar.gz
 vite.config.ts.*
+
+# Graphify generated knowledge-graph output (local analysis artifact)
+graphify-out/
