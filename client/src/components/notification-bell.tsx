@@ -68,6 +68,7 @@ export default function NotificationBell() {
     switch (type) {
       case "match":             return "⚡";
       case "message":           return "💬";
+      case "group_message":     return "💬";
       case "event_promotion":   return "🎟️";
       case "group_event":       return "📅";
       case "join_request":      return "🙋";
@@ -94,6 +95,8 @@ export default function NotificationBell() {
       } else if (notif.type === "event_promotion") {
         navigate("/whats-on");
       } else if (notif.type === "group_broadcast" && d.groupId) {
+        navigate(`/groups/${d.groupId}?tab=campsite`);
+      } else if (notif.type === "group_message" && d.groupId) {
         navigate(`/groups/${d.groupId}?tab=campsite`);
       } else if (d.groupId) {
         navigate(`/groups/${d.groupId}`);

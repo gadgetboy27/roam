@@ -92,6 +92,7 @@ export interface IStorage {
 
   createNotification(data: { userId: string; type: string; title: string; body?: string; data?: string }): Promise<Notification>;
   getNotificationsForUser(userId: string, limit?: number): Promise<Notification[]>;
+  findUnreadNotification(userId: string, type: string, dataKey: string, dataValue: string): Promise<Notification | undefined>;
   getUnreadNotificationCount(userId: string): Promise<number>;
   getNotificationById(id: number): Promise<Notification | undefined>;
   markNotificationRead(id: number): Promise<void>;
@@ -514,6 +515,23 @@ export class DatabaseStorage implements IStorage {
       .where(eq(notifications.userId, userId))
       .orderBy(desc(notifications.createdAt))
       .limit(limit);
+  }
+
+  // Returns an existing unread notification of `type` for `userId` whose `data`
+  // JSON contains the given key/value (e.g. matchId or groupId). Used to dedupe
+  // "new message" alerts so a recipient gets one notification per conversation
+  // until they read it, rather than one per message.
+  async findUnreadNotification(userId: string, type: string, dataKey: string, dataValue: string): Promise<Notification | undefined> {
+    const needle = `%"${dataKey}":"${dataValue}"%`;
+    const [row] = await db.select().from(notifications)
+      .where(and(
+        eq(notifications.userId, userId),
+        eq(notifications.type, type),
+        eq(notifications.isRead, false),
+        sql`${notifications.data} LIKE ${needle}`,
+      ))
+      .limit(1);
+    return row;
   }
 
   async getUnreadNotificationCount(userId: string): Promise<number> {

@@ -100,6 +100,64 @@ async function authenticateRequest(req: Request): Promise<string | null> {
   return (req.session as any)?.userId || null;
 }
 
+function messagePreview(content: string): string {
+  const c = content.trim();
+  return c.length > 80 ? c.slice(0, 77) + "…" : c;
+}
+
+// Create a "new message" notification for the recipient of a 1:1 match, so the
+// notification bell alerts them even when they don't have the chat open.
+// Deduped: skips if the recipient already has an unread message notification for
+// this match, so a burst of messages produces one alert rather than many.
+async function notifyNewMessage(
+  match: { id: string; userAId: string; userBId: string },
+  senderId: string,
+  content: string,
+): Promise<void> {
+  const recipientId = match.userAId === senderId ? match.userBId : match.userAId;
+  if (!recipientId || recipientId === senderId) return;
+  const existing = await storage.findUnreadNotification(recipientId, "message", "matchId", match.id);
+  if (existing) return;
+  const sender = await storage.getUser(senderId);
+  await storage.createNotification({
+    userId: recipientId,
+    type: "message",
+    title: sender?.name ? `New message from ${sender.name}` : "New message",
+    body: messagePreview(content),
+    data: JSON.stringify({ matchId: match.id }),
+  });
+}
+
+// Notify every approved group member except the sender that a new campsite
+// message arrived. Deduped per member per group so an active conversation
+// produces one unread alert each, not one per message.
+async function notifyGroupMessage(
+  groupId: string,
+  senderId: string,
+  senderName: string,
+  content: string,
+): Promise<void> {
+  const [members, group] = await Promise.all([
+    storage.getGroupMembers(groupId),
+    storage.getGroup(groupId),
+  ]);
+  const groupName = group?.name ?? "your group";
+  const preview = messagePreview(content);
+  await Promise.all(members
+    .filter(m => m.status === "approved" && m.userId !== senderId)
+    .map(async (m) => {
+      const existing = await storage.findUnreadNotification(m.userId, "group_message", "groupId", groupId);
+      if (existing) return;
+      await storage.createNotification({
+        userId: m.userId,
+        type: "group_message",
+        title: `New message in ${groupName}`,
+        body: `${senderName}: ${preview}`,
+        data: JSON.stringify({ groupId }),
+      });
+    }));
+}
+
 const DATA_DELETION_HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -258,6 +316,9 @@ export async function registerRoutes(
         }
         const msg = await storage.createMessage({ matchId: data.matchId, senderId, content: data.content });
         io.to(`match:${data.matchId}`).emit("new_message", { ...msg, tempId: data.tempId });
+        // Alert the recipient via the notification bell even if they don't have
+        // this chat open. Deduped: one unread "message" notification per match.
+        notifyNewMessage(match, senderId, data.content).catch(() => {});
       } catch (err: any) {
         socket.emit("message_error", { tempId: data.tempId, error: err.message });
       }
@@ -845,6 +906,18 @@ export async function registerRoutes(
           (existing.status === "liked_a" && existing.userAId === userBId)
         ) {
           const updated = await storage.updateMatchStatus(existing.id, "matched", { matchedAt: new Date() });
+          // Tell the other person they have a new mutual connection so the bell
+          // alerts them — without this, matches happened silently.
+          const otherUserId = userAId === sessionUserId ? userBId : userAId;
+          storage.getUser(sessionUserId).then(me =>
+            storage.createNotification({
+              userId: otherUserId,
+              type: "match",
+              title: "New connection!",
+              body: me?.name ? `You and ${me.name} both want to roam together` : "You have a new mutual connection",
+              data: JSON.stringify({ matchId: updated?.id ?? existing.id }),
+            })
+          ).catch(() => {});
           return res.json({ ...updated, isNewMatch: true });
         }
         return res.json({ ...existing, isNewMatch: false, alreadyExists: true });
@@ -943,6 +1016,10 @@ export async function registerRoutes(
     }
     try {
       const msg = await storage.createMessage({ matchId: req.body.matchId, senderId: userId, content });
+      // Deliver to anyone in the live chat room and alert the recipient's bell,
+      // mirroring the socket path so HTTP-sent messages aren't silently dropped.
+      io.to(`match:${req.body.matchId}`).emit("new_message", msg);
+      notifyNewMessage(match, userId, content).catch(() => {});
       res.status(201).json(msg);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
@@ -2642,6 +2719,9 @@ export async function registerRoutes(
           sender: sender ? { id: sender.id, name: sender.name, avatarUrl: sender.avatarUrl } : null,
           tempId: data.tempId,
         });
+        // Alert other approved members via the bell even if they aren't in the
+        // group chat. Deduped: one unread notification per member per group.
+        notifyGroupMessage(data.groupId, senderId, sender?.name ?? "Someone", data.content).catch(() => {});
       } catch (err: any) {
         socket.emit("group_message_error", { tempId: data.tempId, error: err.message });
       }
