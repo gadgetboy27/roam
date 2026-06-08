@@ -3,6 +3,14 @@ import pg from "pg";
 import { storage } from "./storage";
 import { supabaseAdmin } from "./supabaseAdmin";
 
+// Ad pricing tiers (price in cents, duration in days). Shared by the ads
+// submission route and the admin ad-approval route.
+export const AD_TIERS: Record<string, { label: string; price: number; days: number }> = {
+  explorer:    { label: "Explorer",    price: 4900,  days: 7  },
+  trailblazer: { label: "Trailblazer", price: 12900, days: 14 },
+  summit:      { label: "Summit",      price: 29900, days: 30 },
+};
+
 export function toPublicAd(ad: Record<string, any>) {
   return {
     id: ad.id,
