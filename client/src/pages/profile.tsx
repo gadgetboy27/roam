@@ -180,6 +180,9 @@ export default function Profile() {
     setVerifyTimedOut(false);
     const interval = setInterval(async () => {
       attempts++;
+      // Ask the server to confirm directly with Stripe (works even if the
+      // Stripe webhook is misconfigured), then refresh the local user.
+      try { await apiRequest("POST", "/api/verify/status"); } catch { /* fall back to refresh */ }
       await refresh();
       if (attempts >= 10) { clearInterval(interval); setVerifyTimedOut(true); }
     }, 3000);

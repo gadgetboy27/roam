@@ -1694,6 +1694,37 @@ export async function registerRoutes(
     }
   });
 
+  // Webhook-independent verification check. The webhook (below) is the primary
+  // path, but if it is misconfigured or delayed the user would never be marked
+  // verified. This endpoint asks Stripe directly for the session result and
+  // updates the DB if it is verified — so verification works even with no webhook.
+  app.post("/api/verify/status", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    try {
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      if (user.identityVerified) return res.json({ verified: true });
+      if (!user.identityVerificationId) return res.json({ verified: false });
+
+      const stripe = getUncachableStripeClient();
+      const session = await stripe.identity.verificationSessions.retrieve(user.identityVerificationId);
+
+      if (session.status === "verified") {
+        await storage.updateUserVerification(userId, session.id, true);
+        console.log(`[verify-status] User ${userId} verified via direct Stripe check`);
+        return res.json({ verified: true });
+      }
+      if (session.status === "requires_input") {
+        return res.json({ verified: false, status: session.status, lastError: session.last_error });
+      }
+      return res.json({ verified: false, status: session.status });
+    } catch (err: any) {
+      console.error("[verify-status] Error:", err.message);
+      return res.status(500).json({ message: err.message });
+    }
+  });
+
   app.post("/api/stripe/identity-webhook", async (req, res) => {
     const sig = req.headers["stripe-signature"] as string;
     const webhookSecret = process.env.STRIPE_IDENTITY_WEBHOOK_SECRET;

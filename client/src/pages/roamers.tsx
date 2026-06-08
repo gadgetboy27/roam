@@ -316,7 +316,11 @@ export default function Roamers() {
   const [filter, setFilter] = useState<"all" | "squad" | "crew" | "community" | "organiser">("all");
   const [showCreate, setShowCreate] = useState(false);
 
-  const { data: groups = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/groups"] });
+  const { data: groups = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/groups"],
+    refetchInterval: 15_000,
+    refetchOnWindowFocus: true,
+  });
 
   const { data: eligibility } = useQuery<{ eligible: boolean; reason?: string; checks?: Record<string, boolean> }>({
     queryKey: ["/api/groups/eligibility/check"],
