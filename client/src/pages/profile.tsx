@@ -3,6 +3,7 @@ import { useLocation, Link } from "wouter";
 import AppNav from "@/components/app-nav";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { fileToDataUrl } from "@/lib/file";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { MapPin, Camera, Edit3, Settings, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2, Trash2, Banknote, ExternalLink, AlertCircle, ShieldCheck, Zap } from "lucide-react";
@@ -302,12 +303,9 @@ export default function Profile() {
     if (!file) return;
     setUploadingAvatar(true);
     try {
-      const reader = new FileReader();
-      reader.onload = ev => {
-        setEditForm(f => ({ ...f, avatarUrl: ev.target?.result as string }));
-        setUploadingAvatar(false);
-      };
-      reader.readAsDataURL(file);
+      const dataUrl = await fileToDataUrl(file);
+      setEditForm(f => ({ ...f, avatarUrl: dataUrl }));
+      setUploadingAvatar(false);
     } catch { setUploadingAvatar(false); }
   };
 

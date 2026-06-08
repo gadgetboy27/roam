@@ -4,6 +4,7 @@ import AppNav from "@/components/app-nav";
 import { Mountain, Ban, ImageOff, Users, Check, AlertTriangle, UploadCloud, X, Camera, Plus } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
+import { fileToDataUrl } from "@/lib/file";
 
 const RULES = [
   { icon: Mountain, color: "var(--roam-electric)", text: "Photos with YOU in the adventure — strongly preferred" },
@@ -83,12 +84,6 @@ export default function Upload() {
     setPhotos(prev => prev.map(p => p.id === id ? { ...p, caption } : p));
   };
 
-  const fileToDataUrl = (file: File): Promise<string> => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 
   const uploadAll = async () => {
     const pending = photos.filter(p => p.status === "pending");

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { fileToDataUrl } from "@/lib/file";
 import { Check, X, ChevronRight, ChevronLeft, CloudUpload, Compass, Plus, ImagePlus, Loader2, MapPin } from "lucide-react";
 
 // ─── Adventure types — tags map directly into buildFingerprint() ──────────────
@@ -96,14 +97,6 @@ interface PhotoState {
   status: "uploading" | "analysing" | "approved" | "error";
 }
 
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -177,7 +170,7 @@ export default function Onboarding() {
     if (!file) return;
     setDestError("");
     if (file.size > 8 * 1024 * 1024) { setDestError("Image must be under 8 MB."); return; }
-    try { setDestImage({ preview: URL.createObjectURL(file), dataUrl: await readFileAsDataUrl(file) }); }
+    try { setDestImage({ preview: URL.createObjectURL(file), dataUrl: await fileToDataUrl(file) }); }
     catch { setDestError("Couldn't read that image."); }
   };
 
@@ -245,7 +238,7 @@ export default function Onboarding() {
       const file = incoming[i];
       const ps = newStates[i];
       try {
-        const dataUrl = await readFileAsDataUrl(file);
+        const dataUrl = await fileToDataUrl(file);
 
         setPhotos(prev => prev.map(x => x.localId === ps.localId ? { ...x, status: "analysing" } : x));
 

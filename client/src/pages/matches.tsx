@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { fileToDataUrl } from "@/lib/file";
 import {
   supabase, fetchMessages, sendSupabaseMessage, markMessagesRead,
   setTyping, subscribeToMessages, subscribeToTyping,
@@ -222,13 +223,6 @@ export default function Matches() {
   const [newDestName, setNewDestName] = useState("");
   const [destImage, setDestImage] = useState<{ preview: string; dataUrl: string } | null>(null);
   const destFileRef = useRef<HTMLInputElement>(null);
-
-  const fileToDataUrl = (file: File): Promise<string> => new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result as string);
-    r.onerror = reject;
-    r.readAsDataURL(file);
-  });
 
   const pickDestImage = async (file: File | undefined) => {
     if (!file) return;

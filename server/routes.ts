@@ -105,6 +105,37 @@ function messagePreview(content: string): string {
   return c.length > 80 ? c.slice(0, 77) + "…" : c;
 }
 
+// Shared image-upload pipeline: validates a base64 data URL, writes it to the
+// "photos" storage bucket (optionally under a sub-prefix), and returns the
+// public URL. Used by both adventure-photo and dream-destination uploads so the
+// validation rules stay in one place.
+type ImageUploadResult = { ok: true; url: string } | { ok: false; status: number; message: string };
+
+async function uploadImageDataUrl(userId: string, dataUrl: unknown, prefix = ""): Promise<ImageUploadResult> {
+  if (!dataUrl || typeof dataUrl !== "string") return { ok: false, status: 400, message: "dataUrl required" };
+
+  const MAX_SIZE = 8 * 1024 * 1024;
+  if (dataUrl.length > MAX_SIZE * 1.37) {
+    return { ok: false, status: 413, message: "Image too large. Please use a photo under 8 MB." };
+  }
+  const m = dataUrl.match(/^data:image\/(jpeg|jpg|png|webp|gif);base64,(.+)$/);
+  if (!m) return { ok: false, status: 400, message: "Invalid image format. Use JPEG, PNG, or WebP." };
+
+  const ext = m[1] === "jpeg" ? "jpg" : m[1];
+  const mimeType = `image/${m[1]}`;
+  const dir = prefix ? `${userId}/${prefix}` : userId;
+  const storagePath = `${dir}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const fileBuffer = Buffer.from(m[2], "base64");
+
+  const { error } = await supabaseAdmin.storage
+    .from("photos")
+    .upload(storagePath, fileBuffer, { contentType: mimeType, upsert: false });
+  if (error) return { ok: false, status: 500, message: `Storage error: ${error.message}` };
+
+  const { data } = supabaseAdmin.storage.from("photos").getPublicUrl(storagePath);
+  return { ok: true, url: data.publicUrl };
+}
+
 // Create a "new message" notification for the recipient of a 1:1 match, so the
 // notification bell alerts them even when they don't have the chat open.
 // Deduped: skips if the recipient already has an unread message notification for
@@ -813,35 +844,12 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Cannot upload photos for another user" });
       }
 
-      const MAX_SIZE = 8 * 1024 * 1024;
-      if (dataUrl.length > MAX_SIZE * 1.37) {
-        return res.status(413).json({ message: "Image too large. Please use a photo under 8 MB." });
-      }
+      const upload = await uploadImageDataUrl(userId, dataUrl);
+      if (!upload.ok) return res.status(upload.status).json({ message: upload.message });
 
-      const matches = dataUrl.match(/^data:image\/(jpeg|jpg|png|webp|gif);base64,(.+)$/);
-      if (!matches) {
-        return res.status(400).json({ message: "Invalid image format. Use JPEG, PNG, or WebP." });
-      }
-
-      const ext = matches[1] === "jpeg" ? "jpg" : matches[1];
-      const mimeType = `image/${matches[1]}`;
-      const base64Data = matches[2];
-      const storagePath = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const fileBuffer = Buffer.from(base64Data, "base64");
-
-      const { error: uploadError } = await supabaseAdmin.storage
-        .from("photos")
-        .upload(storagePath, fileBuffer, { contentType: mimeType, upsert: false });
-
-      if (uploadError) {
-        return res.status(500).json({ message: `Storage error: ${uploadError.message}` });
-      }
-
-      const { data: urlData } = supabaseAdmin.storage.from("photos").getPublicUrl(storagePath);
-      const storageUrl = urlData.publicUrl;
       const photo = await storage.createPhoto({
         userId,
-        storageUrl,
+        storageUrl: upload.url,
         caption: caption || null,
         displayOrder: displayOrder ?? 0,
         personScore: 0,
@@ -1064,28 +1072,9 @@ export async function registerRoutes(
     const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
     try {
-      const { dataUrl } = req.body;
-      if (!dataUrl || typeof dataUrl !== "string") return res.status(400).json({ message: "dataUrl required" });
-
-      const MAX_SIZE = 8 * 1024 * 1024;
-      if (dataUrl.length > MAX_SIZE * 1.37) {
-        return res.status(413).json({ message: "Image too large. Please use a photo under 8 MB." });
-      }
-      const m = dataUrl.match(/^data:image\/(jpeg|jpg|png|webp|gif);base64,(.+)$/);
-      if (!m) return res.status(400).json({ message: "Invalid image format. Use JPEG, PNG, or WebP." });
-
-      const ext = m[1] === "jpeg" ? "jpg" : m[1];
-      const mimeType = `image/${m[1]}`;
-      const storagePath = `${userId}/destinations/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const fileBuffer = Buffer.from(m[2], "base64");
-
-      const { error: uploadError } = await supabaseAdmin.storage
-        .from("photos")
-        .upload(storagePath, fileBuffer, { contentType: mimeType, upsert: false });
-      if (uploadError) return res.status(500).json({ message: `Storage error: ${uploadError.message}` });
-
-      const { data: urlData } = supabaseAdmin.storage.from("photos").getPublicUrl(storagePath);
-      res.status(201).json({ url: urlData.publicUrl });
+      const upload = await uploadImageDataUrl(userId, req.body?.dataUrl, "destinations");
+      if (!upload.ok) return res.status(upload.status).json({ message: upload.message });
+      res.status(201).json({ url: upload.url });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
