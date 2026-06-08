@@ -1038,8 +1038,54 @@ export async function registerRoutes(
     const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
     try {
-      const item = await storage.createBucketItem({ ...req.body, userId });
+      const name = typeof req.body?.destinationName === "string" ? req.body.destinationName.trim() : "";
+      if (!name) return res.status(400).json({ message: "Destination name is required" });
+      if (name.length > 80) return res.status(400).json({ message: "Destination name must be 80 characters or less" });
+      const imageUrl = typeof req.body?.imageUrl === "string" && req.body.imageUrl.trim() ? req.body.imageUrl.trim() : null;
+
+      // Prevent duplicates (case-insensitive) and cap the list size
+      const existing = await storage.getBucketListByUser(userId);
+      if (existing.length >= 30) return res.status(400).json({ message: "You can pin up to 30 destinations." });
+      if (existing.some(b => b.destinationName.trim().toLowerCase() === name.toLowerCase())) {
+        return res.status(409).json({ message: "You've already pinned that destination." });
+      }
+
+      const item = await storage.createBucketItem({ userId, destinationName: name, imageUrl });
       res.status(201).json(item);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // Upload a photo for a dream destination. Stores it in the photos bucket under
+  // the user's destinations/ prefix and returns the public URL — it does NOT
+  // create a photos record, so it never appears among the user's adventure shots.
+  app.post("/api/bucket-list/image", uploadLimiter, async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    try {
+      const { dataUrl } = req.body;
+      if (!dataUrl || typeof dataUrl !== "string") return res.status(400).json({ message: "dataUrl required" });
+
+      const MAX_SIZE = 8 * 1024 * 1024;
+      if (dataUrl.length > MAX_SIZE * 1.37) {
+        return res.status(413).json({ message: "Image too large. Please use a photo under 8 MB." });
+      }
+      const m = dataUrl.match(/^data:image\/(jpeg|jpg|png|webp|gif);base64,(.+)$/);
+      if (!m) return res.status(400).json({ message: "Invalid image format. Use JPEG, PNG, or WebP." });
+
+      const ext = m[1] === "jpeg" ? "jpg" : m[1];
+      const mimeType = `image/${m[1]}`;
+      const storagePath = `${userId}/destinations/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const fileBuffer = Buffer.from(m[2], "base64");
+
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from("photos")
+        .upload(storagePath, fileBuffer, { contentType: mimeType, upsert: false });
+      if (uploadError) return res.status(500).json({ message: `Storage error: ${uploadError.message}` });
+
+      const { data: urlData } = supabaseAdmin.storage.from("photos").getPublicUrl(storagePath);
+      res.status(201).json({ url: urlData.publicUrl });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
