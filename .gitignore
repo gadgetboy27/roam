@@ -42,3 +42,6 @@ vite.config.ts.*
 
 # Graphify generated knowledge-graph output (local analysis artifact)
 graphify-out/
+
+# Local DB snapshots (contain user PII — never commit)
+backups/
