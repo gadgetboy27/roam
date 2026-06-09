@@ -11,6 +11,7 @@ import {
   Trash2, CheckCircle, XCircle, LogOut, Crown, UserPlus, CalendarPlus, Check, Megaphone,
   Mail, Copy, CheckCheck, Camera, Tag, MessageSquare,
 } from "lucide-react";
+import { ActionModal, friendlyError, closedModal, type ModalState } from "@/components/action-modal";
 
 function addToCalendar(ev: any, groupName: string) {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -307,7 +308,7 @@ export default function GroupPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/groups", id] });
       toast({ title: group?.visibility === "open" ? "Joined!" : "Request sent to the leader" });
     },
-    onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
+    onError: (err: any) => setModal(friendlyError(err, { what: "join", groupType: group?.type, onUpgrade: () => navigate("/plans") })),
   });
 
   const leaveMutation = useMutation({
@@ -340,6 +341,7 @@ export default function GroupPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteMessage, setInviteMessage] = useState("");
   const [showConnections, setShowConnections] = useState(false);
+  const [modal, setModal] = useState<ModalState>(closedModal);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
   // Broadcast state
@@ -411,13 +413,8 @@ export default function GroupPage() {
     mutationFn: (targetUserId: string) => apiRequest("POST", `/api/groups/${id}/invite-connection`, { userId: targetUserId }),
     onSuccess: () => { refreshGroupLists(); toast({ title: "Added to your group!" }); },
     onError: (err: any) => {
-      // "Already in this group" isn't a real failure — just refresh so they drop off the list.
-      if (String(err?.message).includes("409") || /already in/i.test(err?.message || "")) {
-        refreshGroupLists();
-        toast({ title: "They're already in this group" });
-      } else {
-        toast({ title: err.message?.replace(/^\d+:\s*/, "") || "Couldn't add them", variant: "destructive" });
-      }
+      refreshGroupLists(); // a 409 means they're already in — drop them off the list
+      setModal(friendlyError(err, { what: "add them", groupType: group?.type, onDiscover: () => navigate("/discover") }));
     },
   });
 
@@ -500,6 +497,7 @@ export default function GroupPage() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "var(--roam-bg)", color: "var(--roam-cream)" }}>
+      <ActionModal state={modal} onClose={() => setModal(closedModal)} />
       <AppNav />
 
       <div className="flex-1 flex flex-col overflow-hidden">
