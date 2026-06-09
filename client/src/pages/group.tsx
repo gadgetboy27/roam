@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { ActionModal, friendlyError, closedModal, type ModalState } from "@/components/action-modal";
 
+const firstName = (n?: string) => (n || "").trim().split(/\s+/)[0] || "Crew";
+
 function addToCalendar(ev: any, groupName: string) {
   const pad = (n: number) => String(n).padStart(2, "0");
   const fmt = (d: Date) =>
@@ -855,23 +857,88 @@ export default function GroupPage() {
                 </div>
               ) : (
                 <>
-                  {isLeader && (
-                    <div className="flex items-center justify-between px-4 py-2 flex-shrink-0"
-                         style={{ borderBottom: "1px solid rgba(var(--roam-cream-rgb),0.06)" }}>
-                      <span className="font-mono text-[10px] tracking-wider" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
-                        {approvedMembers.length} members online
+                  {/* ── Crew members — prominent, above the room ── */}
+                  <div className="px-4 pt-3 pb-3 flex-shrink-0" style={{ borderBottom: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
+                        Crew · {approvedMembers.length}
                       </span>
-                      <button
-                        onClick={() => {
-                          setBroadcastSelected(new Set(approvedMembers.filter((m: any) => m.userId !== user?.id).map((m: any) => m.userId)));
-                          setBroadcastOpen(true);
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-[10px] font-semibold transition-all"
-                        style={{ background: "rgba(var(--roam-electric-rgb),0.12)", color: "var(--roam-electric)", border: "1px solid rgba(var(--roam-electric-rgb),0.22)" }}
-                        data-testid="button-broadcast"
-                      >
-                        <Megaphone size={12} /> Announce
-                      </button>
+                      {isLeader && (
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => setShowConnections(v => !v)}
+                                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-mono text-[10px] font-semibold"
+                                  style={{ background: "var(--roam-electric)", color: "var(--roam-bg)" }}
+                                  data-testid="button-add-crew">
+                            <UserPlus size={11} /> Add crew
+                          </button>
+                          <button onClick={() => {
+                                    setBroadcastSelected(new Set(approvedMembers.filter((m: any) => m.userId !== user?.id).map((m: any) => m.userId)));
+                                    setBroadcastOpen(true);
+                                  }}
+                                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-mono text-[10px] font-semibold"
+                                  style={{ background: "rgba(var(--roam-electric-rgb),0.12)", color: "var(--roam-electric)", border: "1px solid rgba(var(--roam-electric-rgb),0.22)" }}
+                                  data-testid="button-broadcast">
+                            <Megaphone size={11} /> Announce
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-3.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+                      {approvedMembers.map((m: any) => (
+                        <div key={m.userId} className="flex flex-col items-center gap-1 flex-shrink-0 w-[52px]" data-testid={`crew-member-${m.userId}`}>
+                          <div className="w-12 h-12 rounded-full overflow-hidden relative flex items-center justify-center"
+                               style={{ background: "rgba(var(--roam-cream-rgb),0.1)", border: m.role === "leader" ? "2px solid var(--roam-electric)" : "1px solid rgba(var(--roam-cream-rgb),0.12)" }}>
+                            {m.user?.avatarUrl
+                              ? <img src={m.user.avatarUrl} alt={m.user?.name ?? ""} className="w-full h-full object-cover" />
+                              : <span className="text-sm font-bold" style={{ color: "var(--roam-cream)" }}>{(m.user?.name ?? "?")[0]}</span>}
+                            {m.role === "leader" && (
+                              <div className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: "var(--roam-electric)" }}>
+                                <Crown size={9} style={{ color: "var(--roam-bg)" }} />
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-[10px] truncate w-full text-center" style={{ color: "rgba(var(--roam-cream-rgb),0.7)" }}>
+                            {m.userId === user?.id ? "You" : firstName(m.user?.name)}
+                          </span>
+                        </div>
+                      ))}
+                      {isLeader && (
+                        <button onClick={() => setShowConnections(true)} className="flex flex-col items-center gap-1 flex-shrink-0 w-[52px]" data-testid="button-add-crew-tile">
+                          <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ border: "1.5px dashed rgba(var(--roam-cream-rgb),0.2)" }}>
+                            <Plus size={18} style={{ color: "var(--roam-electric)" }} />
+                          </div>
+                          <span className="text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>Add</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ── Add existing crew (matched connections) ── */}
+                  {isLeader && showConnections && (
+                    <div className="px-4 py-3 flex-shrink-0" style={{ borderBottom: "1px solid rgba(var(--roam-cream-rgb),0.07)", background: "rgba(var(--roam-cream-rgb),0.02)" }}>
+                      <div className="font-mono text-[10px] tracking-wider uppercase mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>Add your connections</div>
+                      {invitableConnections.length === 0 ? (
+                        <p className="font-mono text-[10px] leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                          No connections to add. Match with adventurers in Discover, then bring them in here.
+                        </p>
+                      ) : (
+                        <div className="space-y-1.5 max-h-44 overflow-y-auto">
+                          {invitableConnections.map((c: any) => (
+                            <div key={c.id} className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl" style={{ background: "var(--roam-surface)" }}>
+                              <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ background: "rgba(var(--roam-electric-rgb),0.1)" }}>
+                                {c.avatarUrl ? <img src={c.avatarUrl} alt={c.name} className="w-full h-full object-cover" /> : <Users size={13} style={{ color: "var(--roam-electric)" }} />}
+                              </div>
+                              <span className="flex-1 min-w-0 text-[13px] font-medium truncate" style={{ color: "var(--roam-cream)" }}>{c.name}</span>
+                              <button onClick={() => inviteConnectionMutation.mutate(c.id)} disabled={inviteConnectionMutation.isPending}
+                                      className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold disabled:opacity-50"
+                                      style={{ background: "var(--roam-electric)", color: "var(--roam-bg)" }}
+                                      data-testid={`button-add-crew-connection-${c.id}`}>
+                                <Plus size={11} /> Add
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                   <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">

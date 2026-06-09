@@ -3,6 +3,7 @@ import { useLocation, Link } from "wouter";
 import AppNav from "@/components/app-nav";
 import { useAuth } from "@/lib/auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { ActionModal, friendlyError, closedModal, type ModalState } from "@/components/action-modal";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -137,6 +138,8 @@ function GroupCard({ group, myGroupIds, onClick }: {
 
 function CreateGroupModal({ onClose, onCreated, canCreateLargeGroups }: { onClose: () => void; onCreated: (groupId: string) => void; canCreateLargeGroups: boolean }) {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
+  const [modal, setModal] = useState<ModalState>(closedModal);
   const [step, setStep] = useState<"type" | "details">("type");
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [form, setForm] = useState({
@@ -158,7 +161,7 @@ function CreateGroupModal({ onClose, onCreated, canCreateLargeGroups }: { onClos
       toast({ description: `${group.name} created! Add your first event.` });
       onCreated(group.id);
     },
-    onError: (e: any) => toast({ variant: "destructive", description: e.message || "Failed to create group" }),
+    onError: (e: any) => setModal(friendlyError(e, { what: "create the group", groupType: form.type, onUpgrade: () => navigate("/plans") })),
   });
 
   const canAdvance = form.type !== "" && form.name.trim().length >= 2;
@@ -166,6 +169,7 @@ function CreateGroupModal({ onClose, onCreated, canCreateLargeGroups }: { onClos
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-4"
          style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)" }}>
+      <ActionModal state={modal} onClose={() => setModal(closedModal)} />
       <div className="w-full max-w-md rounded-3xl overflow-hidden"
            style={{ background: "var(--roam-surface)", border: "1px solid rgba(var(--roam-cream-rgb),0.1)" }}>
         <div className="flex items-center justify-between px-5 pt-5 pb-4"

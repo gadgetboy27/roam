@@ -3,6 +3,8 @@ import { useLocation } from "wouter";
 import AppNav from "@/components/app-nav";
 import { useAuth } from "@/lib/auth";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { ActionModal, friendlyError, closedModal, type ModalState } from "@/components/action-modal";
+import { Zap } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { Check, X, ShieldCheck, Flag } from "lucide-react";
 import type { HonestyTier } from "@/lib/fingerprint";
@@ -114,6 +116,7 @@ export default function Discover() {
     refetchOnWindowFocus: false,
   });
   const [toast, setToast] = useState<string | null>(null);
+  const [modal, setModal] = useState<ModalState>(closedModal);
   const [pioneerTipOpen, setPioneerTipOpen] = useState(false);
   const [expandedTag, setExpandedTag] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
@@ -212,8 +215,13 @@ export default function Discover() {
     onError: (err: any) => {
       pendingMatchRef.current = null;
       if (err?.limitReached) {
-        showToast("You've hit your 3 free connections this month — upgrade to Adventurer for unlimited!");
-        setTimeout(() => navigate("/plans"), 2400);
+        setModal({
+          open: true, icon: <Zap size={26} />, title: "Free connections used up",
+          message: "You've made your 3 free connections this month. Upgrade to Adventurer for unlimited connections and messaging.",
+          actionLabel: "See plans", onAction: () => navigate("/plans"),
+        });
+      } else {
+        setModal(friendlyError(err, { what: "connect" }));
       }
     },
   });
@@ -360,6 +368,7 @@ export default function Discover() {
   return (
     <div className="fixed inset-0 overflow-hidden" data-testid="page-discover"
          style={{ background: "var(--roam-forest)" }}>
+      <ActionModal state={modal} onClose={() => setModal(closedModal)} />
 
       <AppNav />
 
