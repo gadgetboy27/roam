@@ -5,6 +5,7 @@ import { supabase } from "./supabase";
 export interface AuthUser {
   id: string;
   name: string;
+  nickname?: string | null;
   email: string;
   dob: string | null;
   gender: string | null;

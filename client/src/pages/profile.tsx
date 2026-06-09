@@ -234,6 +234,7 @@ export default function Profile() {
 
   const [profileData, setProfileData] = useState({
     name: user?.name || "You",
+    nickname: user?.nickname || "",
     age: calcAge(user?.dob ?? null),
     tagline: user?.tagline || "Chasing elevation and good coffee",
     location: user?.location || "Auckland, NZ",
@@ -285,6 +286,7 @@ export default function Profile() {
     try {
       await apiRequest("PATCH", `/api/users/${user.id}`, {
         name: editForm.name,
+        nickname: editForm.nickname,
         tagline: editForm.tagline,
         location: editForm.location,
         avatarUrl: editForm.avatarUrl,
@@ -743,6 +745,15 @@ export default function Profile() {
               <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={{ ...inputStyle, opacity: 0.5 }}
                      value={editForm.age} type="number" min="18" max="99" disabled data-testid="input-edit-age" />
             </div>
+          </div>
+
+          <div>
+            <label className="block font-mono text-[10px] tracking-[1px] uppercase mb-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>Nickname</label>
+            <input className="w-full py-3 px-4 rounded-2xl text-sm outline-none" style={inputStyle}
+                   value={editForm.nickname} maxLength={40} placeholder="What your crew calls you (optional)"
+                   onChange={e => setEditForm(f => ({ ...f, nickname: e.target.value }))}
+                   data-testid="input-edit-nickname" />
+            <p className="font-mono text-[9px] mt-1" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Shown to your crews and in chat instead of your name.</p>
           </div>
 
           <div>

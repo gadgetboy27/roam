@@ -97,7 +97,7 @@ export function setupSockets(io: SocketServer) {
         ]);
         io.to(`group:${data.groupId}`).emit("new_group_message", {
           ...msg,
-          sender: sender ? { id: sender.id, name: sender.name, avatarUrl: sender.avatarUrl } : null,
+          sender: sender ? { id: sender.id, name: sender.nickname || sender.name, avatarUrl: sender.avatarUrl } : null,
           tempId: data.tempId,
         });
         // Alert other approved members via the bell even if they aren't in the

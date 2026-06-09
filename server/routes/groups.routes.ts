@@ -130,7 +130,7 @@ export function registerGroupRoutes(app: Express) {
     const enriched = await Promise.all(visibleMembers.map(async m => {
       const user = await storage.getUser(m.userId);
       const hero = await storage.getHeroPhoto(m.userId);
-      return { ...m, user: user ? { id: user.id, name: user.name, avatarUrl: user.avatarUrl, location: user.location, tier: user.tier, heroPhotoUrl: hero?.url ?? null } : null };
+      return { ...m, user: user ? { id: user.id, name: user.nickname || user.name, avatarUrl: user.avatarUrl, location: user.location, tier: user.tier, heroPhotoUrl: hero?.url ?? null } : null };
     }));
     res.json(enriched);
   });
@@ -174,7 +174,45 @@ export function registerGroupRoutes(app: Express) {
     const memberIds = new Set(members.map(m => m.userId));
     const invitableIds = matchedIds.filter(id => !memberIds.has(id));
     const users = await Promise.all(invitableIds.map(id => storage.getUser(id)));
-    res.json(users.filter(Boolean).map(u => ({ id: u!.id, name: u!.name, avatarUrl: u!.avatarUrl, tagline: u!.tagline })));
+    res.json(users.filter(Boolean).map(u => ({ id: u!.id, name: u!.nickname || u!.name, avatarUrl: u!.avatarUrl, tagline: u!.tagline })));
+  });
+
+  // Smart crew-up: find-or-create a 1:1 squad with a matched connection. Avoids
+  // duplicate squads if you've already crewed up with this person.
+  app.post("/api/groups/crew-up", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ error: "Unauthorised" });
+    const targetId = req.body?.userId;
+    if (!targetId) return res.status(400).json({ error: "userId required" });
+    const matchedIds = await storage.getMatchedUserIds(userId);
+    if (!matchedIds.includes(targetId)) return res.status(403).json({ error: "You can only crew up with people you've connected with" });
+
+    // Already have a squad you lead with exactly the two of you? Reuse it.
+    const led = await storage.getGroupsLedByUser(userId);
+    for (const g of led) {
+      if (g.type !== "squad" || !g.isActive) continue;
+      const members = await storage.getGroupMembers(g.id);
+      const approved = members.filter(m => m.status === "approved").map(m => m.userId);
+      if (approved.length === 2 && approved.includes(userId) && approved.includes(targetId)) {
+        return res.json({ ...g, existing: true });
+      }
+    }
+
+    const [me, them] = await Promise.all([storage.getUser(userId), storage.getUser(targetId)]);
+    const first = (n?: string | null) => (n || "").trim().split(/\s+/)[0] || "Crew";
+    const group = await storage.createGroup({
+      name: `${first(me?.nickname || me?.name)} & ${first(them?.nickname || them?.name)}`,
+      type: "squad", maxSize: 5, leaderId: userId, visibility: "closed", isActive: true,
+    } as any);
+    await storage.addGroupMember({ groupId: group.id, userId, role: "leader", status: "approved", joinedAt: new Date() });
+    await storage.addGroupMember({ groupId: group.id, userId: targetId, role: "member", status: "approved", joinedAt: new Date() });
+    await storage.createNotification({
+      userId: targetId, type: "group_invite",
+      title: `Added to ${group.name}`,
+      body: `${me?.nickname || me?.name || "Someone"} crewed up with you — say hi in the campsite!`,
+      data: JSON.stringify({ groupId: group.id }),
+    });
+    res.status(201).json({ ...group, existing: false });
   });
 
   // Add a mutual connection straight into the group. They're pre-approved (both
@@ -260,7 +298,7 @@ export function registerGroupRoutes(app: Express) {
     const msgs = await storage.getGroupMessages(req.params.id, 100);
     const enriched = await Promise.all(msgs.map(async m => {
       const sender = await storage.getUser(m.senderId);
-      return { ...m, sender: sender ? { id: sender.id, name: sender.name, avatarUrl: sender.avatarUrl } : null };
+      return { ...m, sender: sender ? { id: sender.id, name: sender.nickname || sender.name, avatarUrl: sender.avatarUrl } : null };
     }));
     res.json(enriched);
   });

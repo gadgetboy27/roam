@@ -156,7 +156,7 @@ export function registerCoreRoutes(app: Express, deps: RouteDeps) {
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
     const matchedIds = await storage.getMatchedUserIds(userId);
     const users = await Promise.all(matchedIds.map(id => storage.getUser(id)));
-    res.json(users.filter(Boolean).map(u => ({ id: u!.id, name: u!.name, avatarUrl: u!.avatarUrl, tagline: u!.tagline })));
+    res.json(users.filter(Boolean).map(u => ({ id: u!.id, name: u!.nickname || u!.name, avatarUrl: u!.avatarUrl, tagline: u!.tagline })));
   });
 
   app.patch("/api/users/:id", async (req, res) => {
@@ -164,16 +164,20 @@ export function registerCoreRoutes(app: Express, deps: RouteDeps) {
     if (!sessionUserId || sessionUserId !== req.params.id) {
       return res.status(401).json({ message: "Not authorized" });
     }
-    const { name, tagline, location, avatarUrl, adventureTags } = req.body;
+    const { name, nickname, tagline, location, avatarUrl, adventureTags } = req.body;
     if (tagline !== undefined && typeof tagline === "string" && tagline.length > 60) {
       return res.status(400).json({ message: "Tagline must be 60 characters or less" });
     }
     if (name !== undefined && typeof name === "string" && name.length > 100) {
       return res.status(400).json({ message: "Name must be 100 characters or less" });
     }
+    if (nickname !== undefined && typeof nickname === "string" && nickname.length > 40) {
+      return res.status(400).json({ message: "Nickname must be 40 characters or less" });
+    }
     try {
       const updated = await storage.updateUser(req.params.id, {
         ...(name !== undefined && { name }),
+        ...(nickname !== undefined && { nickname: nickname || null }),
         ...(tagline !== undefined && { tagline }),
         ...(location !== undefined && { location }),
         ...(avatarUrl !== undefined && { avatarUrl }),
