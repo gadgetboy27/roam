@@ -13,6 +13,8 @@ import { ToastAction } from "@/components/ui/toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { fileToDataUrl } from "@/lib/file";
+import { useCrewUp } from "@/lib/useCrewUp";
+import { Tent } from "lucide-react";
 import {
   supabase, fetchMessages, sendSupabaseMessage, markMessagesRead,
   setTyping, subscribeToMessages, subscribeToTyping,
@@ -138,6 +140,7 @@ export default function Matches() {
   const [, navigate] = useLocation();
   const myId = user?.id ?? "demo-user";
   const isPaid = user?.tier === "adventurer";
+  const crewUp = useCrewUp();
 
   const { data: bucketList = [] } = useQuery<{ id: string; destinationName: string; imageUrl: string | null }[]>({
     queryKey: ["/api/bucket-list", user?.id],
@@ -181,6 +184,7 @@ export default function Matches() {
           : `Matched ${Math.floor(hoursAgo / 24)}d ago`;
         return {
           id: m.id as string,
+          partnerId: partnerId as string,
           name: partner.name as string,
           nameAge: age ? `${partner.name}, ${age}` : (partner.name as string),
           shared: sharedTags,
@@ -541,8 +545,18 @@ export default function Matches() {
                           <div className="text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>{m.when}</div>
                         )}
                       </div>
-                      <div className="flex-shrink-0 text-right">
+                      <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
                         <MomentumBadge state={momentum} />
+                        {!isDemo && (m as any).partnerId && (
+                          <button
+                            onClick={e => { e.stopPropagation(); crewUp.mutate({ id: (m as any).partnerId, name: m.name }); }}
+                            disabled={crewUp.isPending}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg font-mono text-[9px] tracking-wider uppercase font-medium disabled:opacity-50"
+                            style={{ background: "rgba(var(--roam-electric-rgb),0.12)", color: "var(--roam-electric)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)" }}
+                            data-testid={`button-crew-up-${m.id}`}>
+                            <Tent size={10} /> Crew up
+                          </button>
+                        )}
                       </div>
                     </div>
                   );

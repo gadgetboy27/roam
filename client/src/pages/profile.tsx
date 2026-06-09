@@ -2,11 +2,12 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import AppNav from "@/components/app-nav";
 import { useAuth } from "@/lib/auth";
+import { useCrewUp } from "@/lib/useCrewUp";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { fileToDataUrl } from "@/lib/file";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Camera, Edit3, Settings, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2, Trash2, Banknote, ExternalLink, AlertCircle, ShieldCheck, Zap } from "lucide-react";
+import { MapPin, Camera, Edit3, Settings, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2, Trash2, Banknote, ExternalLink, AlertCircle, ShieldCheck, Zap, Users } from "lucide-react";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { computeVibeWord } from "@/lib/fingerprint";
 
@@ -252,6 +253,12 @@ export default function Profile() {
     select: (data) => data.filter((g: any) => g.leaderId === user?.id || false),
     enabled: !!user,
   });
+
+  const { data: connections = [] } = useQuery<{ id: string; name: string; avatarUrl: string | null; tagline: string | null }[]>({
+    queryKey: ["/api/connections"],
+    enabled: !!user,
+  });
+  const crewUp = useCrewUp();
 
   const toggleOpenToRoaming = async (val: boolean) => {
     if (!user) return;
@@ -595,6 +602,42 @@ export default function Profile() {
                         <ChevronRight size={14} style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }} />
                       </div>
                     </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Crew up with your connections ── */}
+            {connections.length > 0 && (
+              <div className="mb-5">
+                <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
+                  Crew up with your people
+                </div>
+                <p className="text-[11px] mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+                  Turn a connection into a squad — start a private crew and the adventures begin.
+                </p>
+                <div className="space-y-2">
+                  {connections.slice(0, 5).map((c) => (
+                    <div key={c.id} className="flex items-center gap-3 p-2.5 rounded-xl"
+                         style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}
+                         data-testid={`crew-up-row-${c.id}`}>
+                      <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0" style={{ background: "rgba(var(--roam-electric-rgb),0.1)" }}>
+                        {c.avatarUrl
+                          ? <img src={c.avatarUrl} alt={c.name} className="w-full h-full object-cover" />
+                          : <div className="w-full h-full flex items-center justify-center"><Users size={14} style={{ color: "var(--roam-electric)" }} /></div>}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate" style={{ color: "var(--roam-cream)" }}>{c.name}</div>
+                        {c.tagline && <div className="text-[10px] font-mono truncate" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>{c.tagline}</div>}
+                      </div>
+                      <button onClick={() => crewUp.mutate({ id: c.id, name: c.name })}
+                              disabled={crewUp.isPending}
+                              className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg font-mono text-[10px] tracking-wider uppercase font-medium disabled:opacity-50"
+                              style={{ background: "var(--roam-electric)", color: "var(--roam-bg)" }}
+                              data-testid={`button-crew-up-${c.id}`}>
+                        <Plus size={11} /> Crew up
+                      </button>
+                    </div>
                   ))}
                 </div>
               </div>

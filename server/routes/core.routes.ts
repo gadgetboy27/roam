@@ -147,6 +147,16 @@ export function registerCoreRoutes(app: Express, deps: RouteDeps) {
     }
   });
 
+  // The current user's mutual connections (matched users) — drives the
+  // "Crew up with…" panels on Matches and Profile.
+  app.get("/api/connections", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const matchedIds = await storage.getMatchedUserIds(userId);
+    const users = await Promise.all(matchedIds.map(id => storage.getUser(id)));
+    res.json(users.filter(Boolean).map(u => ({ id: u!.id, name: u!.name, avatarUrl: u!.avatarUrl, tagline: u!.tagline })));
+  });
+
   app.patch("/api/users/:id", async (req, res) => {
     const sessionUserId = await authenticateRequest(req);
     if (!sessionUserId || sessionUserId !== req.params.id) {
