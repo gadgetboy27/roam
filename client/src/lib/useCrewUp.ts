@@ -21,7 +21,9 @@ export function useCrewUp() {
         visibility: "closed",
       });
       const group = await res.json();
-      await apiRequest("POST", `/api/groups/${group.id}/invite-connection`, { userId: connection.id });
+      // The group is created and you're the leader; adding the connection is
+      // best-effort (e.g. they may already be in) — never fail the crew-up on it.
+      await apiRequest("POST", `/api/groups/${group.id}/invite-connection`, { userId: connection.id }).catch(() => {});
       return group;
     },
     onSuccess: (group) => {

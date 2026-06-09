@@ -403,14 +403,22 @@ export default function GroupPage() {
     enabled: showConnections,
   });
 
+  const refreshGroupLists = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/groups", id, "members"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/groups", id, "invitable-connections"] });
+  };
   const inviteConnectionMutation = useMutation({
     mutationFn: (targetUserId: string) => apiRequest("POST", `/api/groups/${id}/invite-connection`, { userId: targetUserId }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/groups", id, "members"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/groups", id, "invitable-connections"] });
-      toast({ title: "Added to your group!" });
+    onSuccess: () => { refreshGroupLists(); toast({ title: "Added to your group!" }); },
+    onError: (err: any) => {
+      // "Already in this group" isn't a real failure — just refresh so they drop off the list.
+      if (String(err?.message).includes("409") || /already in/i.test(err?.message || "")) {
+        refreshGroupLists();
+        toast({ title: "They're already in this group" });
+      } else {
+        toast({ title: err.message?.replace(/^\d+:\s*/, "") || "Couldn't add them", variant: "destructive" });
+      }
     },
-    onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
 
   const broadcastMutation = useMutation({
