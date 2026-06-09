@@ -26,10 +26,10 @@ export function registerCoreRoutes(app: Express, deps: RouteDeps) {
     const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
 
-    const [currentUser, currentPhotos, interactedIds, allUsers, heroPhotoMap] = await Promise.all([
+    const [currentUser, currentPhotos, connectedIds, allUsers, heroPhotoMap] = await Promise.all([
       storage.getUser(userId),
       storage.getPhotosByUser(userId),
-      storage.getInteractedUserIds(userId),
+      storage.getMatchedUserIds(userId),
       storage.getAllUsers(),
       storage.getFirstApprovedPhotoPerUser(),
     ]);
@@ -37,7 +37,9 @@ export function registerCoreRoutes(app: Express, deps: RouteDeps) {
     if (!currentUser) return res.status(404).json({ message: "User not found" });
 
     const myFp = buildFingerprint(currentPhotos, currentUser.adventureTags);
-    const interactedSet = new Set(interactedIds);
+    // Matching app — don't hide people you skipped. Only exclude yourself,
+    // anyone you're already connected with (in messaging), and blocks.
+    const connectedSet = new Set(connectedIds);
 
     // Load block lists — exclude anyone the user blocked or who blocked them
     let blockedIds = new Set<string>();
@@ -52,7 +54,7 @@ export function registerCoreRoutes(app: Express, deps: RouteDeps) {
 
     const candidates = allUsers.filter(u => {
       if (u.id === userId) return false;
-      if (interactedSet.has(u.id)) return false;
+      if (connectedSet.has(u.id)) return false;   // already connected → in messaging
       if (blockedIds.has(u.id)) return false;
       // Safety mode: only show verified users to users who enabled it
       if (currentUser.safetyModeEnabled && !u.identityVerified) return false;
@@ -305,28 +307,29 @@ export function registerCoreRoutes(app: Express, deps: RouteDeps) {
         }
       }
 
+      const notifyConnection = (otherUserId: string, matchId: string) => {
+        storage.getUser(sessionUserId).then(me =>
+          storage.createNotification({
+            userId: otherUserId,
+            type: "match",
+            title: "New connection!",
+            body: me?.name ? `${me.name} connected with you — say hi!` : "You have a new connection",
+            data: JSON.stringify({ matchId }),
+          })
+        ).catch(() => {});
+      };
+
+      // Matching app: a like is an instant connection. If any record already
+      // exists (a prior like either way, or even a past pass), connect now.
       const existing = await storage.getMatchBetween(userAId, userBId);
       if (existing) {
-        if (
-          (existing.status === "liked_b" && existing.userBId === userAId) ||
-          (existing.status === "liked_a" && existing.userAId === userBId)
-        ) {
-          const updated = await storage.updateMatchStatus(existing.id, "matched", { matchedAt: new Date() });
-          // Tell the other person they have a new mutual connection so the bell
-          // alerts them — without this, matches happened silently.
-          const otherUserId = userAId === sessionUserId ? userBId : userAId;
-          storage.getUser(sessionUserId).then(me =>
-            storage.createNotification({
-              userId: otherUserId,
-              type: "match",
-              title: "New connection!",
-              body: me?.name ? `You and ${me.name} both want to roam together` : "You have a new mutual connection",
-              data: JSON.stringify({ matchId: updated?.id ?? existing.id }),
-            })
-          ).catch(() => {});
-          return res.json({ ...updated, isNewMatch: true });
+        if (existing.status === "matched") {
+          return res.json({ ...existing, isNewMatch: false, alreadyExists: true });
         }
-        return res.json({ ...existing, isNewMatch: false, alreadyExists: true });
+        const updated = await storage.updateMatchStatus(existing.id, "matched", { matchedAt: new Date() });
+        const otherUserId = userAId === sessionUserId ? userBId : userAId;
+        notifyConnection(otherUserId, updated?.id ?? existing.id);
+        return res.json({ ...updated, isNewMatch: true });
       }
 
       // Silently compute adventure fingerprint overlap — never exposed to clients
@@ -355,13 +358,13 @@ export function registerCoreRoutes(app: Express, deps: RouteDeps) {
         }
       } catch { /* fingerprint errors must never block match creation */ }
 
-      const newStatus = status === "liked_b" ? "liked_b" : "liked_a";
       const match = await storage.createMatch({
-        userAId, userBId, status: newStatus,
+        userAId, userBId, status: "matched", matchedAt: new Date(),
         overlapScore, sharedTags,
         ...(almostMetLocation && { almostMetLocation, almostMetDate }),
       });
-      res.status(201).json({ ...match, isNewMatch: false });
+      notifyConnection(userBId, match.id);
+      res.status(201).json({ ...match, isNewMatch: true });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
