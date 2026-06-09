@@ -5,9 +5,19 @@ import { authenticateRequest, toPublicAd } from "../http-helpers";
 // All group, member, campsite, broadcast, event, invite, and RSVP routes.
 export function registerGroupRoutes(app: Express) {
   // ─── Group eligibility helper ─────────────────────────────────────────────
-  async function checkGroupLeaderEligibility(userId: string): Promise<{ eligible: boolean; reason?: string; checks?: Record<string, boolean> }> {
+  // Squad (2–5) and Crew (6–20) are FREE — available from signup so as many small
+  // groups as possible can form. Community (20–100) and Organiser (∞) are larger,
+  // higher-planning groups and require a paid tier (Adventurer or Organiser plan).
+  async function checkGroupLeaderEligibility(userId: string, type?: string): Promise<{ eligible: boolean; reason?: string; checks?: Record<string, boolean>; needsUpgrade?: boolean }> {
     const user = await storage.getUser(userId);
     if (!user) return { eligible: false, reason: "User not found" };
+
+    const requiresPaid = type === "community" || type === "organiser";
+    if (!requiresPaid) {
+      // Free: Squad & Crew — no paywall, no profile gate.
+      return { eligible: true };
+    }
+
     const photos = await storage.getPhotosByUser(userId);
     const hasApprovedPhoto = photos.some(p => p.verdict === "approved");
     const tags = user.adventureTags ?? [];
@@ -18,7 +28,7 @@ export function registerGroupRoutes(app: Express) {
       tagline: !!user.tagline,
       tags: tags.length >= 3,
     };
-    if (!checks.tier) return { eligible: false, reason: "Adventurer subscription or Squad Leader plan required", checks };
+    if (!checks.tier) return { eligible: false, reason: "Community & Organiser groups need an Adventurer or Organiser plan", checks, needsUpgrade: true };
     if (!checks.photo) return { eligible: false, reason: "At least one approved adventure photo required", checks };
     if (!checks.tagline) return { eligible: false, reason: "Add a tagline to your profile", checks };
     if (!checks.tags) return { eligible: false, reason: "Add at least 3 adventure tags to your profile", checks };
@@ -55,8 +65,8 @@ export function registerGroupRoutes(app: Express) {
   app.post("/api/groups", async (req, res) => {
     const userId = req.session?.userId;
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
-    const eligibility = await checkGroupLeaderEligibility(userId);
-    if (!eligibility.eligible) return res.status(403).json({ error: eligibility.reason });
+    const eligibility = await checkGroupLeaderEligibility(userId, req.body?.type);
+    if (!eligibility.eligible) return res.status(403).json({ error: eligibility.reason, needsUpgrade: eligibility.needsUpgrade });
     const { name, description, type, location, adventureTags, coverImageUrl, visibility } = req.body;
     if (!name || !type) return res.status(400).json({ error: "name and type are required" });
     const maxSizeMap: Record<string, number> = { squad: 5, crew: 20, community: 100, organiser: 1000 };
@@ -100,8 +110,11 @@ export function registerGroupRoutes(app: Express) {
   app.get("/api/groups/eligibility/check", async (req, res) => {
     const userId = req.session?.userId;
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
-    const result = await checkGroupLeaderEligibility(userId);
-    res.json(result);
+    // Base (Squad/Crew) is always free; also report whether the user can create
+    // the paid Community/Organiser sizes, so the UI can lock + offer the upgrade.
+    const base = await checkGroupLeaderEligibility(userId);
+    const large = await checkGroupLeaderEligibility(userId, "community");
+    res.json({ ...base, canCreateLargeGroups: large.eligible, upgradeReason: large.needsUpgrade ? large.reason : large.reason });
   });
 
   // ─── Group members ────────────────────────────────────────────────────────

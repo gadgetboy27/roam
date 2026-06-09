@@ -31,6 +31,7 @@ const GROUP_TYPES = [
     icon: <Mountain size={16} />,
     range: "20–100 people",
     desc: "An open community built around shared passions",
+    paid: true,
   },
   {
     id: "organiser",
@@ -38,6 +39,7 @@ const GROUP_TYPES = [
     icon: <Building2 size={16} />,
     range: "Unlimited",
     desc: "For businesses, event series, and organisations",
+    paid: true,
   },
 ];
 
@@ -65,8 +67,12 @@ function GroupCard({ group, myGroupIds, onClick }: {
   const isMember = myGroupIds.includes(group.id);
   const tags: string[] = group.adventureTags ?? [];
   return (
-    <button className="w-full text-left rounded-2xl overflow-hidden transition-all"
-            style={{ background: "var(--roam-surface)", border: "1px solid rgba(var(--roam-cream-rgb),0.09)" }}
+    <button className="group w-full text-left rounded-2xl overflow-hidden transition-all hover:-translate-y-0.5 active:scale-[0.99] cursor-pointer"
+            style={{
+              background: "linear-gradient(155deg, var(--roam-surface) 55%, rgba(var(--roam-electric-rgb),0.07))",
+              border: "1px solid rgba(var(--roam-electric-rgb),0.22)",
+              boxShadow: "0 1px 0 rgba(var(--roam-electric-rgb),0.06)",
+            }}
             onClick={onClick} data-testid={`group-card-${group.id}`}>
       {group.coverImageUrl ? (
         <div className="w-full h-32 overflow-hidden">
@@ -129,9 +135,10 @@ function GroupCard({ group, myGroupIds, onClick }: {
   );
 }
 
-function CreateGroupModal({ onClose, onCreated }: { onClose: () => void; onCreated: (groupId: string) => void }) {
+function CreateGroupModal({ onClose, onCreated, canCreateLargeGroups }: { onClose: () => void; onCreated: (groupId: string) => void; canCreateLargeGroups: boolean }) {
   const { toast } = useToast();
   const [step, setStep] = useState<"type" | "details">("type");
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const [form, setForm] = useState({
     name: "", type: "", description: "", location: "", visibility: "open",
   });
@@ -180,12 +187,16 @@ function CreateGroupModal({ onClose, onCreated }: { onClose: () => void; onCreat
         <div className="px-5 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
           {step === "type" ? (
             <>
-              {GROUP_TYPES.map(t => (
-                <button key={t.id} onClick={() => setForm(f => ({ ...f, type: t.id }))}
+              {GROUP_TYPES.map(t => {
+                const locked = !!(t as any).paid && !canCreateLargeGroups;
+                return (
+                <button key={t.id}
+                        onClick={() => { if (locked) { setShowUpgrade(true); } else { setShowUpgrade(false); setForm(f => ({ ...f, type: t.id })); } }}
                         className="w-full flex items-start gap-3.5 px-4 py-3.5 rounded-2xl text-left transition-all"
                         style={{
                           background: form.type === t.id ? "rgba(var(--roam-electric-rgb),0.1)" : "rgba(var(--roam-cream-rgb),0.04)",
                           border: `1px solid ${form.type === t.id ? "rgba(var(--roam-electric-rgb),0.35)" : "rgba(var(--roam-cream-rgb),0.08)"}`,
+                          opacity: locked ? 0.6 : 1,
                         }}
                         data-testid={`group-type-${t.id}`}>
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
@@ -197,14 +208,47 @@ function CreateGroupModal({ onClose, onCreated }: { onClose: () => void; onCreat
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="font-serif font-bold text-[15px]" style={{ color: "var(--roam-cream)" }}>{t.label}</span>
+                      <span className="font-serif font-bold text-[15px] flex items-center gap-1.5" style={{ color: "var(--roam-cream)" }}>
+                        {t.label}
+                        {(t as any).paid && (
+                          <span className="font-mono text-[8px] tracking-wider uppercase px-1.5 py-0.5 rounded-md flex items-center gap-0.5"
+                                style={{ background: "rgba(var(--roam-electric-rgb),0.12)", color: "var(--roam-electric)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)" }}>
+                            {locked && <Lock size={8} />}Plan
+                          </span>
+                        )}
+                        {!(t as any).paid && (
+                          <span className="font-mono text-[8px] tracking-wider uppercase px-1.5 py-0.5 rounded-md"
+                                style={{ background: "rgba(var(--roam-cream-rgb),0.06)", color: "rgba(var(--roam-cream-rgb),0.45)" }}>Free</span>
+                        )}
+                      </span>
                       <span className="font-mono text-[10px]" style={{ color: form.type === t.id ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.35)" }}>{t.range}</span>
                     </div>
                     <p className="font-mono text-[11px] mt-0.5 leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>{t.desc}</p>
                   </div>
                   {form.type === t.id && <Check size={14} style={{ color: "var(--roam-electric)", flexShrink: 0, marginTop: 4 }} />}
                 </button>
-              ))}
+              );})}
+
+              {showUpgrade && (
+                <div className="rounded-2xl px-4 py-3.5" style={{ background: "rgba(var(--roam-electric-rgb),0.08)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)" }}>
+                  <div className="flex items-start gap-2.5">
+                    <Lock size={14} style={{ color: "var(--roam-electric)", flexShrink: 0, marginTop: 2 }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-medium" style={{ color: "var(--roam-cream)" }}>Community & Organiser need a plan</p>
+                      <p className="font-mono text-[10px] mt-0.5 leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                        Squad and Crew are free. Upgrade to the Adventurer or Organiser plan to run larger communities and event series.
+                      </p>
+                      <Link href="/plans">
+                        <button className="mt-2 px-3 py-1.5 rounded-lg font-mono text-[10px] tracking-wider uppercase font-medium"
+                                style={{ background: "var(--roam-electric)", color: "var(--roam-bg)" }}
+                                data-testid="button-upgrade-organiser">
+                          See plans →
+                        </button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="pt-1">
                 <label className="font-mono text-[9px] tracking-wider uppercase mb-1 block"
@@ -322,7 +366,7 @@ export default function Roamers() {
     refetchOnWindowFocus: true,
   });
 
-  const { data: eligibility } = useQuery<{ eligible: boolean; reason?: string; checks?: Record<string, boolean> }>({
+  const { data: eligibility } = useQuery<{ eligible: boolean; reason?: string; checks?: Record<string, boolean>; canCreateLargeGroups?: boolean; upgradeReason?: string }>({
     queryKey: ["/api/groups/eligibility/check"],
     enabled: !!user,
   });
@@ -341,7 +385,7 @@ export default function Roamers() {
     <div className="min-h-screen flex flex-col" style={{ background: "var(--roam-bg)", color: "var(--roam-cream)" }}>
       <AppNav />
 
-      {showCreate && <CreateGroupModal onClose={() => setShowCreate(false)} onCreated={handleCreated} />}
+      {showCreate && <CreateGroupModal onClose={() => setShowCreate(false)} onCreated={handleCreated} canCreateLargeGroups={!!eligibility?.canCreateLargeGroups} />}
 
       <div className="flex-1 overflow-y-auto pb-8">
         <div className="px-5 pt-6 pb-4">
