@@ -339,6 +339,7 @@ export default function GroupPage() {
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteMessage, setInviteMessage] = useState("");
+  const [showConnections, setShowConnections] = useState(false);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
   // Broadcast state
@@ -387,6 +388,27 @@ export default function GroupPage() {
       } else {
         toast({ title: "Invite created!" });
       }
+    },
+    onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
+  });
+
+  // Your matched connections you can pull straight into the group (no email).
+  const { data: invitableConnections = [] } = useQuery<any[]>({
+    queryKey: ["/api/groups", id, "invitable-connections"],
+    queryFn: async () => {
+      const r = await fetch(`/api/groups/${id}/invitable-connections`);
+      if (!r.ok) return [];
+      return r.json();
+    },
+    enabled: showConnections,
+  });
+
+  const inviteConnectionMutation = useMutation({
+    mutationFn: (targetUserId: string) => apiRequest("POST", `/api/groups/${id}/invite-connection`, { userId: targetUserId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/groups", id, "members"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/groups", id, "invitable-connections"] });
+      toast({ title: "Added to your group!" });
     },
     onError: (err: any) => toast({ title: err.message, variant: "destructive" }),
   });
@@ -705,7 +727,54 @@ export default function GroupPage() {
               )}
 
               {isLeader && (
-                <div>
+                <div className="mb-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
+                      Invite your connections
+                    </div>
+                    <button onClick={() => setShowConnections(v => !v)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-[10px]"
+                            style={{ background: "rgba(var(--roam-electric-rgb),0.1)", color: "var(--roam-electric)", border: "1px solid rgba(var(--roam-electric-rgb),0.2)" }}
+                            data-testid="button-toggle-connections">
+                      <UserPlus size={11} /> {showConnections ? "Close" : "Add people"}
+                    </button>
+                  </div>
+                  {showConnections && (
+                    <div className="rounded-2xl p-3 mb-3"
+                         style={{ background: "rgba(var(--roam-cream-rgb),0.03)", border: "1px solid rgba(var(--roam-cream-rgb),0.08)" }}>
+                      {invitableConnections.length === 0 ? (
+                        <p className="font-mono text-[10px] text-center py-3 leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                          No connections to add yet. Match with adventurers in Discover, then bring them into your crew here.
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {invitableConnections.map((c: any) => (
+                            <div key={c.id} className="flex items-center gap-3 px-2 py-1.5 rounded-xl"
+                                 style={{ background: "rgba(var(--roam-cream-rgb),0.03)" }}
+                                 data-testid={`connection-row-${c.id}`}>
+                              <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0" style={{ background: "rgba(var(--roam-electric-rgb),0.1)" }}>
+                                {c.avatarUrl
+                                  ? <img src={c.avatarUrl} alt={c.name} className="w-full h-full object-cover" />
+                                  : <div className="w-full h-full flex items-center justify-center"><Users size={14} style={{ color: "var(--roam-electric)" }} /></div>}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-serif text-[13px] font-bold truncate" style={{ color: "var(--roam-cream)" }}>{c.name}</div>
+                                {c.tagline && <div className="font-mono text-[9px] truncate" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>{c.tagline}</div>}
+                              </div>
+                              <button onClick={() => inviteConnectionMutation.mutate(c.id)}
+                                      disabled={inviteConnectionMutation.isPending}
+                                      className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg font-mono text-[10px] font-semibold disabled:opacity-50"
+                                      style={{ background: "var(--roam-electric)", color: "var(--roam-bg)" }}
+                                      data-testid={`button-add-connection-${c.id}`}>
+                                <Plus size={11} /> Add
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between mb-3">
                     <div className="font-mono text-[10px] tracking-[1.5px] uppercase" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
                       Invite by email

@@ -159,6 +159,56 @@ export function registerGroupRoutes(app: Express) {
     res.json(member);
   });
 
+  // The leader's matched connections who aren't already in this group — the pool
+  // they can pull straight into a Squad/Crew (no email needed).
+  app.get("/api/groups/:id/invitable-connections", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Unauthorised" });
+    const group = await storage.getGroup(req.params.id);
+    if (!group) return res.status(404).json({ error: "Group not found" });
+    if (group.leaderId !== userId) return res.status(403).json({ error: "Only the leader can invite" });
+    const [matchedIds, members] = await Promise.all([
+      storage.getMatchedUserIds(userId),
+      storage.getGroupMembers(req.params.id),
+    ]);
+    const memberIds = new Set(members.map(m => m.userId));
+    const invitableIds = matchedIds.filter(id => !memberIds.has(id));
+    const users = await Promise.all(invitableIds.map(id => storage.getUser(id)));
+    res.json(users.filter(Boolean).map(u => ({ id: u!.id, name: u!.name, avatarUrl: u!.avatarUrl, tagline: u!.tagline })));
+  });
+
+  // Add a mutual connection straight into the group. They're pre-approved (both
+  // already opted into each other) and get a notification so they know.
+  app.post("/api/groups/:id/invite-connection", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Unauthorised" });
+    const targetId = req.body?.userId;
+    if (!targetId) return res.status(400).json({ error: "userId required" });
+    const group = await storage.getGroup(req.params.id);
+    if (!group || !group.isActive) return res.status(404).json({ error: "Group not found" });
+    if (group.leaderId !== userId) return res.status(403).json({ error: "Only the leader can invite" });
+    const matchedIds = await storage.getMatchedUserIds(userId);
+    if (!matchedIds.includes(targetId)) return res.status(403).json({ error: "You can only invite people you've connected with" });
+    const existing = await storage.getGroupMember(req.params.id, targetId);
+    if (existing) return res.status(409).json({ error: "Already in this group" });
+    const members = await storage.getGroupMembers(req.params.id);
+    if (members.filter(m => m.status === "approved").length >= group.maxSize) {
+      return res.status(400).json({ error: "Group is full" });
+    }
+    const member = await storage.addGroupMember({
+      groupId: req.params.id, userId: targetId, role: "member", status: "approved", joinedAt: new Date(),
+    });
+    const inviter = await storage.getUser(userId);
+    await storage.createNotification({
+      userId: targetId,
+      type: "group_invite",
+      title: `Added to ${group.name}`,
+      body: `${inviter?.name || "Someone"} added you to their ${group.type} — say hi in the campsite!`,
+      data: JSON.stringify({ groupId: group.id }),
+    });
+    res.json(member);
+  });
+
   app.post("/api/groups/:id/leave", async (req, res) => {
     const userId = req.session?.userId;
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
