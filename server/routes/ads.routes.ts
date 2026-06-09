@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { getUncachableStripeClient } from "../stripeClient";
-import { toPublicAd, AD_TIERS } from "../http-helpers";
+import { toPublicAd, AD_TIERS, authenticateRequest } from "../http-helpers";
 
 // Public advertising: submit (paid), live ads feed, click tracking.
 export function registerAdsRoutes(app: Express) {
@@ -14,7 +14,7 @@ export function registerAdsRoutes(app: Express) {
     }
     const tierInfo = AD_TIERS[tier as string];
     if (!tierInfo) return res.status(400).json({ message: "Invalid tier. Must be explorer, trailblazer, or summit" });
-    const submittedByUserId = req.session?.userId ?? undefined;
+    const submittedByUserId = (await authenticateRequest(req)) ?? undefined;
 
     const ad = await storage.createAd({ advertiserName, advertiserEmail, advertiserCompany, tier, headline, tagline, ctaText, ctaUrl, imageUrl, videoUrl, contentType: contentType || "image", status: "pending_payment", adType: adType || "standard", submittedByUserId: submittedByUserId || null, linkedGroupId: linkedGroupId || null, linkedEventId: linkedEventId || null, eventStartAt: eventStartAt ? new Date(eventStartAt) : null, eventLocation: eventLocation || null });
 

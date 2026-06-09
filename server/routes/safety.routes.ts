@@ -1,13 +1,14 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { pool } from "../db";
+import { authenticateRequest } from "../http-helpers";
 
 // Safety mode, blocking, reporting, and safety contacts / check-ins / SOS alerts.
 export function registerSafetyRoutes(app: Express) {
   // ─── Safety mode toggle ───────────────────────────────────────────────────
 
   app.patch("/api/users/:id/safety-mode", async (req, res) => {
-    const sessionUserId = req.session?.userId;
+    const sessionUserId = await authenticateRequest(req);
     if (!sessionUserId || sessionUserId !== req.params.id) return res.status(401).json({ error: "Unauthorised" });
     const { safetyModeEnabled } = req.body;
     const updated = await storage.updateUser(req.params.id, { safetyModeEnabled: !!safetyModeEnabled });
@@ -17,7 +18,7 @@ export function registerSafetyRoutes(app: Express) {
   // ─── Block a user ─────────────────────────────────────────────────────────
 
   app.post("/api/users/:id/block", async (req, res) => {
-    const sessionUserId = req.session?.userId;
+    const sessionUserId = await authenticateRequest(req);
     if (!sessionUserId) return res.status(401).json({ error: "Unauthorised" });
     if (sessionUserId === req.params.id) return res.status(400).json({ error: "Cannot block yourself" });
     try {
@@ -32,7 +33,7 @@ export function registerSafetyRoutes(app: Express) {
   });
 
   app.delete("/api/users/:id/block", async (req, res) => {
-    const sessionUserId = req.session?.userId;
+    const sessionUserId = await authenticateRequest(req);
     if (!sessionUserId) return res.status(401).json({ error: "Unauthorised" });
     try {
       await pool.query(
@@ -46,7 +47,7 @@ export function registerSafetyRoutes(app: Express) {
   });
 
   app.get("/api/me/blocks", async (req, res) => {
-    const sessionUserId = req.session?.userId;
+    const sessionUserId = await authenticateRequest(req);
     if (!sessionUserId) return res.status(401).json({ error: "Unauthorised" });
     try {
       const { rows } = await pool.query(
@@ -62,7 +63,7 @@ export function registerSafetyRoutes(app: Express) {
   // ─── Report a user ────────────────────────────────────────────────────────
 
   app.post("/api/users/:id/report", async (req, res) => {
-    const sessionUserId = req.session?.userId;
+    const sessionUserId = await authenticateRequest(req);
     if (!sessionUserId) return res.status(401).json({ error: "Unauthorised" });
     if (sessionUserId === req.params.id) return res.status(400).json({ error: "Cannot report yourself" });
     const { reason, detail } = req.body;
@@ -82,7 +83,7 @@ export function registerSafetyRoutes(app: Express) {
   // ─── Safety: contacts, check-ins, SOS alert ──────────────────────────────
 
   app.get("/api/safety/contacts", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     try {
       const { rows } = await pool.query(
@@ -98,7 +99,7 @@ export function registerSafetyRoutes(app: Express) {
   });
 
   app.get("/api/safety/eligible-contacts", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     try {
       const { rows } = await pool.query(
@@ -126,7 +127,7 @@ export function registerSafetyRoutes(app: Express) {
   });
 
   app.post("/api/safety/contacts/:contactId", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     const { contactId } = req.params;
     if (contactId === userId) return res.status(400).json({ error: "Cannot add yourself" });
@@ -142,7 +143,7 @@ export function registerSafetyRoutes(app: Express) {
   });
 
   app.delete("/api/safety/contacts/:contactId", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     try {
       await pool.query("DELETE FROM safety_contacts WHERE user_id = $1 AND contact_user_id = $2", [userId, req.params.contactId]);
@@ -151,7 +152,7 @@ export function registerSafetyRoutes(app: Express) {
   });
 
   app.get("/api/safety/checkins", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     try {
       const { rows } = await pool.query(
@@ -163,7 +164,7 @@ export function registerSafetyRoutes(app: Express) {
   });
 
   app.post("/api/safety/checkin", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     const { scheduledAt, place, meetingWith } = req.body;
     if (!scheduledAt) return res.status(400).json({ error: "scheduledAt required" });
@@ -181,7 +182,7 @@ export function registerSafetyRoutes(app: Express) {
   });
 
   app.post("/api/safety/checkin/:id/confirm", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     try {
       const { rows } = await pool.query(
@@ -195,7 +196,7 @@ export function registerSafetyRoutes(app: Express) {
   });
 
   app.delete("/api/safety/checkin/:id", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     try {
       await pool.query(
@@ -207,7 +208,7 @@ export function registerSafetyRoutes(app: Express) {
   });
 
   app.post("/api/safety/alert", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     const { place } = req.body;
     try {

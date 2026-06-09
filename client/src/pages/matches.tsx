@@ -551,10 +551,10 @@ export default function Matches() {
                           <button
                             onClick={e => { e.stopPropagation(); crewUp.mutate({ id: (m as any).partnerId, name: m.name }); }}
                             disabled={crewUp.isPending}
-                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg font-mono text-[9px] tracking-wider uppercase font-medium disabled:opacity-50"
-                            style={{ background: "rgba(var(--roam-electric-rgb),0.12)", color: "var(--roam-electric)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)" }}
+                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-semibold transition-all active:scale-95 disabled:opacity-50"
+                            style={{ background: "var(--roam-electric)", color: "var(--roam-bg)" }}
                             data-testid={`button-crew-up-${m.id}`}>
-                            <Tent size={10} /> Crew up
+                            <Tent size={13} /> Crew up
                           </button>
                         )}
                       </div>

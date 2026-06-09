@@ -2,27 +2,28 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { pool } from "../db";
 import { isAdminAuthenticated } from "../admin-auth";
+import { authenticateRequest } from "../http-helpers";
 
 // Notifications (list / unread-count / mark-read) and user feedback.
 export function registerMiscRoutes(app: Express) {
   // ─── Notifications ────────────────────────────────────────────────────────
 
   app.get("/api/notifications", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     const items = await storage.getNotificationsForUser(userId, 30);
     res.json(items);
   });
 
   app.get("/api/notifications/unread-count", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     const count = await storage.getUnreadNotificationCount(userId);
     res.json({ count });
   });
 
   app.patch("/api/notifications/:id/read", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     const notification = await storage.getNotificationById(Number(req.params.id));
     if (!notification) return res.status(404).json({ error: "Notification not found" });
@@ -32,7 +33,7 @@ export function registerMiscRoutes(app: Express) {
   });
 
   app.patch("/api/notifications/read-all", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     await storage.markAllNotificationsRead(userId);
     res.json({ success: true });
@@ -42,7 +43,7 @@ export function registerMiscRoutes(app: Express) {
 
   app.post("/api/feedback", async (req, res) => {
     try {
-      const userId = req.session?.userId;
+      const userId = await authenticateRequest(req);
       const { message, page } = req.body;
       if (!message?.trim()) return res.status(400).json({ message: "Message is required" });
       let userName: string | null = null;

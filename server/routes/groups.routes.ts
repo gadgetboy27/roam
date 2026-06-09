@@ -48,7 +48,7 @@ export function registerGroupRoutes(app: Express) {
   });
 
   app.get("/api/groups/my-led", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.json([]);
     const led = await storage.getGroupsLedByUser(userId);
     res.json(led);
@@ -63,7 +63,7 @@ export function registerGroupRoutes(app: Express) {
   });
 
   app.post("/api/groups", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     const eligibility = await checkGroupLeaderEligibility(userId, req.body?.type);
     if (!eligibility.eligible) return res.status(403).json({ error: eligibility.reason, needsUpgrade: eligibility.needsUpgrade });
@@ -87,7 +87,7 @@ export function registerGroupRoutes(app: Express) {
   });
 
   app.patch("/api/groups/:id", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     const group = await storage.getGroup(req.params.id);
     if (!group) return res.status(404).json({ error: "Group not found" });
@@ -98,7 +98,7 @@ export function registerGroupRoutes(app: Express) {
   });
 
   app.delete("/api/groups/:id", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     const group = await storage.getGroup(req.params.id);
     if (!group) return res.status(404).json({ error: "Group not found" });
@@ -108,7 +108,7 @@ export function registerGroupRoutes(app: Express) {
   });
 
   app.get("/api/groups/eligibility/check", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     // Base (Squad/Crew) is always free; also report whether the user can create
     // the paid Community/Organiser sizes, so the UI can lock + offer the upgrade.
@@ -136,7 +136,7 @@ export function registerGroupRoutes(app: Express) {
   });
 
   app.post("/api/groups/:id/join", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     const group = await storage.getGroup(req.params.id);
     if (!group || !group.isActive) return res.status(404).json({ error: "Group not found" });
@@ -162,7 +162,7 @@ export function registerGroupRoutes(app: Express) {
   // The leader's matched connections who aren't already in this group — the pool
   // they can pull straight into a Squad/Crew (no email needed).
   app.get("/api/groups/:id/invitable-connections", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     const group = await storage.getGroup(req.params.id);
     if (!group) return res.status(404).json({ error: "Group not found" });
@@ -180,7 +180,7 @@ export function registerGroupRoutes(app: Express) {
   // Add a mutual connection straight into the group. They're pre-approved (both
   // already opted into each other) and get a notification so they know.
   app.post("/api/groups/:id/invite-connection", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     const targetId = req.body?.userId;
     if (!targetId) return res.status(400).json({ error: "userId required" });
@@ -210,7 +210,7 @@ export function registerGroupRoutes(app: Express) {
   });
 
   app.post("/api/groups/:id/leave", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     const group = await storage.getGroup(req.params.id);
     if (!group) return res.status(404).json({ error: "Group not found" });
@@ -220,7 +220,7 @@ export function registerGroupRoutes(app: Express) {
   });
 
   app.patch("/api/groups/:id/members/:userId/approve", async (req, res) => {
-    const requesterId = req.session?.userId;
+    const requesterId = await authenticateRequest(req);
     if (!requesterId) return res.status(401).json({ error: "Unauthorised" });
     const group = await storage.getGroup(req.params.id);
     if (!group || group.leaderId !== requesterId) return res.status(403).json({ error: "Only the group leader can approve members" });
@@ -232,7 +232,7 @@ export function registerGroupRoutes(app: Express) {
   });
 
   app.patch("/api/groups/:id/members/:userId/reject", async (req, res) => {
-    const requesterId = req.session?.userId;
+    const requesterId = await authenticateRequest(req);
     if (!requesterId) return res.status(401).json({ error: "Unauthorised" });
     const group = await storage.getGroup(req.params.id);
     if (!group || group.leaderId !== requesterId) return res.status(403).json({ error: "Only the group leader can reject members" });
@@ -241,7 +241,7 @@ export function registerGroupRoutes(app: Express) {
   });
 
   app.delete("/api/groups/:id/members/:userId", async (req, res) => {
-    const requesterId = req.session?.userId;
+    const requesterId = await authenticateRequest(req);
     if (!requesterId) return res.status(401).json({ error: "Unauthorised" });
     const group = await storage.getGroup(req.params.id);
     if (!group) return res.status(404).json({ error: "Group not found" });
@@ -253,7 +253,7 @@ export function registerGroupRoutes(app: Express) {
   // ─── Campsite (group messages) ────────────────────────────────────────────
 
   app.get("/api/groups/:id/messages", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     const member = await storage.getGroupMember(req.params.id, userId);
     if (!member || member.status !== "approved") return res.status(403).json({ error: "You are not a member of this group" });
@@ -311,7 +311,7 @@ export function registerGroupRoutes(app: Express) {
   });
 
   app.post("/api/groups/:id/events", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     const group = await storage.getGroup(req.params.id);
     if (!group) return res.status(404).json({ error: "Group not found" });
@@ -339,7 +339,7 @@ export function registerGroupRoutes(app: Express) {
   });
 
   app.delete("/api/groups/:id/events/:eventId", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     const group = await storage.getGroup(req.params.id);
     if (!group || group.leaderId !== userId) return res.status(403).json({ error: "Only the group leader can delete events" });
@@ -352,7 +352,7 @@ export function registerGroupRoutes(app: Express) {
   // ─── Group Invites ────────────────────────────────────────────────────────
 
   app.post("/api/groups/:id/invites", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     const group = await storage.getGroup(req.params.id);
     if (!group) return res.status(404).json({ error: "Group not found" });
@@ -406,7 +406,7 @@ export function registerGroupRoutes(app: Express) {
   });
 
   app.get("/api/groups/:id/invites", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     const group = await storage.getGroup(req.params.id);
     if (!group || group.leaderId !== userId) return res.status(403).json({ error: "Forbidden" });
@@ -432,7 +432,7 @@ export function registerGroupRoutes(app: Express) {
   });
 
   app.post("/api/invites/:token/accept", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Login required to accept this invite" });
     const invite = await storage.getGroupInviteByToken(req.params.token);
     if (!invite) return res.status(404).json({ error: "Invite not found" });
@@ -467,7 +467,7 @@ export function registerGroupRoutes(app: Express) {
   // ─── Event RSVP ───────────────────────────────────────────────────────────
 
   app.post("/api/events/:eventId/rsvp", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     const event = await storage.getGroupEvent(req.params.eventId);
     if (!event) return res.status(404).json({ error: "Event not found" });
@@ -481,14 +481,14 @@ export function registerGroupRoutes(app: Express) {
   });
 
   app.delete("/api/events/:eventId/rsvp", async (req, res) => {
-    const userId = req.session?.userId;
+    const userId = await authenticateRequest(req);
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     await storage.unrsvpEvent(req.params.eventId, userId);
     res.json({ success: true });
   });
 
   app.get("/api/events/upcoming", async (req, res) => {
-    const userId = req.session?.userId ?? undefined;
+    const userId = await authenticateRequest(req) ?? undefined;
     const events = await storage.getUpcomingEvents(userId);
     res.json(events);
   });

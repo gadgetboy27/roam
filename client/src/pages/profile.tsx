@@ -7,7 +7,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { fileToDataUrl } from "@/lib/file";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Camera, Edit3, Settings, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2, Trash2, Banknote, ExternalLink, AlertCircle, ShieldCheck, Zap, Users } from "lucide-react";
+import { MapPin, Camera, Edit3, Settings, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2, Trash2, Banknote, ExternalLink, AlertCircle, ShieldCheck, Zap, Users, Tent } from "lucide-react";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { computeVibeWord } from "@/lib/fingerprint";
 
@@ -609,33 +609,37 @@ export default function Profile() {
 
             {/* ── Crew up with your connections ── */}
             {connections.length > 0 && (
-              <div className="mb-5">
-                <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.62)" }}>
-                  Crew up with your people
+              <div className="mb-5 rounded-2xl p-4"
+                   style={{ background: "rgba(var(--roam-electric-rgb),0.06)", border: "1px solid rgba(var(--roam-electric-rgb),0.22)" }}>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(var(--roam-electric-rgb),0.15)" }}>
+                    <Tent size={15} style={{ color: "var(--roam-electric)" }} />
+                  </div>
+                  <h3 className="font-serif text-lg font-black" style={{ color: "var(--roam-cream)" }}>Crew up with your people</h3>
                 </div>
-                <p className="text-[11px] mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
-                  Turn a connection into a squad — start a private crew and the adventures begin.
+                <p className="text-[12px] mb-3.5 leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                  Turn any connection into a squad in one tap — a private crew + campsite chat, and the adventures begin.
                 </p>
-                <div className="space-y-2">
-                  {connections.slice(0, 5).map((c) => (
-                    <div key={c.id} className="flex items-center gap-3 p-2.5 rounded-xl"
-                         style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}
+                <div className="space-y-2.5">
+                  {connections.slice(0, 6).map((c) => (
+                    <div key={c.id} className="flex items-center gap-3 p-2.5 rounded-2xl"
+                         style={{ background: "var(--roam-surface)", border: "1px solid rgba(var(--roam-cream-rgb),0.08)" }}
                          data-testid={`crew-up-row-${c.id}`}>
-                      <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0" style={{ background: "rgba(var(--roam-electric-rgb),0.1)" }}>
+                      <div className="w-11 h-11 rounded-xl overflow-hidden flex-shrink-0" style={{ background: "rgba(var(--roam-electric-rgb),0.1)" }}>
                         {c.avatarUrl
                           ? <img src={c.avatarUrl} alt={c.name} className="w-full h-full object-cover" />
-                          : <div className="w-full h-full flex items-center justify-center"><Users size={14} style={{ color: "var(--roam-electric)" }} /></div>}
+                          : <div className="w-full h-full flex items-center justify-center"><Users size={16} style={{ color: "var(--roam-electric)" }} /></div>}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate" style={{ color: "var(--roam-cream)" }}>{c.name}</div>
-                        {c.tagline && <div className="text-[10px] font-mono truncate" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>{c.tagline}</div>}
+                        <div className="text-[15px] font-semibold truncate" style={{ color: "var(--roam-cream)" }}>{c.name}</div>
+                        {c.tagline && <div className="text-[11px] truncate" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>{c.tagline}</div>}
                       </div>
                       <button onClick={() => crewUp.mutate({ id: c.id, name: c.name })}
                               disabled={crewUp.isPending}
-                              className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg font-mono text-[10px] tracking-wider uppercase font-medium disabled:opacity-50"
+                              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-all active:scale-95 disabled:opacity-50"
                               style={{ background: "var(--roam-electric)", color: "var(--roam-bg)" }}
                               data-testid={`button-crew-up-${c.id}`}>
-                        <Plus size={11} /> Crew up
+                        <Tent size={14} /> Crew up
                       </button>
                     </div>
                   ))}
