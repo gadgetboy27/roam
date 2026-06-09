@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { buildFingerprint, computeOverlap, detectAlmostMet, computeHonestyTier } from "../fingerprint";
 import { authenticateRequest, uploadImageDataUrl, notifyNewMessage } from "../http-helpers";
-import { pgConnectConfig } from "../db";
+import { pool } from "../db";
 import type { RouteDeps } from "./deps";
 
 // Core app: users, discover, matches, messages, photos/upload, bucket-list.
@@ -42,14 +42,11 @@ export function registerCoreRoutes(app: Express, deps: RouteDeps) {
     // Load block lists — exclude anyone the user blocked or who blocked them
     let blockedIds = new Set<string>();
     try {
-      const { Pool } = await import("pg");
-      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
       const { rows } = await pool.query(
         `SELECT blocked_id FROM blocks WHERE blocker_id = $1
          UNION SELECT blocker_id FROM blocks WHERE blocked_id = $1`,
         [userId]
       );
-      await pool.end();
       blockedIds = new Set(rows.map((r: any) => r.blocked_id ?? r.blocker_id));
     } catch { /* non-fatal — degrade gracefully */ }
 
@@ -72,15 +69,12 @@ export function registerCoreRoutes(app: Express, deps: RouteDeps) {
     let myBucketList = new Set<string>();
     const candidateBucketMap = new Map<string, Set<string>>();
     try {
-      const { Pool } = await import("pg");
-      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
       const [myBL, candidateBLs] = await Promise.all([
         pool.query("SELECT destination_name FROM bucket_list WHERE user_id = $1", [userId]),
         candidateIds.length > 0
           ? pool.query("SELECT user_id, destination_name FROM bucket_list WHERE user_id = ANY($1)", [candidateIds])
           : Promise.resolve({ rows: [] }),
       ]);
-      await pool.end();
       myBucketList = new Set(myBL.rows.map((r: any) => (r.destination_name as string).toLowerCase().trim()));
       for (const row of candidateBLs.rows) {
         if (!candidateBucketMap.has(row.user_id)) candidateBucketMap.set(row.user_id, new Set());

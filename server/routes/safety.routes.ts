@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { pgConnectConfig } from "../db";
+import { pool } from "../db";
 
 // Safety mode, blocking, reporting, and safety contacts / check-ins / SOS alerts.
 export function registerSafetyRoutes(app: Express) {
@@ -21,13 +21,10 @@ export function registerSafetyRoutes(app: Express) {
     if (!sessionUserId) return res.status(401).json({ error: "Unauthorised" });
     if (sessionUserId === req.params.id) return res.status(400).json({ error: "Cannot block yourself" });
     try {
-      const { Pool } = await import("pg");
-      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
       await pool.query(
         `INSERT INTO blocks (blocker_id, blocked_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
         [sessionUserId, req.params.id]
       );
-      await pool.end();
       res.json({ blocked: true });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -38,13 +35,10 @@ export function registerSafetyRoutes(app: Express) {
     const sessionUserId = req.session?.userId;
     if (!sessionUserId) return res.status(401).json({ error: "Unauthorised" });
     try {
-      const { Pool } = await import("pg");
-      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
       await pool.query(
         `DELETE FROM blocks WHERE blocker_id = $1 AND blocked_id = $2`,
         [sessionUserId, req.params.id]
       );
-      await pool.end();
       res.json({ blocked: false });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -55,13 +49,10 @@ export function registerSafetyRoutes(app: Express) {
     const sessionUserId = req.session?.userId;
     if (!sessionUserId) return res.status(401).json({ error: "Unauthorised" });
     try {
-      const { Pool } = await import("pg");
-      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
       const { rows } = await pool.query(
         `SELECT blocked_id FROM blocks WHERE blocker_id = $1`,
         [sessionUserId]
       );
-      await pool.end();
       res.json(rows.map((r: any) => r.blocked_id));
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -77,13 +68,10 @@ export function registerSafetyRoutes(app: Express) {
     const { reason, detail } = req.body;
     if (!reason) return res.status(400).json({ error: "Reason required" });
     try {
-      const { Pool } = await import("pg");
-      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
       await pool.query(
         `INSERT INTO reports (reporter_id, reported_id, reason, detail) VALUES ($1, $2, $3, $4)`,
         [sessionUserId, req.params.id, reason, detail || null]
       );
-      await pool.end();
       console.log(`[safety] Report filed: user ${sessionUserId} reported ${req.params.id} for "${reason}"`);
       res.json({ reported: true });
     } catch (err: any) {
@@ -97,8 +85,6 @@ export function registerSafetyRoutes(app: Express) {
     const userId = req.session?.userId;
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     try {
-      const { Pool } = await import("pg");
-      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
       const { rows } = await pool.query(
         `SELECT sc.contact_user_id as id, u.name, u.avatar_url, u.identity_verified
          FROM safety_contacts sc
@@ -107,7 +93,6 @@ export function registerSafetyRoutes(app: Express) {
          ORDER BY sc.created_at DESC`,
         [userId]
       );
-      await pool.end();
       res.json(rows);
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
@@ -116,8 +101,6 @@ export function registerSafetyRoutes(app: Express) {
     const userId = req.session?.userId;
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     try {
-      const { Pool } = await import("pg");
-      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
       const { rows } = await pool.query(
         `SELECT DISTINCT u.id, u.name, u.avatar_url, u.identity_verified
          FROM users u
@@ -138,7 +121,6 @@ export function registerSafetyRoutes(app: Express) {
          ORDER BY u.name LIMIT 50`,
         [userId]
       );
-      await pool.end();
       res.json(rows);
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
@@ -149,15 +131,12 @@ export function registerSafetyRoutes(app: Express) {
     const { contactId } = req.params;
     if (contactId === userId) return res.status(400).json({ error: "Cannot add yourself" });
     try {
-      const { Pool } = await import("pg");
-      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
       const { rows: u } = await pool.query("SELECT id FROM users WHERE id = $1", [contactId]);
-      if (!u.length) { await pool.end(); return res.status(404).json({ error: "User not found" }); }
+      if (!u.length) { return res.status(404).json({ error: "User not found" }); }
       await pool.query(
         `INSERT INTO safety_contacts (user_id, contact_user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
         [userId, contactId]
       );
-      await pool.end();
       res.json({ ok: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
@@ -166,10 +145,7 @@ export function registerSafetyRoutes(app: Express) {
     const userId = req.session?.userId;
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     try {
-      const { Pool } = await import("pg");
-      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
       await pool.query("DELETE FROM safety_contacts WHERE user_id = $1 AND contact_user_id = $2", [userId, req.params.contactId]);
-      await pool.end();
       res.json({ ok: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
@@ -178,13 +154,10 @@ export function registerSafetyRoutes(app: Express) {
     const userId = req.session?.userId;
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     try {
-      const { Pool } = await import("pg");
-      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
       const { rows } = await pool.query(
         `SELECT * FROM safety_checkins WHERE user_id = $1 ORDER BY scheduled_at DESC LIMIT 20`,
         [userId]
       );
-      await pool.end();
       res.json(rows);
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
@@ -199,13 +172,10 @@ export function registerSafetyRoutes(app: Express) {
       return res.status(400).json({ error: "scheduledAt must be in the future" });
     }
     try {
-      const { Pool } = await import("pg");
-      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
       const { rows } = await pool.query(
         `INSERT INTO safety_checkins (user_id, scheduled_at, place, meeting_with) VALUES ($1,$2,$3,$4) RETURNING *`,
         [userId, scheduled.toISOString(), place || null, meetingWith || null]
       );
-      await pool.end();
       res.json(rows[0]);
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
@@ -214,14 +184,11 @@ export function registerSafetyRoutes(app: Express) {
     const userId = req.session?.userId;
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     try {
-      const { Pool } = await import("pg");
-      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
       const { rows } = await pool.query(
         `UPDATE safety_checkins SET confirmed_at = now()
          WHERE id = $1 AND user_id = $2 AND confirmed_at IS NULL AND cancelled_at IS NULL RETURNING *`,
         [req.params.id, userId]
       );
-      await pool.end();
       if (!rows.length) return res.status(404).json({ error: "Check-in not found or already confirmed" });
       res.json(rows[0]);
     } catch (err: any) { res.status(500).json({ error: err.message }); }
@@ -231,13 +198,10 @@ export function registerSafetyRoutes(app: Express) {
     const userId = req.session?.userId;
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     try {
-      const { Pool } = await import("pg");
-      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
       await pool.query(
         `UPDATE safety_checkins SET cancelled_at = now() WHERE id = $1 AND user_id = $2`,
         [req.params.id, userId]
       );
-      await pool.end();
       res.json({ ok: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
@@ -247,8 +211,6 @@ export function registerSafetyRoutes(app: Express) {
     if (!userId) return res.status(401).json({ error: "Unauthorised" });
     const { place } = req.body;
     try {
-      const { Pool } = await import("pg");
-      const pool = new Pool(pgConnectConfig(process.env.DATABASE_URL));
       const [userRes, contactsRes] = await Promise.all([
         pool.query("SELECT name FROM users WHERE id = $1", [userId]),
         pool.query("SELECT contact_user_id FROM safety_contacts WHERE user_id = $1", [userId]),
@@ -272,7 +234,6 @@ export function registerSafetyRoutes(app: Express) {
           [userId, place || null, contacts]
         );
       }
-      await pool.end();
       console.log(`[safety] SOS fired by ${userId}, ${contacts.length} contacts alerted`);
       res.json({ ok: true, contactsAlerted: contacts.length });
     } catch (err: any) { res.status(500).json({ error: err.message }); }

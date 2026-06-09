@@ -16,6 +16,8 @@ export function pgConnectConfig(url: string | undefined): { connectionString: st
   }
 }
 
-const pool = new pg.Pool(pgConnectConfig(process.env.DATABASE_URL));
+// Single shared connection pool. Reused for Drizzle ORM and for the handful of
+// routes that run raw SQL — never call pool.end() on it at request scope.
+export const pool = new pg.Pool(pgConnectConfig(process.env.DATABASE_URL));
 
 export const db = drizzle(pool, { schema });
