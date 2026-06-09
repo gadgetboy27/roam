@@ -19,7 +19,8 @@ function getSecretKey(): string {
 export function getUncachableStripeClient() {
   const secretKey = getSecretKey();
   return new Stripe(secretKey, {
-    apiVersion: "2025-11-17.clover",
+    // Pinned deliberately; cast because the SDK types only allow their newest version literal.
+    apiVersion: "2025-11-17.clover" as any,
   });
 }
 

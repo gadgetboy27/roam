@@ -24,6 +24,16 @@ export const photosRepo = {
     return db.select().from(photos).where(eq(photos.userId, userId)).orderBy(photos.displayOrder);
   },
 
+  async getHeroPhoto(userId: string): Promise<{ url: string } | undefined> {
+    const [p] = await db
+      .select({ storageUrl: photos.storageUrl })
+      .from(photos)
+      .where(and(eq(photos.userId, userId), eq(photos.verdict, "approved")))
+      .orderBy(photos.displayOrder)
+      .limit(1);
+    return p ? { url: p.storageUrl } : undefined;
+  },
+
   async getFirstApprovedPhotoPerUser(): Promise<Record<string, string>> {
     const approved = await db
       .select({ userId: photos.userId, storageUrl: photos.storageUrl })

@@ -128,7 +128,7 @@ export async function registerRoutes(
     standardHeaders: "draft-7",
     legacyHeaders: false,
     message: { message: msg ?? `Too many requests. Try again in ${Math.round(windowMs / 60000)} minutes.` },
-    store: new PgRateLimitStore(sessionPool, windowMs, `rl`),
+    store: new PgRateLimitStore(sessionPool, windowMs, `rl`) as any,
   });
 
   loginLimiter      = makeLimiter(5,  15 * 60 * 1000, "Too many login attempts. Please try again in 15 minutes.");

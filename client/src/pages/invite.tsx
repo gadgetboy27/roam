@@ -22,7 +22,7 @@ const VERIFICATION_ITEMS = [
 export default function InvitePage() {
   const { token } = useParams();
   const [, navigate] = useLocation();
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

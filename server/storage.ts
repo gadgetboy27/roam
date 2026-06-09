@@ -33,6 +33,7 @@ export interface IStorage {
 
   createPhoto(photo: InsertPhoto): Promise<Photo>;
   getPhotosByUser(userId: string): Promise<Photo[]>;
+  getHeroPhoto(userId: string): Promise<{ url: string } | undefined>;
   getFirstApprovedPhotoPerUser(): Promise<Record<string, string>>;
 
   createMatch(match: InsertMatch): Promise<Match>;

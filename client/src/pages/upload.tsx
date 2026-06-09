@@ -37,7 +37,7 @@ function ProtectedImage({ src, alt, className, style }: { src: string; alt: stri
         src={src}
         alt={alt}
         className={className}
-        style={{ ...style, pointerEvents: "none", WebkitUserDrag: "none" as any }}
+        style={{ ...style, pointerEvents: "none", WebkitUserDrag: "none" } as any}
         draggable={false}
         onContextMenu={e => e.preventDefault()}
       />

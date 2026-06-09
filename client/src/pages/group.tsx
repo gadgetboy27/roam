@@ -238,6 +238,10 @@ export default function GroupPage() {
     },
   });
 
+  const myMembership = members.find((m: any) => m.userId === user?.id);
+  const isLeader = group?.leaderId === user?.id;
+  const isApproved = myMembership?.status === "approved";
+
   const { data: events = [] } = useQuery<any[]>({
     queryKey: ["/api/groups", id, "events"],
     queryFn: async () => {
@@ -257,10 +261,6 @@ export default function GroupPage() {
     },
     enabled: tab === "campsite" && !!myMembership,
   });
-
-  const myMembership = members.find((m: any) => m.userId === user?.id);
-  const isLeader = group?.leaderId === user?.id;
-  const isApproved = myMembership?.status === "approved";
   const approvedMembers = members.filter((m: any) => m.status === "approved");
   const pendingMembers = members.filter((m: any) => m.status === "pending");
 
