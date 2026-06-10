@@ -41,8 +41,18 @@ export function registerGroupRoutes(app: Express) {
     const allGroups = await storage.getAllGroups();
     const enriched = await Promise.all(allGroups.map(async g => {
       const members = await storage.getGroupMembers(g.id);
-      const approvedCount = members.filter(m => m.status === "approved").length;
-      return { ...g, memberCount: approvedCount };
+      const approved = members.filter(m => m.status === "approved");
+      // Squads are small (≤5): attach a lightweight member preview so the client
+      // can render 1:1 crew-ups as a "connections" strip with the other person's
+      // name/avatar. Larger groups skip this to avoid extra user lookups.
+      let memberPreview: { id: string; name: string; avatarUrl: string | null }[] | undefined;
+      if (g.type === "squad" && approved.length <= 5) {
+        memberPreview = await Promise.all(approved.map(async m => {
+          const u = await storage.getUser(m.userId);
+          return { id: m.userId, name: u?.nickname || u?.name || "Member", avatarUrl: u?.avatarUrl ?? null };
+        }));
+      }
+      return { ...g, memberCount: approved.length, members: memberPreview };
     }));
     res.json(enriched);
   });
@@ -52,6 +62,27 @@ export function registerGroupRoutes(app: Express) {
     if (!userId) return res.json([]);
     const led = await storage.getGroupsLedByUser(userId);
     res.json(led);
+  });
+
+  // Groups the viewer belongs to (member or leader), enriched like GET /api/groups.
+  // Powers the Home dashboard: split client-side into 1:1 crew vs real groups.
+  app.get("/api/groups/mine", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.json([]);
+    const mine = await storage.getGroupsForUser(userId);
+    const enriched = await Promise.all(mine.map(async g => {
+      const members = await storage.getGroupMembers(g.id);
+      const approved = members.filter(m => m.status === "approved");
+      let memberPreview: { id: string; name: string; avatarUrl: string | null }[] | undefined;
+      if (g.type === "squad" && approved.length <= 5) {
+        memberPreview = await Promise.all(approved.map(async m => {
+          const u = await storage.getUser(m.userId);
+          return { id: m.userId, name: u?.nickname || u?.name || "Member", avatarUrl: u?.avatarUrl ?? null };
+        }));
+      }
+      return { ...g, memberCount: approved.length, members: memberPreview };
+    }));
+    res.json(enriched);
   });
 
   app.get("/api/groups/:id", async (req, res) => {
@@ -187,9 +218,11 @@ export function registerGroupRoutes(app: Express) {
     const matchedIds = await storage.getMatchedUserIds(userId);
     if (!matchedIds.includes(targetId)) return res.status(403).json({ error: "You can only crew up with people you've connected with" });
 
-    // Already have a squad you lead with exactly the two of you? Reuse it.
-    const led = await storage.getGroupsLedByUser(userId);
-    for (const g of led) {
+    // Already have a 2-person squad with exactly the two of you? Reuse it —
+    // whether you lead it OR the other person does. Checking only squads you
+    // lead let mutual crew-ups create duplicate squads (one led by each side).
+    const myGroups = await storage.getGroupsForUser(userId);
+    for (const g of myGroups) {
       if (g.type !== "squad" || !g.isActive) continue;
       const members = await storage.getGroupMembers(g.id);
       const approved = members.filter(m => m.status === "approved").map(m => m.userId);

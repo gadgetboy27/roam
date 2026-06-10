@@ -357,6 +357,51 @@ function CreateGroupModal({ onClose, onCreated, canCreateLargeGroups }: { onClos
   );
 }
 
+// A 1:1 crew-up: an auto-created 2-person squad named "A & B". These are private
+// connection chats, not browseable groups — we bundle them into a compact strip
+// instead of giving each a full card.
+function isPairSquad(g: any): boolean {
+  return g.type === "squad" && (g.memberCount ?? 0) <= 2 && / & /.test(g.name ?? "");
+}
+
+function ConnectionsStrip({ connections, myId, onOpen }: {
+  connections: any[]; myId?: string; onOpen: (id: string) => void;
+}) {
+  if (connections.length === 0) return null;
+  return (
+    <div className="px-5 pt-2 pb-4">
+      <div className="font-mono text-[10px] tracking-wider uppercase mb-3"
+           style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+        Your connections · {connections.length}
+      </div>
+      <div className="flex gap-3.5 overflow-x-auto pb-1 -mx-1 px-1" style={{ scrollbarWidth: "none" }}>
+        {connections.map(g => {
+          const other = (g.members ?? []).find((m: any) => m.id !== myId) ?? (g.members ?? [])[0];
+          const name = ((other?.name || g.name || "") as string).trim().split(/\s+/)[0] || "Crew";
+          const initial = name.charAt(0).toUpperCase();
+          return (
+            <button key={g.id} onClick={() => onOpen(g.id)}
+                    className="flex flex-col items-center gap-1.5 flex-shrink-0 w-[60px] group/conn"
+                    data-testid={`connection-${g.id}`}>
+              <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center transition-transform group-active/conn:scale-95"
+                   style={{ background: "rgba(var(--roam-electric-rgb),0.12)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)" }}>
+                {other?.avatarUrl
+                  ? <img src={other.avatarUrl} alt={name} className="w-full h-full object-cover" />
+                  : <span className="font-serif font-bold text-[16px]" style={{ color: "var(--roam-electric)" }}>{initial}</span>}
+              </div>
+              <span className="font-mono text-[10px] truncate w-full text-center"
+                    style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>{name}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="font-mono text-[9px] mt-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
+        Tap to open your campsite chat
+      </div>
+    </div>
+  );
+}
+
 export default function Roamers() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
@@ -378,7 +423,14 @@ export default function Roamers() {
   const myGroupIds: string[] = [];
   if (user) groups.forEach(g => { if (g.leaderId === user.id) myGroupIds.push(g.id); });
 
-  const filtered = filter === "all" ? groups : groups.filter(g => g.type === filter);
+  // 1:1 crew-ups → bundled "connections" strip (only the viewer's own).
+  // Everything else → browseable group cards.
+  const myConnections = user
+    ? groups.filter(g => isPairSquad(g) && (g.members ?? []).some((m: any) => m.id === user.id))
+    : [];
+  const browseGroups = groups.filter(g => !isPairSquad(g));
+  const filtered = filter === "all" ? browseGroups : browseGroups.filter(g => g.type === filter);
+  const showConnections = (filter === "all" || filter === "squad") && myConnections.length > 0;
 
   const handleCreated = (groupId: string) => {
     setShowCreate(false);
@@ -449,6 +501,14 @@ export default function Roamers() {
             </div>
           )}
         </div>
+
+        {showConnections && (
+          <ConnectionsStrip
+            connections={myConnections}
+            myId={user?.id}
+            onOpen={id => navigate(`/groups/${id}?tab=campsite`)}
+          />
+        )}
 
         <div className="px-5 pb-4 space-y-3">
           <div className="rounded-2xl p-4"

@@ -33,6 +33,7 @@ import InvitePage from "@/pages/invite";
 import WhatsOn from "@/pages/whats-on";
 import Onboarding from "@/pages/onboarding";
 import Safety from "@/pages/safety";
+import Home from "@/pages/home";
 
 function Router() {
   return (
@@ -48,6 +49,9 @@ function Router() {
       <Route path="/data-deletion" component={DataDeletion} />
       <Route path="/onboarding">
         <RequireAuth><Onboarding /></RequireAuth>
+      </Route>
+      <Route path="/home">
+        <RequireAuth><Home /></RequireAuth>
       </Route>
       <Route path="/discover">
         <RequireAuth><Discover /></RequireAuth>
