@@ -25,43 +25,6 @@ import {
   type CachedMessage,
 } from "@/lib/messageCache";
 
-const DEMO_CONNECTIONS = [
-  {
-    id: "match-demo-1",
-    name: "Mia",
-    nameAge: "Mia, 28",
-    shared: ["alpine hiking", "rock climbing", "night markets"],
-    when: "Matched 2h ago",
-    img: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=150&q=80&fit=crop",
-    opener: "You've both tagged alpine routes — who had the bigger summit this year?",
-    seed: [] as CachedMessage[],
-  },
-  {
-    id: "match-demo-2",
-    name: "Kai",
-    nameAge: "Kai, 31",
-    shared: ["surfing", "night markets", "urban roaming"],
-    when: "Matched yesterday",
-    img: "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=150&q=80&fit=crop",
-    opener: "You've both ridden Raglan — did you catch the right-hander or go left?",
-    seed: [
-      { id: "seed-k1", matchId: "match-demo-2", senderId: "kai", content: "Hey! That surf shot at Raglan looks amazing", createdAt: new Date(Date.now() - 3600000).toISOString() },
-    ] as CachedMessage[],
-  },
-  {
-    id: "match-demo-3",
-    name: "Sam",
-    nameAge: "Sam, 26",
-    shared: ["backpacking", "kayaking", "forest trails"],
-    when: "Matched 3 days ago",
-    img: "https://images.unsplash.com/photo-1473773508845-188df298d2d1?w=150&q=80&fit=crop",
-    opener: "You're both planning Abel Tasman — full track or water taxi in?",
-    seed: [
-      { id: "seed-s1", matchId: "match-demo-3", senderId: "sam", content: "We should hit Abel Tasman together next summer!", createdAt: new Date(Date.now() - 86400000).toISOString() },
-    ] as CachedMessage[],
-  },
-];
-
 const BUCKET_LIST = [
   { name: "Faroe Islands", want: "3 matches want this", url: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=300&q=80&fit=crop", count: 3 },
   { name: "Patagonia", want: "7 matches want this", url: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=300&q=80&fit=crop", count: 7 },
@@ -195,18 +158,11 @@ export default function Matches() {
       .filter((c): c is NonNullable<typeof c> => c !== null);
   }, [dbMatches, user, usersById]);
 
-  const connections = realConnections.length > 0 ? realConnections : DEMO_CONNECTIONS;
-  const isDemo = realConnections.length === 0 && !!user;
+  const connections = realConnections;
+  const hasConnections = connections.length > 0;
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [conversations, setConversations] = useState<Record<string, CachedMessage[]>>(() => {
-    const init: Record<string, CachedMessage[]> = {};
-    DEMO_CONNECTIONS.forEach(m => {
-      const cached = getCachedMessages(m.id);
-      init[m.id] = cached.length > 0 ? cached : [...m.seed];
-    });
-    return init;
-  });
+  const [conversations, setConversations] = useState<Record<string, CachedMessage[]>>({});
   const [inputVal, setInputVal] = useState("");
   const [theirTyping, setTheirTyping] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
@@ -426,21 +382,13 @@ export default function Matches() {
                   mutual roamers
                 </div>
                 <h1 className="font-serif text-[28px] font-black leading-[1.05]" data-testid="text-match-count">
-                  {isDemo ? "0" : realConnections.length} adventurers
+                  {realConnections.length} adventurers
                 </h1>
                 <p className="text-[11px] mt-1.5" style={{ color: "rgba(var(--roam-cream-rgb),0.38)" }}>
-                  {isDemo
-                    ? "No adventure links yet — head to Discover to find your people"
-                    : "You share adventure DNA with these people. Start planning."}
+                  {hasConnections
+                    ? "You share adventure DNA with these people. Start planning."
+                    : "No connections yet — match in Discover to find your people."}
                 </p>
-                {isDemo && (
-                  <div className="mt-3 px-3 py-2 rounded-xl inline-block"
-                       style={{ background: "rgba(var(--roam-electric-rgb),0.06)", border: "1px solid rgba(var(--roam-electric-rgb),0.18)" }}>
-                    <span className="font-mono text-[9px] tracking-wider" style={{ color: "rgba(var(--roam-electric-rgb),0.6)" }}>
-                      ↓ preview of what connections look like
-                    </span>
-                  </div>
-                )}
               </div>
 
               {offlineBanner()}
@@ -475,6 +423,21 @@ export default function Matches() {
               )}
 
               <div className="px-3.5 space-y-2" data-testid="connections-list">
+                {!hasConnections && (
+                  <div className="text-center py-10 px-6">
+                    <Compass size={36} className="mx-auto mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.15)" }} />
+                    <p className="font-serif text-[16px] font-bold mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>No connections yet</p>
+                    <p className="font-mono text-[11px] mb-5 leading-relaxed max-w-[240px] mx-auto" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>
+                      Roam in Discover to connect with adventurers — then message and plan trips right here.
+                    </p>
+                    <button onClick={() => navigate("/discover")}
+                            className="font-mono text-[11px] px-5 py-2.5 rounded-xl inline-flex items-center gap-1.5"
+                            style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
+                            data-testid="matches-empty-discover">
+                      Find adventurers →
+                    </button>
+                  </div>
+                )}
                 {connections.map((m, i) => {
                   const msgs = conversations[m.id] ?? [];
                   const last = msgs[msgs.length - 1] ?? null;
@@ -531,7 +494,7 @@ export default function Matches() {
                           <MessageCircle size={16} />
                         </div>
                         {/* Secondary: escalate this connection into a private squad (group + campsite) */}
-                        {!isDemo && (m as any).partnerId && (
+                        {(m as any).partnerId && (
                           <button
                             onClick={e => { e.stopPropagation(); crewUp.mutate({ id: (m as any).partnerId, name: m.name }); }}
                             disabled={crewUp.isPending}
