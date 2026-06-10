@@ -545,16 +545,24 @@ export default function Matches() {
                           <div className="text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>{m.when}</div>
                         )}
                       </div>
-                      <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
+                      <div className="flex-shrink-0 flex flex-col items-end gap-2">
                         <MomentumBadge state={momentum} />
+                        {/* Primary: tapping the row opens the 1:1 chat — this icon signals that */}
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                             style={{ background: "rgba(var(--roam-electric-rgb),0.12)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)", color: "var(--roam-electric)" }}
+                             aria-hidden="true">
+                          <MessageCircle size={16} />
+                        </div>
+                        {/* Secondary: escalate this connection into a private squad (group + campsite) */}
                         {!isDemo && (m as any).partnerId && (
                           <button
                             onClick={e => { e.stopPropagation(); crewUp.mutate({ id: (m as any).partnerId, name: m.name }); }}
                             disabled={crewUp.isPending}
-                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-semibold transition-all active:scale-95 disabled:opacity-50"
-                            style={{ background: "var(--roam-electric)", color: "var(--roam-bg)" }}
+                            className="flex items-center gap-1 text-[10px] font-mono transition-all active:scale-95 disabled:opacity-50"
+                            style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}
+                            title="Start a private squad you can add more people to"
                             data-testid={`button-crew-up-${m.id}`}>
-                            <Tent size={13} /> Crew up
+                            <Tent size={11} /> Start squad
                           </button>
                         )}
                       </div>
