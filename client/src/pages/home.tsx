@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { computeVibeWord } from "@/lib/fingerprint";
 import {
-  ShieldCheck, ChevronRight, Plus, Calendar, MapPin, Users, Star, Compass,
+  ShieldCheck, ChevronRight, Plus, Calendar, MapPin, Users, Star, Compass, UserPlus,
 } from "lucide-react";
 
 // ── PROTOTYPE: personal Home dashboard ──────────────────────────────────────
@@ -189,6 +189,36 @@ export default function Home() {
                   className="mt-3 font-mono text-[11px] flex items-center gap-1.5" style={{ color: "var(--roam-electric)" }}
                   data-testid="home-browse-groups">
             <Plus size={12} /> Start or browse groups →
+          </button>
+        </div>
+
+        {/* Invite your crew — referral loop */}
+        <div className="px-5 pb-5">
+          <button onClick={async () => {
+                    const url = `${window.location.origin}/join?ref=${user?.id ?? ""}`;
+                    try {
+                      if ((navigator as any).share) {
+                        await (navigator as any).share({ title: "Join me on roam.", text: "Come adventure with me on roam — match on real adventures, not bios.", url });
+                      } else {
+                        await navigator.clipboard.writeText(url);
+                        alert("Invite link copied — share it with your crew 🔗");
+                      }
+                    } catch { /* share cancelled */ }
+                  }}
+                  className="w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left transition-all active:scale-[0.99]"
+                  style={{ background: "rgba(var(--roam-electric-rgb),0.08)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)" }}
+                  data-testid="home-invite-crew">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                 style={{ background: "rgba(var(--roam-electric-rgb),0.15)", color: "var(--roam-electric)" }}>
+              <UserPlus size={17} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-medium" style={{ color: "var(--roam-cream)" }}>Invite your crew</div>
+              <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                Friends who join connect with you instantly.
+              </div>
+            </div>
+            <ChevronRight size={16} style={{ color: "var(--roam-electric)" }} />
           </button>
         </div>
 

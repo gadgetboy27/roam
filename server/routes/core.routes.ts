@@ -374,6 +374,52 @@ export function registerCoreRoutes(app: Express, deps: RouteDeps) {
     }
   });
 
+  // ─── Referrals: "invite your crew" ─────────────────────────────────────────
+  // Public: resolve an inviter's first name for the /join landing page.
+  app.get("/api/referrals/:id", async (req, res) => {
+    const u = await storage.getUser(req.params.id);
+    if (!u) return res.status(404).json({ error: "Inviter not found" });
+    const display = (u.nickname || u.name || "A friend").split(/\s+/)[0];
+    res.json({ name: display });
+  });
+
+  // Authed: a freshly-onboarded user auto-connects with the friend who invited
+  // them, so they arrive with a real connection (and the inviter gets a win).
+  app.post("/api/referrals/connect", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    const referrerId = req.body?.referrerId;
+    if (!referrerId || referrerId === userId) return res.status(400).json({ message: "Invalid referrer" });
+    const referrer = await storage.getUser(referrerId);
+    if (!referrer) return res.status(404).json({ message: "Inviter not found" });
+
+    const existing = await storage.getMatchBetween(userId, referrerId);
+    if (existing) {
+      if (existing.status !== "matched") await storage.updateMatchStatus(existing.id, "matched", { matchedAt: new Date() });
+      return res.json({ connected: true, referrerName: (referrer.nickname || referrer.name || "").split(/\s+/)[0] });
+    }
+
+    const me = await storage.getUser(userId);
+    let overlapScore = 0;
+    let sharedTags: string[] = [];
+    try {
+      const [pa, pb] = await Promise.all([storage.getPhotosByUser(userId), storage.getPhotosByUser(referrerId)]);
+      const o = computeOverlap(buildFingerprint(pa, me?.adventureTags ?? null), buildFingerprint(pb, referrer.adventureTags));
+      overlapScore = o.score;
+      sharedTags = o.sharedTags;
+    } catch { /* fingerprint never blocks the connect */ }
+
+    const match = await storage.createMatch({ userAId: userId, userBId: referrerId, status: "matched", matchedAt: new Date(), overlapScore, sharedTags });
+    await storage.createNotification({
+      userId: referrerId,
+      type: "match",
+      title: "Your invite landed! 🎉",
+      body: `${me?.nickname || me?.name || "A friend"} joined roam and connected with you — say hi!`,
+      data: JSON.stringify({ matchId: match.id }),
+    });
+    res.status(201).json({ connected: true, referrerName: (referrer.nickname || referrer.name || "").split(/\s+/)[0] });
+  });
+
   app.get("/api/users/:id/honesty", async (req, res) => {
     const authUserId = await authenticateRequest(req);
     if (!authUserId) return res.status(401).json({ message: "Not authenticated" });

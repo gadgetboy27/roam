@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { fileToDataUrl } from "@/lib/file";
-import { consumeNextRoute } from "@/lib/nextRoute";
+import { consumeNextRoute, consumeReferrer } from "@/lib/nextRoute";
 import { Check, X, ChevronRight, ChevronLeft, CloudUpload, Compass, Plus, ImagePlus, Loader2, MapPin } from "lucide-react";
 
 // ─── Adventure types — tags map directly into buildFingerprint() ──────────────
@@ -261,8 +261,12 @@ export default function Onboarding() {
     }
   }, [user, photos.length]);
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     localStorage.setItem("roam_onboarding_done", "1");
+    const referrerId = consumeReferrer();
+    if (referrerId) {
+      try { await apiRequest("POST", "/api/referrals/connect", { referrerId }); } catch { /* non-fatal — they can still find the friend */ }
+    }
     navigate(consumeNextRoute());
   };
 
