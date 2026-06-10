@@ -3,13 +3,12 @@ import { useLocation } from "wouter";
 import AppNav from "@/components/app-nav";
 import {
   Send, ArrowLeft, WifiOff, Clock, MapPin, BookmarkCheck,
-  Bookmark, Compass, Flame, MessageCircle, Hourglass, Zap, Lock,
+  Bookmark, Compass, Flame, MessageCircle, Hourglass, Zap,
   Plus, X, ImagePlus, Loader2
 } from "lucide-react";
 import { useConnectionStatus } from "@/lib/useConnectionStatus";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { ToastAction } from "@/components/ui/toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { fileToDataUrl } from "@/lib/file";
@@ -139,7 +138,6 @@ export default function Matches() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const myId = user?.id ?? "demo-user";
-  const isPaid = user?.tier === "adventurer";
   const crewUp = useCrewUp();
 
   const { data: bucketList = [] } = useQuery<{ id: string; destinationName: string; imageUrl: string | null }[]>({
@@ -484,36 +482,15 @@ export default function Matches() {
                   const momentum = getMomentum(msgs, myId);
                   return (
                     <div key={m.id}
-                         className={`rounded-[22px] p-3.5 flex gap-3 items-center transition-all animate-fade-up ${isPaid ? "cursor-pointer" : "cursor-default select-none"}`}
+                         className="rounded-[22px] p-3.5 flex gap-3 items-center transition-all animate-fade-up cursor-pointer"
                          style={{ background: "var(--roam-moss)", border: "1px solid rgba(var(--roam-cream-rgb),0.06)", animationDelay: `${i * 0.07}s` }}
-                         onClick={() => {
-                           if (!isPaid) {
-                             toast({
-                               title: "Adventurer tier unlocks this 🔒",
-                               description: "Upgrade to see match photos and start conversations.",
-                               action: (
-                                 <ToastAction altText="Upgrade now" onClick={() => navigate("/plans")}>
-                                   Upgrade now
-                                 </ToastAction>
-                               ),
-                             });
-                             return;
-                           }
-                           openChat(m.id);
-                         }}
+                         onClick={() => openChat(m.id)}
                          data-testid={`match-row-${m.id}`}>
                       <div className="relative flex-shrink-0">
                         <div className="w-[58px] h-[58px] rounded-xl overflow-hidden relative">
                           <img src={m.img} alt={m.nameAge}
                                className="w-full h-full object-cover"
-                               style={!isPaid ? { filter: "blur(8px)", transform: "scale(1.1)" } : undefined}
                                loading="lazy" />
-                          {!isPaid && (
-                            <div className="absolute inset-0 flex items-center justify-center"
-                                 style={{ background: "rgba(0,0,0,0.25)" }}>
-                              <Lock size={14} style={{ color: "rgba(255,255,255,0.7)" }} />
-                            </div>
-                          )}
                         </div>
                         {hasPending && (
                           <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center"

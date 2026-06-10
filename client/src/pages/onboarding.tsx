@@ -152,8 +152,8 @@ export default function Onboarding() {
   };
 
   const saveAdventuresAndNext = async () => {
-    if (!user) { setStep(2); return; }
-    if (selectedAdventures.size === 0) { setStep(2); return; }
+    if (!user) { setStep(3); return; }
+    if (selectedAdventures.size === 0) { setStep(3); return; }
     setSaving(true);
     try {
       const tags = [...selectedAdventures].flatMap(i => ADVENTURE_TYPES[i].tags);
@@ -163,7 +163,7 @@ export default function Onboarding() {
       console.warn("[onboarding] adventure tags save failed:", e);
     } finally {
       setSaving(false);
-      setStep(2);
+      setStep(3);
     }
   };
 
@@ -191,7 +191,7 @@ export default function Onboarding() {
   const totalDests = selectedDests.size + customDests.length;
 
   const saveDestsAndNext = async () => {
-    if (!user || totalDests === 0) { setStep(3); return; }
+    if (!user || totalDests === 0) { setStep(4); return; }
     setSaving(true);
     try {
       await Promise.all([
@@ -218,7 +218,7 @@ export default function Onboarding() {
       console.warn("[onboarding] bucket list save failed:", e);
     } finally {
       setSaving(false);
-      setStep(3);
+      setStep(4);
     }
   };
 
@@ -665,7 +665,7 @@ export default function Onboarding() {
 
       {photos.length > 0 && (
         <button
-          onClick={() => setStep(4)}
+          onClick={() => setStep(2)}
           disabled={approvedCount === 0}
           className="w-full py-4 rounded-xl font-semibold text-base"
           style={approvedCount > 0 ? electricBtn : dimBtn}
@@ -678,7 +678,7 @@ export default function Onboarding() {
       )}
 
       <button
-        onClick={() => setStep(4)}
+        onClick={() => setStep(2)}
         className="text-center text-sm py-2"
         style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}
         data-testid="button-onboarding-upload-skip"
@@ -759,7 +759,10 @@ export default function Onboarding() {
 
   // ── Layout ────────────────────────────────────────────────────────────────────
 
-  const STEPS = [step0, step2, step3, step4, step5];
+  // Photo-first: photos (step4) is the hero step right after the intro, then
+  // adventures (step2), then destinations (step3). Photos drive matches, so we
+  // ask for one before the lighter-weight steps to avoid blank profiles.
+  const STEPS = [step0, step4, step2, step3, step5];
 
   return (
     <div className="min-h-screen" style={{ background: "var(--roam-base, #0e1a0d)" }}>
