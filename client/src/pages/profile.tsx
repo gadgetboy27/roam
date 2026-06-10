@@ -1026,8 +1026,30 @@ export default function Profile() {
               </button>
             ) : (
               <div>
-                <p className="font-mono text-[11px] leading-relaxed mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>
-                  This permanently deletes your profile, photos, matches, and messages. Cannot be undone.
+                {/* Softer off-ramp first — industry-standard "are you sure?" safeguard */}
+                <div className="rounded-xl px-3.5 py-3 mb-3"
+                     style={{ background: "rgba(var(--roam-electric-rgb),0.07)", border: "1px solid rgba(var(--roam-electric-rgb),0.2)" }}>
+                  <p className="font-mono text-[11px] font-semibold mb-0.5" style={{ color: "var(--roam-cream)" }}>Just need a break?</p>
+                  <p className="font-mono text-[10px] leading-relaxed mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                    You can log out and come back anytime — nothing is lost.
+                  </p>
+                  <button className="font-mono text-[10px] tracking-wider uppercase font-semibold"
+                          style={{ color: "var(--roam-electric)" }}
+                          onClick={async () => { await logout(); navigate("/login"); }}
+                          data-testid="button-delete-take-break">
+                    Log out instead →
+                  </button>
+                </div>
+                <p className="font-mono text-[11px] leading-relaxed mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}>
+                  Deleting is permanent. This removes:
+                </p>
+                <ul className="font-mono text-[10px] leading-relaxed mb-3 pl-1" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                  <li>· your profile & photos</li>
+                  <li>· all matches & messages</li>
+                  <li>· groups you lead (and their events)</li>
+                </ul>
+                <p className="font-mono text-[10px] leading-relaxed mb-3" style={{ color: "rgba(var(--roam-ember-rgb),0.7)" }}>
+                  This cannot be undone.
                 </p>
                 <div className="flex gap-2">
                   <button className="flex items-center gap-2 font-mono text-[10px] tracking-wider uppercase font-semibold px-4 py-2.5 rounded-xl transition-all"
@@ -1038,7 +1060,7 @@ export default function Profile() {
                   <button className="font-mono text-[10px] tracking-wider uppercase px-4 py-2.5 rounded-xl transition-all"
                           style={{ background: "rgba(var(--roam-cream-rgb),0.07)", color: "rgba(var(--roam-cream-rgb),0.5)" }}
                           onClick={() => setConfirmDelete(false)} disabled={deleting} data-testid="button-delete-account-cancel">
-                    Cancel
+                    Keep my account
                   </button>
                 </div>
               </div>

@@ -297,19 +297,9 @@ export function registerCoreRoutes(app: Express, deps: RouteDeps) {
         return res.json({ isNewMatch: false, demo: true });
       }
 
-      // Enforce free-tier connection limit (3 per month)
-      const initiatorId = sessionUserId;
-      const initiator = await storage.getUser(initiatorId);
-      if (initiator && (initiator.tier === "free" || !initiator.tier)) {
-        const sentThisMonth = await storage.getMonthlyConnectionsSent(initiatorId);
-        if (sentThisMonth >= 3) {
-          return res.status(403).json({
-            message: "Free plan limit reached",
-            limitReached: true,
-            upgradeRequired: true,
-          });
-        }
-      }
+      // Connecting is free and unlimited — the network only ignites if people can
+      // actually connect. (Previously free tier was capped at 3 connections/month;
+      // lifted to keep the core loop free, monetising depth/business features instead.)
 
       const notifyConnection = (otherUserId: string, matchId: string) => {
         storage.getUser(sessionUserId).then(me =>
