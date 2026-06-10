@@ -83,6 +83,8 @@ export default function Profile() {
   const [verifyError, setVerifyError] = useState("");
   const [verifySubmitted, setVerifySubmitted] = useState(false);
   const [verifyTimedOut, setVerifyTimedOut] = useState(false);
+  const [verifyNeedsRetry, setVerifyNeedsRetry] = useState(false);
+  const [verifyReason, setVerifyReason] = useState("");
   const [resetting, setResetting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -184,7 +186,20 @@ export default function Profile() {
       attempts++;
       // Ask the server to confirm directly with Stripe (works even if the
       // Stripe webhook is misconfigured), then refresh the local user.
-      try { await apiRequest("POST", "/api/verify/status"); } catch { /* fall back to refresh */ }
+      try {
+        const res = await apiRequest("POST", "/api/verify/status");
+        const data = await res.json().catch(() => null);
+        if (data?.verified) { clearInterval(interval); await refresh(); return; }
+        if (data?.status === "requires_input") {
+          // Stripe couldn't verify the document/selfie — stop polling and show a retry.
+          clearInterval(interval);
+          const code = data?.lastError?.reason || data?.lastError?.code;
+          setVerifyReason(code ? `Stripe couldn't verify it (${String(code).replace(/_/g, " ")}).` : "");
+          setVerifyNeedsRetry(true);
+          await refresh();
+          return;
+        }
+      } catch { /* fall back to refresh */ }
       await refresh();
       if (attempts >= 10) { clearInterval(interval); setVerifyTimedOut(true); }
     }, 3000);
@@ -211,6 +226,9 @@ export default function Profile() {
 
   const handleStartVerification = async () => {
     if (!user) return;
+    setVerifyNeedsRetry(false);
+    setVerifyReason("");
+    setVerifyTimedOut(false);
     setVerifying(true);
     setVerifyError("");
     try {
@@ -432,7 +450,22 @@ export default function Profile() {
                    style={{ border: "1px solid rgba(var(--roam-electric-rgb),0.3)", background: "rgba(var(--roam-electric-rgb),0.05)" }}
                    data-testid="section-verified-user">
                 <div className="px-4 py-3.5">
-                  {user?.identityVerificationId && !verifyTimedOut ? (
+                  {verifyNeedsRetry ? (
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-mono text-[11px] font-semibold" style={{ color: "var(--roam-ember)" }}>Verification didn't pass</div>
+                        <div className="font-mono text-[10px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                          {verifyReason ? `${verifyReason} ` : ""}Retry with a clear, well-lit photo of your ID and face.
+                        </div>
+                      </div>
+                      <button onClick={handleStartVerification} disabled={verifying}
+                              className="flex-shrink-0 py-2 px-4 rounded-xl font-mono text-[11px] font-semibold transition-all"
+                              style={{ background: "var(--roam-electric)", color: "var(--roam-forest)", opacity: verifying ? 0.7 : 1 }}
+                              data-testid="button-verify-retry">
+                        {verifying ? "Starting…" : "Try again →"}
+                      </button>
+                    </div>
+                  ) : user?.identityVerificationId && !verifyTimedOut ? (
                     <div className="flex items-center gap-3">
                       <div className="w-6 h-6 rounded-full animate-spin flex-shrink-0"
                            style={{ border: "2px solid rgba(var(--roam-electric-rgb),0.2)", borderTopColor: "var(--roam-electric)" }} />

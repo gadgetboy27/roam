@@ -591,7 +591,10 @@ export function registerPaymentRoutes(app: Express, deps: RouteDeps) {
       const userId = session?.metadata?.userId;
       if (userId) {
         console.log(`[identity] User ${userId} verification requires input — last error: ${JSON.stringify(session?.last_error)}`);
-        await storage.updateUserVerification(userId, null, false);
+        // Keep the session id (not null) so /api/verify/status can report the
+        // requires_input state + reason and the UI can offer a clear retry,
+        // instead of silently dropping the user back to the start with no hint.
+        await storage.updateUserVerification(userId, session.id, false);
       }
     }
 

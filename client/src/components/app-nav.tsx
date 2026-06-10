@@ -17,7 +17,6 @@ const NAV_ITEMS = [
   { path: "/home",      label: "Home",       icon: Home },
   { path: "/discover",  label: "Discover",   icon: Compass },
   { path: "/whats-on", label: "What's On",   icon: CalendarDays },
-  { path: "/groups",   label: "Groups",      icon: Users },
   { path: "/matches",  label: "Adventurers", icon: MessageCircle },
   { path: "/profile",  label: "Profile",     icon: User },
   { path: "/safety",   label: "Safety",      icon: ShieldCheck },

@@ -5,11 +5,84 @@ import { useAuth } from "@/lib/auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, MapPin, Users, ChevronRight, Check, ExternalLink, Sparkles } from "lucide-react";
+import { Calendar, MapPin, Users, ChevronRight, Check, ExternalLink, Sparkles, Plus } from "lucide-react";
 
 const GROUP_TYPE_LABEL: Record<string, string> = {
   squad: "Squad", crew: "Crew", community: "Community", organiser: "Organiser",
 };
+
+// A 1:1 crew-up squad (private connection chat) — kept out of the browseable
+// communities list, which is for real multi-person groups to join.
+function isPairSquad(g: any): boolean {
+  return g.type === "squad" && (g.memberCount ?? 0) <= 2 && / & /.test(g.name ?? "");
+}
+
+// Communities tab: browse/join real groups. Lives here (under What's On) instead
+// of a standalone Groups nav tab — group creation deep-links to /groups.
+function CommunitiesView() {
+  const [, navigate] = useLocation();
+  const { user } = useAuth();
+  const { data: groups = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/groups"],
+    refetchInterval: 20_000,
+  });
+  const { data: eligibility } = useQuery<{ eligible?: boolean }>({
+    queryKey: ["/api/groups/eligibility/check"],
+    enabled: !!user,
+  });
+  const browseable = groups.filter(g => !isPairSquad(g));
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-[13px]" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>Adventure crews & communities to join</p>
+        {user && eligibility?.eligible && (
+          <button onClick={() => navigate("/groups")}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-[11px] font-semibold"
+                  style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }} data-testid="communities-new">
+            <Plus size={13} /> New
+          </button>
+        )}
+      </div>
+      {isLoading ? (
+        <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-20 rounded-2xl animate-pulse" style={{ background: "rgba(var(--roam-cream-rgb),0.05)" }} />)}</div>
+      ) : browseable.length === 0 ? (
+        <div className="text-center py-16">
+          <Users size={36} className="mx-auto mb-3" style={{ color: "rgba(var(--roam-cream-rgb),0.12)" }} />
+          <p className="font-serif text-[18px] font-bold mb-1" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>No communities yet</p>
+          <p className="text-[12px] mb-6" style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}>Be the first to gather your adventure crew.</p>
+          <button onClick={() => navigate("/groups")} className="px-5 py-2.5 rounded-xl font-mono text-[11px] tracking-wider"
+                  style={{ background: "rgba(var(--roam-electric-rgb),0.1)", color: "var(--roam-electric)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)" }}>
+            Start a group →
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {browseable.map(g => (
+            <button key={g.id} onClick={() => navigate(`/groups/${g.id}`)}
+                    className="w-full text-left rounded-2xl p-4 transition-all active:scale-[0.99]"
+                    style={{ background: "var(--roam-surface)", border: "1px solid rgba(var(--roam-cream-rgb),0.1)" }}
+                    data-testid={`community-${g.id}`}>
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="font-serif font-bold text-[15px] truncate" style={{ color: "var(--roam-cream)" }}>{g.name}</div>
+                  <div className="flex items-center gap-2 mt-1 font-mono text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
+                    <span>{GROUP_TYPE_LABEL[g.type] ?? g.type}</span>
+                    {g.location && <span className="flex items-center gap-0.5"><MapPin size={10} /> {g.location}</span>}
+                  </div>
+                </div>
+                <span className="flex items-center gap-1 flex-shrink-0 font-mono text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
+                  <Users size={12} /> {g.memberCount ?? 0}
+                </span>
+              </div>
+              {g.description && <p className="text-[12px] mt-2 line-clamp-2" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>{g.description}</p>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function smartDate(d: string | Date): string {
   const date = new Date(d);
@@ -220,6 +293,7 @@ function getDateForEvent(e: any): Date {
 
 export default function WhatsOn() {
   const [filter, setFilter] = useState<Filter>("today");
+  const [view, setView] = useState<"events" | "communities">("events");
   const { user } = useAuth();
   const [, navigate] = useLocation();
 
@@ -269,6 +343,25 @@ export default function WhatsOn() {
           </p>
         </div>
 
+        {/* Events | Communities */}
+        <div className="flex gap-2 mb-4">
+          {(["events", "communities"] as const).map(v => (
+            <button key={v} onClick={() => setView(v)}
+                    className="flex-1 py-2 rounded-xl font-mono text-[12px] tracking-wider transition-all"
+                    style={{
+                      background: view === v ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.06)",
+                      color: view === v ? "var(--roam-forest)" : "rgba(var(--roam-cream-rgb),0.5)",
+                      border: view === v ? "none" : "1px solid rgba(var(--roam-cream-rgb),0.1)",
+                      fontWeight: view === v ? 600 : 400,
+                    }}
+                    data-testid={`view-${v}`}>
+              {v === "events" ? "Events" : "Communities"}
+            </button>
+          ))}
+        </div>
+
+        {view === "communities" ? <CommunitiesView /> : (
+        <>
         <div className="flex gap-2 mb-5 sticky top-[60px] z-10 py-2"
              style={{ background: "rgba(var(--roam-forest-rgb),0.92)", backdropFilter: "blur(16px)", marginLeft: "-1rem", marginRight: "-1rem", paddingLeft: "1rem", paddingRight: "1rem" }}>
           {FILTERS.map(f => (
@@ -330,6 +423,8 @@ export default function WhatsOn() {
                 : <GroupEventCard key={`group-${event.id}`} event={event} onRsvp={() => {}} />
             )}
           </div>
+        )}
+        </>
         )}
       </div>
     </div>
