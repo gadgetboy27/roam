@@ -17,21 +17,22 @@ const GROUP_TYPES = [
     label: "Squad",
     icon: <Tent size={16} />,
     range: "2–5 people",
-    desc: "A tight-knit crew for close adventures",
+    desc: "Just you and a few mates — private and tight-knit",
   },
   {
     id: "crew",
     label: "Crew",
     icon: <Ship size={16} />,
     range: "6–20 people",
-    desc: "A social adventure group with room to grow",
+    desc: "Most adventures fit here — trips, meetups, day hikes",
+    recommended: true,
   },
   {
     id: "community",
     label: "Community",
     icon: <Mountain size={16} />,
     range: "20–100 people",
-    desc: "An open community built around shared passions",
+    desc: "Large, ongoing communities around a shared passion",
     paid: true,
   },
   {
@@ -39,7 +40,7 @@ const GROUP_TYPES = [
     label: "Organiser",
     icon: <Building2 size={16} />,
     range: "Unlimited",
-    desc: "For businesses, event series, and organisations",
+    desc: "Businesses, clubs and event series",
     paid: true,
   },
 ];
@@ -179,7 +180,7 @@ function CreateGroupModal({ onClose, onCreated, canCreateLargeGroups }: { onClos
               {step === "type" ? "What kind of group?" : "Name your group"}
             </h2>
             <p className="font-mono text-[10px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>
-              {step === "type" ? "Pick the type that fits — you can always edit later" : "Add a name and optional details"}
+              {step === "type" ? "Squad & Crew are free. Community & Organiser are for large or business groups." : "Add a name and optional details"}
             </p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center"
@@ -223,6 +224,10 @@ function CreateGroupModal({ onClose, onCreated, canCreateLargeGroups }: { onClos
                         {!(t as any).paid && (
                           <span className="font-mono text-[8px] tracking-wider uppercase px-1.5 py-0.5 rounded-md"
                                 style={{ background: "rgba(var(--roam-cream-rgb),0.06)", color: "rgba(var(--roam-cream-rgb),0.45)" }}>Free</span>
+                        )}
+                        {(t as any).recommended && (
+                          <span className="font-mono text-[8px] tracking-wider uppercase px-1.5 py-0.5 rounded-md"
+                                style={{ background: "rgba(var(--roam-electric-rgb),0.15)", color: "var(--roam-electric)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)" }}>★ Popular</span>
                         )}
                       </span>
                       <span className="font-mono text-[10px]" style={{ color: form.type === t.id ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.35)" }}>{t.range}</span>

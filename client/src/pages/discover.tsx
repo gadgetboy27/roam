@@ -41,57 +41,6 @@ function tagIcon(tag: string) {
 
 type PioneerBadge = { place: string; location: string; tagCount: number } | null;
 
-const DEMO_PROFILES = [
-  {
-    id: "demo-p1",
-    name: "Mia", age: 28,
-    ethnicity: "New Zealander",
-    tagline: "Chasing elevation, good coffee and anything with a summit",
-    hero: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&q=85&fit=crop",
-    dna: ["alpine hiking", "rock climbing", "night markets"],
-    honestyTier: "unverified" as HonestyTier,
-    almostMet: null,
-    pioneerBadge: { place: "Franz Josef Glacier", location: "West Coast, NZ", tagCount: 47 } as PioneerBadge,
-    hasNewMatch: true,
-  },
-  {
-    id: "demo-p2",
-    name: "Kai", age: 31,
-    ethnicity: "Māori",
-    tagline: "Lost in alleyways, found in barrels",
-    hero: "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=800&q=85&fit=crop",
-    dna: ["surfing", "night markets", "urban roaming"],
-    honestyTier: "unverified" as HonestyTier,
-    almostMet: null,
-    pioneerBadge: { place: "Raglan Left", location: "Waikato, NZ", tagCount: 83 } as PioneerBadge,
-    hasNewMatch: false,
-  },
-  {
-    id: "demo-p3",
-    name: "Sam", age: 26,
-    ethnicity: "Pacific Islander",
-    tagline: "Every forest has a path worth getting lost on",
-    hero: "https://images.unsplash.com/photo-1473773508845-188df298d2d1?w=800&q=85&fit=crop",
-    dna: ["backpacking", "kayaking", "forest trails"],
-    honestyTier: "unverified" as HonestyTier,
-    almostMet: null,
-    pioneerBadge: null as PioneerBadge,
-    hasNewMatch: false,
-  },
-  {
-    id: "demo-p4",
-    name: "Astrid", age: 27,
-    ethnicity: "Norwegian",
-    tagline: "Storm-chasing sea cliffs. Been to Faroe twice, going again",
-    hero: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=800&q=85&fit=crop",
-    dna: ["canyoning", "coastal walks", "photography"],
-    honestyTier: "unverified" as HonestyTier,
-    almostMet: { location: "Faroe Islands", dateHint: "2024 — you were both there" },
-    pioneerBadge: { place: "Milford Track", location: "Fiordland, NZ", tagCount: 31 } as PioneerBadge,
-    hasNewMatch: true,
-  },
-];
-
 export default function Discover() {
   const { user } = useAuth();
 
@@ -123,7 +72,7 @@ export default function Discover() {
   const [dragOffsetY, setDragOffsetY] = useState(0);
   const [exitDir, setExitDir] = useState<"up" | "left" | "right" | null>(null);
   const [matchCelebration, setMatchCelebration] = useState<{
-    name: string; hero: string; sharedTags: string[]; almostMet: typeof DEMO_PROFILES[0]["almostMet"];
+    name: string; hero: string; sharedTags: string[]; almostMet: { location: string; dateHint: string } | null;
   } | null>(null);
   const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
@@ -178,7 +127,7 @@ export default function Discover() {
     });
   }, [allUsers, user]);
 
-  const deck = realDeck ?? DEMO_PROFILES;
+  const deck = realDeck ?? [];
   const deckExhausted = user != null && !loadingUsers && deck.length > 0 && profileIdx >= deck.length;
   const noUsersYet = user != null && !loadingUsers && deck.length === 0;
 
@@ -406,13 +355,37 @@ export default function Discover() {
         <div className="absolute inset-0 flex flex-col items-center justify-center z-10 px-8 text-center">
           <Compass size={52} style={{ color: "var(--roam-electric)", marginBottom: 20, opacity: 0.7 }} />
           <div className="font-serif text-[26px] font-black mb-3 leading-tight" style={{ color: "rgba(var(--roam-cream-rgb),0.95)" }}>
-            {noUsersYet ? "You're first here!" : "All caught up"}
+            {noUsersYet ? "You're early!" : "All caught up"}
           </div>
           <div className="font-mono text-[11px] leading-relaxed max-w-[260px]" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
             {noUsersYet
-              ? "No other adventurers yet — share roam. to grow the community and discover your first match"
+              ? "You're one of the first adventurers here. Invite your crew or jump into an adventure to start meeting people."
               : "You've seen everyone for now. More adventurers are joining every day — check back soon."}
           </div>
+          {noUsersYet && (
+            <div className="flex flex-col gap-2.5 mt-6 w-full max-w-[260px]">
+              <button
+                className="px-5 py-3 rounded-2xl font-mono text-[12px] tracking-wider font-semibold"
+                style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
+                onClick={async () => {
+                  const url = `${window.location.origin}/join?ref=${user?.id ?? ""}`;
+                  try {
+                    if ((navigator as any).share) await (navigator as any).share({ title: "Join me on roam.", text: "Come adventure with me on roam — match on real adventures, not bios.", url });
+                    else { await navigator.clipboard.writeText(url); alert("Invite link copied — share it with your crew 🔗"); }
+                  } catch { /* share cancelled */ }
+                }}
+                data-testid="button-empty-invite">
+                Invite your crew
+              </button>
+              <button
+                className="px-5 py-3 rounded-2xl font-mono text-[12px] tracking-wider"
+                style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)", color: "var(--roam-electric)" }}
+                onClick={() => navigate("/whats-on")}
+                data-testid="button-empty-events">
+                Browse adventures
+              </button>
+            </div>
+          )}
           {deckExhausted && (
             <button
               className="mt-6 px-5 py-2.5 rounded-2xl font-mono text-[11px] tracking-wider"
