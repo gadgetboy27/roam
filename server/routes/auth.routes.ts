@@ -36,15 +36,50 @@ export function registerAuthRoutes(app: Express, deps: RouteDeps) {
 
   app.get("/api/auth/me", async (req, res) => {
     const userId = await authenticateRequest(req);
-    if (!userId) {
-      return res.status(401).json({ message: "Not authenticated" });
+    if (userId) {
+      const user = await storage.getUser(userId);
+      if (user) {
+        const { password: _, ...safeUser } = user;
+        return res.json(safeUser);
+      }
     }
-    const user = await storage.getUser(userId);
-    if (!user) {
-      return res.status(401).json({ message: "User not found" });
+
+    // Valid Supabase session but no app profile yet (signed up / confirmed email
+    // but never finished onboarding). Auto-provision a minimal profile so the
+    // user is never invisible to discovery. Onboarding (POST /api/auth/profile)
+    // then fills in the real details. Closes the signup→profile leak.
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      try {
+        const { data: { user: sbUser } } = await supabaseAdmin.auth.getUser(token);
+        if (sbUser?.email) {
+          const existing = await storage.getUserByEmail(sbUser.email);
+          if (existing) {
+            const { password: _, ...safe } = existing;
+            return res.json(safe);
+          }
+          const meta: any = sbUser.user_metadata || {};
+          const name = String(meta.name || meta.full_name || sbUser.email.split("@")[0] || "Roamer").slice(0, 40);
+          const FOUNDING_MEMBER_LIMIT = 50;
+          const foundingCount = await storage.countFoundingMembers();
+          const isFoundingMember = foundingCount < FOUNDING_MEMBER_LIMIT;
+          const created = await storage.createUser({
+            name,
+            email: sbUser.email,
+            password: "SUPABASE_AUTH",
+            tier: isFoundingMember ? "adventurer" : "free",
+            isFoundingMember,
+            isTierGifted: false,
+            photoLicenseAgreed: false,
+          } as any);
+          console.log(`[auth] auto-provisioned profile for ${sbUser.email}`);
+          const { password: _, ...safe } = created;
+          return res.json(safe);
+        }
+      } catch { /* fall through to 401 */ }
     }
-    const { password: _, ...safeUser } = user;
-    res.json(safeUser);
+    return res.status(401).json({ message: "Not authenticated" });
   });
 
   app.post("/api/auth/profile", profileLimiter, async (req, res) => {
@@ -59,13 +94,26 @@ export function registerAuthRoutes(app: Express, deps: RouteDeps) {
         return res.status(401).json({ message: "Invalid token" });
       }
 
+      const { name, dob, gender, ethnicity, location, tagline, tier, photoLicenseAgreed } = req.body;
+
       const existing = await storage.getUserByEmail(sbUser.email);
       if (existing) {
-        const { password: _, ...safe } = existing;
+        // Profile already exists (e.g. auto-provisioned on first load, or the
+        // user resumed onboarding). Apply the onboarding details now instead of
+        // ignoring them — otherwise the real name/location/etc. would be lost.
+        const patch: any = {};
+        if (name) patch.name = name;
+        if (dob !== undefined) patch.dob = dob || null;
+        if (gender !== undefined) patch.gender = gender || null;
+        if (ethnicity !== undefined) patch.ethnicity = ethnicity || null;
+        if (location !== undefined) patch.location = location || null;
+        if (tagline !== undefined) patch.tagline = tagline || null;
+        if (photoLicenseAgreed !== undefined) patch.photoLicenseAgreed = !!photoLicenseAgreed;
+        const updated = Object.keys(patch).length ? await storage.updateUser(existing.id, patch) : existing;
+        const { password: _, ...safe } = updated || existing;
         return res.json(safe);
       }
 
-      const { name, dob, gender, ethnicity, location, tagline, tier, photoLicenseAgreed } = req.body;
       if (!name) return res.status(400).json({ message: "Name is required" });
 
       const FOUNDING_MEMBER_LIMIT = 50;
