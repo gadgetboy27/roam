@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import {
-  Compass, MessageCircle, Plus, User, Palette, Check, Users, CalendarDays,
+  Home, Compass, MessageCircle, Plus, User, Palette, Check, Users, CalendarDays,
   Camera, X, ChevronRight, Tent, Ship, Mountain, Building2, ArrowRight, Megaphone, Zap,
   MessageSquarePlus, Send, CheckCircle2, ShieldCheck,
 } from "lucide-react";
@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import NotificationBell from "@/components/notification-bell";
 
 const NAV_ITEMS = [
+  { path: "/home",      label: "Home",       icon: Home },
   { path: "/discover",  label: "Discover",   icon: Compass },
   { path: "/whats-on", label: "What's On",   icon: CalendarDays },
   { path: "/groups",   label: "Groups",      icon: Users },
