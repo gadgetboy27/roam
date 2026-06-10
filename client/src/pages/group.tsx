@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { io as ioClient } from "socket.io-client";
 import {
   ArrowLeft, MapPin, Users, Lock, Globe, Send, Calendar, Plus,
-  Trash2, CheckCircle, XCircle, LogOut, Crown, UserPlus, CalendarPlus, Check, Megaphone,
+  Trash2, CheckCircle, XCircle, LogOut, Crown, UserPlus, CalendarPlus, Check, Megaphone, Share2,
   Mail, Copy, CheckCheck, Camera, Tag, MessageSquare,
 } from "lucide-react";
 import { ActionModal, friendlyError, closedModal, type ModalState } from "@/components/action-modal";
@@ -129,6 +129,23 @@ function GroupEventCard({ ev, group, isLeader, isApproved, userId, deleteEventMu
                   title="Add to calendar"
                   data-testid={`button-add-to-calendar-${ev.id}`}>
             <CalendarPlus size={13} />
+          </button>
+          <button onClick={async () => {
+                    const url = `${window.location.origin}/e/${ev.id}`;
+                    try {
+                      if ((navigator as any).share) {
+                        await (navigator as any).share({ title: ev.title, text: `Join me at ${ev.title} on roam.`, url });
+                      } else {
+                        await navigator.clipboard.writeText(url);
+                        toast({ description: "Event link copied — share it anywhere 🔗" });
+                      }
+                    } catch { /* share cancelled */ }
+                  }}
+                  className="p-1.5 rounded-lg flex items-center gap-1 text-[10px] font-mono"
+                  style={{ background: "rgba(var(--roam-electric-rgb),0.1)", color: "var(--roam-electric)" }}
+                  title="Share event — invite anyone"
+                  data-testid={`button-share-event-${ev.id}`}>
+            <Share2 size={13} />
           </button>
           {isLeader && (
             <button onClick={() => deleteEventMutation.mutate(ev.id)}

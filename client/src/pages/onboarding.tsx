@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { fileToDataUrl } from "@/lib/file";
+import { consumeNextRoute } from "@/lib/nextRoute";
 import { Check, X, ChevronRight, ChevronLeft, CloudUpload, Compass, Plus, ImagePlus, Loader2, MapPin } from "lucide-react";
 
 // ─── Adventure types — tags map directly into buildFingerprint() ──────────────
@@ -122,7 +123,7 @@ export default function Onboarding() {
   // means the user has completed onboarding at least once, regardless of device.
   useEffect(() => {
     if (user && (user as any).adventureTags?.length > 0) {
-      navigate("/discover");
+      navigate(consumeNextRoute());
     }
   }, [user]);
 
@@ -262,7 +263,7 @@ export default function Onboarding() {
 
   const handleComplete = () => {
     localStorage.setItem("roam_onboarding_done", "1");
-    navigate("/discover");
+    navigate(consumeNextRoute());
   };
 
   // ── Shared styles ─────────────────────────────────────────────────────────────

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
+import { consumeNextRoute } from "@/lib/nextRoute";
 import { Eye, EyeOff, Compass } from "lucide-react";
 import { SiFacebook, SiGoogle } from "react-icons/si";
 
@@ -27,7 +28,7 @@ export default function Login() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!authLoading && user) navigate("/discover");
+    if (!authLoading && user) navigate(consumeNextRoute());
   }, [user, authLoading, navigate]);
 
   const valid = email.includes("@") && password.length >= 6;
@@ -53,7 +54,7 @@ export default function Login() {
     setError("");
     try {
       await login(email, password);
-      navigate("/discover");
+      navigate(consumeNextRoute());
     } catch (err: any) {
       const msg = err?.message || "Invalid email or password";
       setError(msg.includes("fetch") ? "Could not reach the server. Please try again." : msg);

@@ -34,6 +34,7 @@ import WhatsOn from "@/pages/whats-on";
 import Onboarding from "@/pages/onboarding";
 import Safety from "@/pages/safety";
 import Home from "@/pages/home";
+import EventLanding from "@/pages/event-landing";
 
 function Router() {
   return (
@@ -47,6 +48,7 @@ function Router() {
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
       <Route path="/data-deletion" component={DataDeletion} />
+      <Route path="/e/:eventId" component={EventLanding} />
       <Route path="/onboarding">
         <RequireAuth><Onboarding /></RequireAuth>
       </Route>

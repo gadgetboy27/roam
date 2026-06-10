@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
+import { consumeNextRoute } from "@/lib/nextRoute";
 import { Check, X, Compass, ShieldAlert } from "lucide-react";
 import { SiFacebook, SiGoogle } from "react-icons/si";
 
@@ -114,7 +115,7 @@ export default function Signup() {
   const { refresh, user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (!authLoading && user) navigate("/discover");
+    if (!authLoading && user) navigate(consumeNextRoute());
   }, [user, authLoading, navigate]);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({

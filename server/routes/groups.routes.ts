@@ -558,6 +558,67 @@ export function registerGroupRoutes(app: Express) {
     res.json({ success: true });
   });
 
+  // Public event landing (NO auth) — powers the shareable /e/:id growth page so a
+  // stranger can see the event before signing up. Returns only public-safe fields.
+  app.get("/api/events/:eventId/landing", async (req, res) => {
+    const event = await storage.getGroupEvent(req.params.eventId);
+    if (!event) return res.status(404).json({ error: "Event not found" });
+    const group = await storage.getGroup(event.groupId);
+    if (!group || !group.isActive) return res.status(404).json({ error: "Event not available" });
+    const [host, members, attendees] = await Promise.all([
+      storage.getUser(group.leaderId),
+      storage.getGroupMembers(event.groupId),
+      storage.getEventAttendees(event.id),
+    ]);
+    res.json({
+      id: event.id,
+      title: event.title,
+      description: event.description,
+      location: event.location,
+      startAt: event.startAt,
+      endAt: event.endAt,
+      ticketPriceNzd: event.ticketPriceNzd,
+      group: { id: group.id, name: group.name, type: group.type, coverImageUrl: group.coverImageUrl ?? null },
+      host: host ? { name: host.nickname || host.name } : null,
+      attendeeCount: attendees.length,
+      attendees: attendees.slice(0, 5),
+      memberCount: members.filter(m => m.status === "approved").length,
+    });
+  });
+
+  // One-tap join + RSVP from the public event link. The host shared the link, so
+  // joining via it auto-approves group membership. Ticketed events return a flag
+  // so the client can route to checkout instead.
+  app.post("/api/events/:eventId/join-rsvp", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ error: "Unauthorised" });
+    const event = await storage.getGroupEvent(req.params.eventId);
+    if (!event) return res.status(404).json({ error: "Event not found" });
+    const group = await storage.getGroup(event.groupId);
+    if (!group || !group.isActive) return res.status(404).json({ error: "Event not available" });
+
+    let member = await storage.getGroupMember(event.groupId, userId);
+    if (!member) {
+      member = await storage.addGroupMember({ groupId: event.groupId, userId, role: "member", status: "approved", joinedAt: new Date() });
+      const u = await storage.getUser(userId);
+      await storage.createNotification({
+        userId: group.leaderId,
+        type: "group_join",
+        title: `${u?.nickname || u?.name || "Someone"} joined ${group.name}`,
+        body: `via your event "${event.title}"`,
+        data: JSON.stringify({ groupId: group.id }),
+      });
+    } else if (member.status !== "approved") {
+      await storage.updateGroupMember(member.id, { status: "approved" });
+    }
+
+    if (event.ticketPriceNzd) {
+      return res.json({ requiresTicket: true, eventId: event.id, groupId: group.id });
+    }
+    await storage.rsvpEvent(event.id, userId);
+    res.json({ success: true, groupId: group.id });
+  });
+
   app.get("/api/events/upcoming", async (req, res) => {
     const userId = await authenticateRequest(req) ?? undefined;
     const events = await storage.getUpcomingEvents(userId);
