@@ -663,27 +663,27 @@ export default function Onboarding() {
         </div>
       )}
 
-      {photos.length > 0 && (
-        <button
-          onClick={() => setStep(2)}
-          disabled={approvedCount === 0}
-          className="w-full py-4 rounded-xl font-semibold text-base"
-          style={approvedCount > 0 ? electricBtn : dimBtn}
-          data-testid="button-onboarding-upload-continue"
-        >
-          {approvedCount > 0
-            ? `Continue with ${approvedCount} photo${approvedCount !== 1 ? "s" : ""} →`
-            : "Waiting for upload…"}
-        </button>
-      )}
+      {/* Speed-to-value: a photo is enough to start. Drop straight into Discover;
+          adventure tags + destinations become an optional "fine-tune" detour and
+          post-signup nudges, instead of blocking the way to value. */}
+      <button
+        onClick={handleComplete}
+        className="w-full py-4 rounded-xl font-semibold text-base"
+        style={electricBtn}
+        data-testid="button-onboarding-start-discovering"
+      >
+        {approvedCount > 0
+          ? `Start discovering with ${approvedCount} photo${approvedCount !== 1 ? "s" : ""} →`
+          : "Start discovering →"}
+      </button>
 
       <button
         onClick={() => setStep(2)}
         className="text-center text-sm py-2"
-        style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}
-        data-testid="button-onboarding-upload-skip"
+        style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}
+        data-testid="button-onboarding-setup-matching"
       >
-        Skip — I'll add photos later
+        Fine-tune my matches first (30s) →
       </button>
     </div>
   );

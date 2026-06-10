@@ -110,6 +110,26 @@ export default function Home() {
           </div>
         )}
 
+        {/* Adventure-tags nudge — recovers the deferred onboarding step so users who
+            sped into Discover still get matched well. */}
+        {user && (((user as any)?.adventureTags?.length ?? 0) === 0) && (
+          <div className="px-5 pb-4">
+            <button onClick={() => navigate("/profile")}
+                    className="w-full flex items-center gap-3 rounded-2xl px-4 py-3 text-left"
+                    style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.1)" }}
+                    data-testid="home-tags-nudge">
+              <Compass size={18} style={{ color: "var(--roam-electric)", flexShrink: 0 }} />
+              <div className="flex-1 min-w-0">
+                <div className="text-[13px] font-medium" style={{ color: "var(--roam-cream)" }}>Sharpen your matches</div>
+                <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                  Add a few adventure tags so we match you on what you love.
+                </div>
+              </div>
+              <ChevronRight size={16} style={{ color: "var(--roam-electric)" }} />
+            </button>
+          </div>
+        )}
+
         {/* Your crew (1:1 connections) */}
         {crew.length > 0 && (
           <div className="px-5 pb-5">
