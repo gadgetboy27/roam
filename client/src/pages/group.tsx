@@ -12,6 +12,7 @@ import {
   Mail, Copy, CheckCheck, Camera, Tag, MessageSquare,
 } from "lucide-react";
 import { ActionModal, friendlyError, closedModal, type ModalState } from "@/components/action-modal";
+import ShareSheet from "@/components/share-sheet";
 
 const firstName = (n?: string) => (n || "").trim().split(/\s+/)[0] || "Crew";
 
@@ -65,6 +66,7 @@ function GroupEventCard({ ev, group, isLeader, isApproved, userId, deleteEventMu
 }) {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const [shareOpen, setShareOpen] = useState(false);
   const { data: attendees = [] } = useQuery<any[]>({
     queryKey: ["/api/events", ev.id, "attendees"],
     queryFn: async () => {
@@ -101,6 +103,16 @@ function GroupEventCard({ ev, group, isLeader, isApproved, userId, deleteEventMu
   return (
     <div className="p-4 rounded-2xl"
          style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.07)" }}>
+      <ShareSheet
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        heading="Share this event"
+        payload={{
+          title: ev.title,
+          text: `Join me at ${ev.title} on roam.`,
+          url: `${window.location.origin}/e/${ev.id}`,
+        }}
+      />
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex-1">
           <div className="font-medium" style={{ color: "var(--roam-cream)" }}>{ev.title}</div>
@@ -130,17 +142,7 @@ function GroupEventCard({ ev, group, isLeader, isApproved, userId, deleteEventMu
                   data-testid={`button-add-to-calendar-${ev.id}`}>
             <CalendarPlus size={13} />
           </button>
-          <button onClick={async () => {
-                    const url = `${window.location.origin}/e/${ev.id}`;
-                    try {
-                      if ((navigator as any).share) {
-                        await (navigator as any).share({ title: ev.title, text: `Join me at ${ev.title} on roam.`, url });
-                      } else {
-                        await navigator.clipboard.writeText(url);
-                        toast({ description: "Event link copied — share it anywhere 🔗" });
-                      }
-                    } catch { /* share cancelled */ }
-                  }}
+          <button onClick={() => setShareOpen(true)}
                   className="p-1.5 rounded-lg flex items-center gap-1 text-[10px] font-mono"
                   style={{ background: "rgba(var(--roam-electric-rgb),0.1)", color: "var(--roam-electric)" }}
                   title="Share event — invite anyone"

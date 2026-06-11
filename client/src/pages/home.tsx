@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useLocation } from "wouter";
 import AppNav from "@/components/app-nav";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { computeVibeWord } from "@/lib/fingerprint";
+import ShareSheet from "@/components/share-sheet";
 import {
   ShieldCheck, ChevronRight, Plus, Calendar, MapPin, Users, Star, Compass, UserPlus,
 } from "lucide-react";
@@ -45,6 +47,7 @@ function SectionLabel({ children, count }: { children: React.ReactNode; count?: 
 export default function Home() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
+  const [shareOpen, setShareOpen] = useState(false);
 
   const { data: myGroups = [] } = useQuery<any[]>({
     queryKey: ["/api/groups/mine"],
@@ -214,17 +217,7 @@ export default function Home() {
 
         {/* Invite your crew — referral loop */}
         <div className="px-5 pb-5">
-          <button onClick={async () => {
-                    const url = `${window.location.origin}/join?ref=${user?.id ?? ""}`;
-                    try {
-                      if ((navigator as any).share) {
-                        await (navigator as any).share({ title: "Join me on roam.", text: "Come adventure with me on roam — match on real adventures, not bios.", url });
-                      } else {
-                        await navigator.clipboard.writeText(url);
-                        alert("Invite link copied — share it with your crew 🔗");
-                      }
-                    } catch { /* share cancelled */ }
-                  }}
+          <button onClick={() => setShareOpen(true)}
                   className="w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left transition-all active:scale-[0.99]"
                   style={{ background: "rgba(var(--roam-electric-rgb),0.08)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)" }}
                   data-testid="home-invite-crew">
@@ -273,6 +266,17 @@ export default function Home() {
           </button>
         </div>
       </div>
+
+      <ShareSheet
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        heading="Invite your crew"
+        payload={{
+          title: "Join me on roam.",
+          text: "Come adventure with me on roam — match on real adventures, not bios.",
+          url: `${window.location.origin}/join?ref=${user?.id ?? ""}`,
+        }}
+      />
     </div>
   );
 }

@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
 import { setNextRoute } from "@/lib/nextRoute";
-import { Calendar, MapPin, Users, ArrowRight, Check } from "lucide-react";
+import { Calendar, MapPin, Users, ArrowRight, Check, Share2 } from "lucide-react";
+import ShareSheet from "@/components/share-sheet";
 
 const GROUP_TYPE_LABEL: Record<string, string> = {
   squad: "Squad", crew: "Crew", community: "Community", organiser: "Organiser",
@@ -25,6 +26,7 @@ export default function EventLanding() {
   const [joined, setJoined] = useState(false);
   const [joinedGroupId, setJoinedGroupId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [shareOpen, setShareOpen] = useState(false);
 
   const { data: ev, isLoading, isError } = useQuery<any>({
     queryKey: [`/api/events/${eventId}/landing`],
@@ -66,11 +68,19 @@ export default function EventLanding() {
             <span className="font-serif text-[22px] font-black" style={{ color: "var(--roam-electric)" }}>.</span>
           </div>
         </Link>
-        {!user && (
-          <Link href="/login">
-            <span className="font-mono text-[11px] cursor-pointer" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>Log in</span>
-          </Link>
-        )}
+        <div className="flex items-center gap-3">
+          {ev && (
+            <button onClick={() => setShareOpen(true)} className="flex items-center gap-1.5 font-mono text-[11px]"
+                    style={{ color: "var(--roam-electric)" }} data-testid="event-share">
+              <Share2 size={13} /> Share
+            </button>
+          )}
+          {!user && (
+            <Link href="/login">
+              <span className="font-mono text-[11px] cursor-pointer" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>Log in</span>
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 px-5 pb-10 max-w-lg mx-auto w-full">
@@ -168,6 +178,19 @@ export default function EventLanding() {
           </>
         )}
       </div>
+
+      {ev && (
+        <ShareSheet
+          open={shareOpen}
+          onClose={() => setShareOpen(false)}
+          heading="Share this event"
+          payload={{
+            title: ev.title,
+            text: `Join me at ${ev.title} on roam.`,
+            url: `${window.location.origin}/e/${ev.id}`,
+          }}
+        />
+      )}
     </div>
   );
 }
