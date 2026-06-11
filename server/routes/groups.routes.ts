@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { authenticateRequest, toPublicAd } from "../http-helpers";
+import { brandedEmail, emailParagraph, sendEmail } from "../email";
 
 // All group, member, campsite, broadcast, event, invite, and RSVP routes.
 export function registerGroupRoutes(app: Express) {
@@ -448,31 +449,19 @@ export function registerGroupRoutes(app: Express) {
     const inviteUrl = `${req.protocol}://${req.get("host")}/invite/${token}`;
     const inviter = await storage.getUser(userId);
     const inviterName = inviter?.name || "Someone";
-    if (process.env.RESEND_API_KEY) {
-      try {
-        const { Resend } = await import("resend");
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        await resend.emails.send({
-          from: "LetsRoam.life <noreply@letsroam.life>",
-          to: normalised,
-          subject: `${inviterName} invited you to join ${group.name} on LetsRoam.life`,
-          html: `
-            <div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto;background:#0e1a0d;color:#e8dcc8;padding:32px;border-radius:16px">
-              <h1 style="font-size:28px;margin-bottom:4px;color:#e8dcc8">roam.</h1>
-              <p style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:rgba(232,220,200,0.4);margin-top:0">adventure matching</p>
-              <hr style="border-color:rgba(232,220,200,0.1);margin:24px 0"/>
-              <p style="font-size:16px;color:rgba(232,220,200,0.85)"><strong style="color:#e8dcc8">${inviterName}</strong> has invited you to join <strong style="color:#a4e63a">${group.name}</strong> on roam.</p>
-              ${message ? `<blockquote style="border-left:3px solid rgba(164,230,58,0.4);margin:16px 0;padding:8px 16px;color:rgba(232,220,200,0.6);font-style:italic">${message}</blockquote>` : ""}
-              <p style="color:rgba(232,220,200,0.5);font-size:13px">Joining connects you with adventure-minded people planning real experiences together.</p>
-              <a href="${inviteUrl}" style="display:inline-block;margin:24px 0;padding:14px 28px;background:#a4e63a;color:#0e1a0d;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px">Accept Invite</a>
-              <p style="color:rgba(232,220,200,0.3);font-size:11px;margin-top:24px">This invite expires in 7 days. If you didn't expect this, you can safely ignore it.</p>
-            </div>
-          `,
-        });
-      } catch (e) {
-        console.warn("[invite] Email send failed:", e);
-      }
-    }
+    await sendEmail({
+      to: normalised,
+      subject: `${inviterName} invited you to join ${group.name} on roam`,
+      html: brandedEmail({
+        bodyHtml:
+          emailParagraph(`<b style="color:#f2ede3;">${inviterName}</b> has invited you to join <b style="color:#b6ff3a;">${group.name}</b> on roam.`)
+          + (message ? `<blockquote style="border-left:3px solid rgba(182,255,58,0.4);margin:14px 0 0;padding:8px 16px;color:rgba(242,237,227,0.6);font-style:italic;">${message}</blockquote>` : "")
+          + emailParagraph("Joining connects you with adventure-minded people planning real experiences together."),
+        ctaText: "Accept invite →",
+        ctaUrl: inviteUrl,
+        footerNote: "This invite expires in 7 days. If you didn't expect this, you can safely ignore it.",
+      }),
+    });
     res.json({ success: true, inviteUrl, token: invite.token });
   });
 

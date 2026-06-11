@@ -3,6 +3,7 @@ import { storage } from "../storage";
 import { pool } from "../db";
 import { isAdminAuthenticated } from "../admin-auth";
 import { authenticateRequest } from "../http-helpers";
+import { brandedEmail, emailParagraph, sendEmail } from "../email";
 
 // Notifications (list / unread-count / mark-read) and user feedback.
 export function registerMiscRoutes(app: Express) {
@@ -58,30 +59,24 @@ export function registerMiscRoutes(app: Express) {
       );
       console.log(`[feedback] feedback submitted`);
 
-      // ── Email notification to admin ──────────────────────────────────────
+      // ── Email notification to admin (branded template) ───────────────────
       const adminEmails = process.env.ADMIN_EMAILS;
-      const resendKey  = process.env.RESEND_API_KEY;
-      if (adminEmails && resendKey) {
+      if (adminEmails) {
         const recipients = adminEmails.split(",").map((e: string) => e.trim()).filter(Boolean);
-        const senderLabel = userName ? `${userName}${userEmail ? ` <${userEmail}>` : ""}` : (userEmail || "Anonymous user");
-        const pageLabel   = page ? ` on <strong>${page}</strong>` : "";
-        const emailBody   = `
-          <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
-            <h2 style="color:#1a1a1a;margin-bottom:4px">New roam. feedback</h2>
-            <p style="color:#666;font-size:13px;margin-top:0">From ${senderLabel}${pageLabel}</p>
-            <div style="background:#f5f5f5;border-radius:8px;padding:16px 20px;margin:16px 0;white-space:pre-wrap;font-size:15px;color:#222">${message.trim()}</div>
-            <p style="color:#999;font-size:12px">View all feedback in the <a href="https://letsroam.life/admin" style="color:#7ecb35">admin dashboard → Feedback tab</a></p>
-          </div>`;
-        fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${resendKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            from: "LetsRoam.life <noreply@letsroam.life>",
-            to: recipients,
-            subject: `💬 New feedback from ${userName || userEmail || "a roamer"}`,
-            html: emailBody,
+        const senderLabel = userName ? `${userName}${userEmail ? ` &lt;${userEmail}&gt;` : ""}` : (userEmail || "Anonymous user");
+        const pageLabel   = page ? ` on <b style="color:#f2ede3;">${page}</b>` : "";
+        void sendEmail({
+          to: recipients,
+          subject: `💬 New feedback from ${userName || userEmail || "a roamer"}`,
+          html: brandedEmail({
+            bodyHtml:
+              emailParagraph(`New feedback from <b style="color:#f2ede3;">${senderLabel}</b>${pageLabel}`)
+              + `<div style="background:rgba(242,237,227,0.05);border:1px solid rgba(242,237,227,0.08);border-radius:12px;padding:14px 18px;margin:12px 0 0;white-space:pre-wrap;font-size:14px;color:#f2ede3;line-height:1.6;">${message.trim()}</div>`,
+            ctaText: "Open admin dashboard →",
+            ctaUrl: "https://letsroam.life/admin",
+            footerNote: "Admin notification — sent to your ADMIN_EMAILS.",
           }),
-        }).catch((e: Error) => console.warn("[feedback-email] send failed:", e.message));
+        });
       }
 
       return res.json({ ok: true });
