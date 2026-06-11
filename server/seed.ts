@@ -4,6 +4,12 @@ import { hashPassword } from "./auth";
 import { eq } from "drizzle-orm";
 
 export async function seedDatabase() {
+  // Never seed demo users in production — they're for local dev only. (Even if the
+  // DB were emptied, prod must stay free of fake "Mia/Kai/Sam/Demo" accounts.)
+  if (process.env.NODE_ENV === "production") {
+    console.log("[seed] production — skipping demo seed");
+    return;
+  }
   const existingUsers = await db.select().from(users);
   if (existingUsers.length > 0) {
     console.log("Database already seeded, skipping...");
