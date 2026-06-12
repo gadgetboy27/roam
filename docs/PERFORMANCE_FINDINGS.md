@@ -28,7 +28,38 @@ This is a per-round-trip tax on **every** endpoint, not just groups.
 These help, but **3 serial cross-region round-trips is inherently ~2.7s** — code
 can't fix physics here.
 
-## The real fix (infra decision — needs Henry) 🔴
+## UPDATE 2026-06-13 — the real root cause was connection handling, not distance
+Moved the Railway app from **US West → Singapore** (near the Seoul DB) and it
+**did not help** — proving geography wasn't the bottleneck. The real cause:
+the `pg` Pool ran on defaults against a remote pooler — idle connections reaped
+after 10s, and `connectionTimeoutMillis=0` (wait forever). Low-traffic requests
+kept paying a full TCP+TLS **reconnect** per query (~0.4–0.5s), and a stuck
+acquire could hang minutes (the 186s spike).
+
+**Fix shipped (commit cbcfefe):** `idleTimeoutMillis` 10s→60s, `keepAlive` on,
+`connectionTimeoutMillis` 15s, + a `SELECT 1` every 4 min to keep a connection warm.
+
+**Result (server-side, the user-relevant numbers):**
+- `/api/events/public` (1 query): ~500ms → **85ms**
+- `/api/groups` (3 queries): 5,000ms+ / 186,000ms spike → **~1,200ms**
+- The 186s hang is gone (fail-fast timeout).
+
+NOTE: client-side curl from a US test box shows ~2.9s for /api/groups, but ~1.6s
+of that is the test box → Singapore hop; real users near the app see ~1.2s.
+
+Region kept in **Singapore** — best for NZ users on both legs (client→app and
+app→Seoul DB).
+
+### Remaining micro-opportunities (diminishing returns)
+- `/api/groups` at ~1.2s vs ~250ms theoretical: its 2nd/3rd serial query can hit
+  a *cold* pool connection (only one is kept warm). Keeping more connections warm,
+  or collapsing the 3 serial queries into a join, would help.
+- The 20s in-memory cache on `/api/groups` isn't reducing server time (logs show
+  full DB work each call) — investigate (single replica confirmed, so not sharding).
+- True same-region (DB + app both in Singapore via a Supabase migration) removes
+  the last cross-region hop.
+
+## The earlier hypothesis (superseded — kept for context) 🔴
 **Co-locate the app and the database in the same region.** This cuts every DB
 round-trip from ~0.9s to ~5–30ms, making `/api/groups` ~0.3s and speeding up the
 *entire* app (discover, matches, messaging — everything).
