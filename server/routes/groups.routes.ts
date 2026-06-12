@@ -5,6 +5,10 @@ import { brandedEmail, emailParagraph, sendEmail } from "../email";
 
 // All group, member, campsite, broadcast, event, invite, and RSVP routes.
 export function registerGroupRoutes(app: Express) {
+  // Reassigned by the GET /api/groups handler; called by mutations to drop the
+  // public browse-list cache so changes show up immediately.
+  let bustGroupsCache: () => void = () => {};
+
   // ─── Group eligibility helper ─────────────────────────────────────────────
   // Squad (2–5) and Crew (6–20) are FREE — available from signup so as many small
   // groups as possible can form. Community (20–100) and Organiser (∞) are larger,
@@ -77,9 +81,22 @@ export function registerGroupRoutes(app: Express) {
     });
   }
 
+  // Short-lived cache for the public browse list. It's the same for everyone and
+  // changes rarely, but each call is 3 cross-region DB round-trips — so a 20s TTL
+  // turns repeat loads (and bursts) into instant in-memory hits. Invalidated
+  // immediately whenever a group is created/updated/joined (see bustGroupsCache).
+  let groupsCache: { at: number; data: any[] } | null = null;
+  const GROUPS_TTL_MS = 20_000;
+  bustGroupsCache = () => { groupsCache = null; };
+
   app.get("/api/groups", async (req, res) => {
+    if (groupsCache && Date.now() - groupsCache.at < GROUPS_TTL_MS) {
+      return res.json(groupsCache.data);
+    }
     const allGroups = await storage.getAllGroups();
-    res.json(await enrichGroups(allGroups));
+    const data = await enrichGroups(allGroups);
+    groupsCache = { at: Date.now(), data };
+    res.json(data);
   });
 
   app.get("/api/groups/my-led", async (req, res) => {
@@ -127,6 +144,7 @@ export function registerGroupRoutes(app: Express) {
       isActive: true,
     });
     await storage.addGroupMember({ groupId: group.id, userId, role: "leader", status: "approved", joinedAt: new Date() });
+    bustGroupsCache();
     res.json(group);
   });
 
@@ -138,6 +156,7 @@ export function registerGroupRoutes(app: Express) {
     if (group.leaderId !== userId) return res.status(403).json({ error: "Only the group leader can edit the group" });
     const { name, description, location, adventureTags, coverImageUrl, visibility } = req.body;
     const updated = await storage.updateGroup(req.params.id, { name, description, location, adventureTags, coverImageUrl, visibility } as any);
+    bustGroupsCache();
     res.json(updated);
   });
 
@@ -252,6 +271,7 @@ export function registerGroupRoutes(app: Express) {
     } as any);
     await storage.addGroupMember({ groupId: group.id, userId, role: "leader", status: "approved", joinedAt: new Date() });
     await storage.addGroupMember({ groupId: group.id, userId: targetId, role: "member", status: "approved", joinedAt: new Date() });
+    bustGroupsCache();
     await storage.createNotification({
       userId: targetId, type: "group_invite",
       title: `Added to ${group.name}`,
@@ -601,6 +621,7 @@ export function registerGroupRoutes(app: Express) {
     let member = await storage.getGroupMember(event.groupId, userId);
     if (!member) {
       member = await storage.addGroupMember({ groupId: event.groupId, userId, role: "member", status: "approved", joinedAt: new Date() });
+      bustGroupsCache();
       const u = await storage.getUser(userId);
       await storage.createNotification({
         userId: group.leaderId,
