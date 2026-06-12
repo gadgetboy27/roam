@@ -91,10 +91,17 @@ export function registerGroupRoutes(app: Express) {
 
   app.get("/api/groups", async (req, res) => {
     if (groupsCache && Date.now() - groupsCache.at < GROUPS_TTL_MS) {
+      console.log("[groups-timing] CACHE HIT");
       return res.json(groupsCache.data);
     }
+    const t0 = Date.now();
     const allGroups = await storage.getAllGroups();
+    const t1 = Date.now();
+    const members = await storage.getGroupMembersForGroups(allGroups.map(g => g.id));
+    const t2 = Date.now();
     const data = await enrichGroups(allGroups);
+    const t3 = Date.now();
+    console.log(`[groups-timing] getAllGroups=${t1-t0}ms membersProbe=${t2-t1}ms enrich=${t3-t2}ms total=${t3-t0}ms groups=${allGroups.length}`);
     groupsCache = { at: Date.now(), data };
     res.json(data);
   });
