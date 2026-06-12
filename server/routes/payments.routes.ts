@@ -458,8 +458,24 @@ export function registerPaymentRoutes(app: Express, deps: RouteDeps) {
 
       await storage.deleteUser(userId);
 
+      // Delete the Supabase auth login too. The app user id ≠ the auth user id
+      // (they're mapped by email), so deleting by the app id silently no-ops and
+      // leaves the login alive — the user could "log in" again and re-provision a
+      // fresh profile. Resolve the REAL auth id (from the Bearer token, else by
+      // email) before deleting.
       try {
-        await supabaseAdmin.auth.admin.deleteUser(userId);
+        let authUserId: string | undefined;
+        const authHeader = req.headers.authorization;
+        if (authHeader?.startsWith("Bearer ")) {
+          const { data } = await supabaseAdmin.auth.getUser(authHeader.slice(7));
+          authUserId = data?.user?.id;
+        }
+        if (!authUserId && user.email) {
+          const { data } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+          authUserId = data.users.find(u => (u.email || "").toLowerCase() === user.email.toLowerCase())?.id;
+        }
+        if (authUserId) await supabaseAdmin.auth.admin.deleteUser(authUserId);
+        else console.warn("[account-delete] could not resolve auth user id for", user.email);
       } catch (err: any) {
         console.warn("[account-delete] Supabase auth delete failed:", err.message);
       }
