@@ -28,7 +28,42 @@ This is a per-round-trip tax on **every** endpoint, not just groups.
 These help, but **3 serial cross-region round-trips is inherently ~2.7s** — code
 can't fix physics here.
 
-## UPDATE 2026-06-13 — the real root cause was connection handling, not distance
+## ✅ RESOLVED 2026-06-13 — the REAL root cause was a 4.6 MB base64 blob in `users`
+
+After ruling out region and connections (below), direct instrumentation found it:
+`/api/groups` spent ~1s inside `enrichGroups`, all in `getUsersByIds`. A DB-level
+`EXPLAIN ANALYZE` ran in **0.591ms** but returning the rows took **4–6 seconds** —
+and only for the `users` table (`group_members` was 230ms). The cause:
+**`users.avatar_url` stored inline base64 data URLs averaging 4.6 MB/user (max
+10.5 MB; Taylin's was 7.5 MB).** Every user-fetching query (discover, matches,
+groups, auth/me) dragged megabytes across the cross-region pooler.
+
+**Fix:**
+- Migrated the 3 existing base64 avatars → Supabase Storage; `avatar_url` now holds
+  a ~147-char URL (was 10.5M chars). One-off script.
+- `PATCH /api/users/:id` now uploads any base64 avatar to Storage and stores only
+  the URL (reuses `uploadImageDataUrl`), so it can't regress. (commit 160a2cb)
+
+**Result (server-side):**
+| | before | after |
+|---|---|---|
+| `SELECT users WHERE id IN` | 4,800ms | **300ms** |
+| `SELECT * users` (discover) | ~6,000ms | **310ms** |
+| `/api/groups` | 186,000ms / 1,200ms | **333ms cold · 1ms cached** |
+
+The remaining ~300ms/query is the genuine Singapore→Seoul + pooler floor — now a
+"nice to have," not urgent. **The Supabase→Singapore migration is NOT needed for
+performance** (it would've been days of risky auth/storage work for ~250ms while
+the real problem — the avatars — went untouched). Keep that plan on the shelf
+unless global scale later justifies it.
+
+### Lesson: two red herrings before the real cause
+Region (moved app US→Singapore) and connection pooling were investigated and ruled
+out by measurement. The warm-pool fix was kept (it does help single queries stay
+~85ms). But the 100× win was the avatar blob — found only by instrumenting the
+actual slow step instead of theorising. Always measure the slow step first.
+
+## (superseded theory) connection handling
 Moved the Railway app from **US West → Singapore** (near the Seoul DB) and it
 **did not help** — proving geography wasn't the bottleneck. The real cause:
 the `pg` Pool ran on defaults against a remote pooler — idle connections reaped
