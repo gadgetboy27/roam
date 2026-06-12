@@ -5,9 +5,21 @@ import { supabaseAdmin } from "../supabaseAdmin";
 import { authenticateRequest } from "../http-helpers";
 import type { RouteDeps } from "./deps";
 
+// First N signups get Adventurer free for life. Surfacing the remaining count
+// creates urgency on the landing page (a key early-stage conversion lever).
+export const FOUNDING_MEMBER_LIMIT = 50;
+
 // User authentication: login, current user, profile, Supabase migration, logout.
 export function registerAuthRoutes(app: Express, deps: RouteDeps) {
   const { loginLimiter, profileLimiter } = deps;
+
+  // Public: founding-member scarcity for the landing page ("X of 50 spots left").
+  app.get("/api/founding-status", async (_req, res) => {
+    const taken = await storage.countFoundingMembers();
+    const remaining = Math.max(0, FOUNDING_MEMBER_LIMIT - taken);
+    res.json({ limit: FOUNDING_MEMBER_LIMIT, taken, remaining, open: remaining > 0 });
+  });
+
   app.post("/api/auth/login", loginLimiter, async (req, res) => {
     try {
       const { email, password } = req.body;

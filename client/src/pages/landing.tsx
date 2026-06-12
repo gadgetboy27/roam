@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Mountain, Camera, MapPin, Compass, Zap, ArrowRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -60,12 +60,28 @@ const STORIES = [
 export default function Landing() {
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
+  const [founding, setFounding] = useState<{ remaining: number; limit: number; open: boolean } | null>(null);
 
   useEffect(() => {
     if (!loading && user) navigate("/discover");
   }, [user, loading, navigate]);
 
+  useEffect(() => {
+    fetch("/api/founding-status").then(r => r.json()).then(setFounding).catch(() => {});
+  }, []);
+
   if (loading || user) return null;
+
+  const foundingBadge = founding?.open ? (
+    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full mb-5 animate-fade-up"
+         style={{ background: "rgba(var(--roam-electric-rgb),0.12)", border: "1px solid rgba(var(--roam-electric-rgb),0.35)" }}
+         data-testid="founding-badge">
+      <span style={{ fontSize: "13px" }}>🔥</span>
+      <span className="font-mono text-[11px] tracking-wide font-semibold" style={{ color: "var(--roam-electric)" }}>
+        Only {founding.remaining} of {founding.limit} founding spots left — free Adventurer for life
+      </span>
+    </div>
+  ) : null;
 
   return (
     <div className="min-h-screen relative" data-testid="page-landing">
@@ -101,6 +117,7 @@ export default function Landing() {
           <div className="max-w-6xl mx-auto">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               <div className="animate-fade-up">
+                {foundingBadge}
                 <div className="font-mono text-[10px] tracking-[3px] uppercase mb-4" style={{ color: "var(--roam-electric)" }}>
                   Adventure Matching
                 </div>
@@ -213,6 +230,7 @@ export default function Landing() {
             <div className="text-center p-10 rounded-3xl"
                  style={{ background: "rgba(var(--roam-electric-rgb),0.05)", border: "1px solid rgba(var(--roam-electric-rgb),0.15)" }}>
               <Mountain size={40} className="mx-auto mb-4" style={{ color: "var(--roam-electric)" }} />
+              <div className="flex justify-center">{foundingBadge}</div>
               <h2 className="font-serif text-3xl font-black mb-3">
                 Ready to <span className="italic" style={{ color: "var(--roam-electric)" }}>roam</span>?
               </h2>
