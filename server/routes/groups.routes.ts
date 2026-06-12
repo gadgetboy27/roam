@@ -38,24 +38,48 @@ export function registerGroupRoutes(app: Express) {
 
   // ─── Groups REST API ──────────────────────────────────────────────────────
 
-  app.get("/api/groups", async (req, res) => {
-    const allGroups = await storage.getAllGroups();
-    const enriched = await Promise.all(allGroups.map(async g => {
-      const members = await storage.getGroupMembers(g.id);
-      const approved = members.filter(m => m.status === "approved");
-      // Squads are small (≤5): attach a lightweight member preview so the client
-      // can render 1:1 crew-ups as a "connections" strip with the other person's
-      // name/avatar. Larger groups skip this to avoid extra user lookups.
+  // Enrich a list of groups with memberCount + (for small squads) a member
+  // preview, in a fixed 2 queries total instead of N+1. Squads get a preview so
+  // the client can render 1:1 crew-ups as a "connections" strip; larger groups
+  // only get a count.
+  async function enrichGroups(groupList: any[]) {
+    if (groupList.length === 0) return [];
+    const allMembers = await storage.getGroupMembersForGroups(groupList.map(g => g.id));
+
+    // approved members grouped by groupId
+    const approvedByGroup = new Map<string, { userId: string }[]>();
+    for (const m of allMembers) {
+      if (m.status !== "approved") continue;
+      const arr = approvedByGroup.get(m.groupId) ?? [];
+      arr.push({ userId: m.userId });
+      approvedByGroup.set(m.groupId, arr);
+    }
+
+    // collect user ids we need names/avatars for (small squads only) → one query
+    const wantedUserIds = new Set<string>();
+    for (const g of groupList) {
+      const approved = approvedByGroup.get(g.id) ?? [];
+      if (g.type === "squad" && approved.length <= 5) approved.forEach(m => wantedUserIds.add(m.userId));
+    }
+    const users = await storage.getUsersByIds([...wantedUserIds]);
+    const userById = new Map(users.map(u => [u.id, u]));
+
+    return groupList.map(g => {
+      const approved = approvedByGroup.get(g.id) ?? [];
       let memberPreview: { id: string; name: string; avatarUrl: string | null }[] | undefined;
       if (g.type === "squad" && approved.length <= 5) {
-        memberPreview = await Promise.all(approved.map(async m => {
-          const u = await storage.getUser(m.userId);
+        memberPreview = approved.map(m => {
+          const u = userById.get(m.userId);
           return { id: m.userId, name: u?.nickname || u?.name || "Member", avatarUrl: u?.avatarUrl ?? null };
-        }));
+        });
       }
       return { ...g, memberCount: approved.length, members: memberPreview };
-    }));
-    res.json(enriched);
+    });
+  }
+
+  app.get("/api/groups", async (req, res) => {
+    const allGroups = await storage.getAllGroups();
+    res.json(await enrichGroups(allGroups));
   });
 
   app.get("/api/groups/my-led", async (req, res) => {
@@ -71,19 +95,7 @@ export function registerGroupRoutes(app: Express) {
     const userId = await authenticateRequest(req);
     if (!userId) return res.json([]);
     const mine = await storage.getGroupsForUser(userId);
-    const enriched = await Promise.all(mine.map(async g => {
-      const members = await storage.getGroupMembers(g.id);
-      const approved = members.filter(m => m.status === "approved");
-      let memberPreview: { id: string; name: string; avatarUrl: string | null }[] | undefined;
-      if (g.type === "squad" && approved.length <= 5) {
-        memberPreview = await Promise.all(approved.map(async m => {
-          const u = await storage.getUser(m.userId);
-          return { id: m.userId, name: u?.nickname || u?.name || "Member", avatarUrl: u?.avatarUrl ?? null };
-        }));
-      }
-      return { ...g, memberCount: approved.length, members: memberPreview };
-    }));
-    res.json(enriched);
+    res.json(await enrichGroups(mine));
   });
 
   app.get("/api/groups/:id", async (req, res) => {

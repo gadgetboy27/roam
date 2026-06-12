@@ -20,6 +20,12 @@ export const usersRepo = {
     return user;
   },
 
+  // Batch fetch users by id in one query (avoids N+1 when enriching members).
+  async getUsersByIds(ids: string[]): Promise<User[]> {
+    if (ids.length === 0) return [];
+    return db.select().from(users).where(inArray(users.id, ids));
+  },
+
   async getUserByEmail(email: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
     return user;

@@ -24,6 +24,7 @@ import { notificationsRepo } from "./storage/notifications.repo";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
+  getUsersByIds(ids: string[]): Promise<User[]>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined>;
@@ -78,6 +79,7 @@ export interface IStorage {
   addGroupMember(data: InsertGroupMember): Promise<GroupMember>;
   getGroupMember(groupId: string, userId: string): Promise<GroupMember | undefined>;
   getGroupMembers(groupId: string): Promise<GroupMember[]>;
+  getGroupMembersForGroups(groupIds: string[]): Promise<GroupMember[]>;
   updateGroupMember(id: number, data: Partial<InsertGroupMember>): Promise<GroupMember | undefined>;
   removeGroupMember(groupId: string, userId: string): Promise<void>;
   getGroupsForUser(userId: string): Promise<Group[]>;

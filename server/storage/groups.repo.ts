@@ -53,6 +53,12 @@ export const groupsRepo = {
     return db.select().from(groupMembers).where(eq(groupMembers.groupId, groupId));
   },
 
+  // Batch fetch members for many groups in one query (avoids N+1 in /api/groups).
+  async getGroupMembersForGroups(groupIds: string[]): Promise<GroupMember[]> {
+    if (groupIds.length === 0) return [];
+    return db.select().from(groupMembers).where(inArray(groupMembers.groupId, groupIds));
+  },
+
   async updateGroupMember(id: number, data: Partial<InsertGroupMember>): Promise<GroupMember | undefined> {
     const [updated] = await db.update(groupMembers).set(data as any).where(eq(groupMembers.id, id)).returning();
     return updated;
