@@ -122,6 +122,15 @@ export default function Profile() {
     if (params.get("squad") === "1") { setSquadLeader(true); window.history.replaceState({}, "", "/profile"); refresh(); }
     if (params.get("connect") === "success") { setConnectSuccess(true); window.history.replaceState({}, "", "/profile"); refetchConnect(); }
     if (params.get("connect") === "refresh") { setConnectRefresh(true); window.history.replaceState({}, "", "/profile"); }
+    if (params.get("verify") === "1") {
+      // Deep-link from the Discover "Get verified" banner — scroll the verify card
+      // into view and pulse it so the CTA is unmissable.
+      window.history.replaceState({}, "", "/profile");
+      setTimeout(() => {
+        const el = document.querySelector('[data-testid="section-verified-user"]');
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 300);
+    }
   }, []);
 
   const handleBoost = async () => {

@@ -321,6 +321,20 @@ export default function Discover() {
 
       <AppNav />
 
+      {/* Get-verified banner — high-visibility prompt on the busiest screen for
+          users who haven't verified yet. Verified profiles get more matches +
+          a trust badge, so surface it where they're actively swiping. */}
+      {user && !(user as any).identityVerified && (
+        <button
+          onClick={() => navigate("/profile?verify=1")}
+          className="fixed top-[64px] left-1/2 -translate-x-1/2 z-[55] flex items-center gap-2 px-4 py-2 rounded-full shadow-lg animate-fade-up"
+          style={{ background: "var(--roam-electric)", color: "var(--roam-forest)", maxWidth: "calc(100% - 80px)" }}
+          data-testid="discover-verify-banner">
+          <ShieldCheck size={14} />
+          <span className="font-mono text-[11px] font-semibold tracking-wide whitespace-nowrap">Get verified — stand out & build trust →</span>
+        </button>
+      )}
+
       {toast && (
         <div className="fixed left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-2xl font-mono text-[11px] tracking-wider animate-fade-up shadow-lg"
              style={{ top: "74px", background: "var(--roam-electric)", color: "var(--roam-forest)", whiteSpace: "nowrap" }}>

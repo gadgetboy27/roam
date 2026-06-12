@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import AppNav from "@/components/app-nav";
 import {
   Send, ArrowLeft, WifiOff, Clock, MapPin, BookmarkCheck,
-  Bookmark, Compass, Flame, MessageCircle, Hourglass, Zap,
+  Bookmark, Compass, Flame, MessageCircle, Hourglass, Zap, ShieldCheck,
   Plus, X, ImagePlus, Loader2
 } from "lucide-react";
 import { useConnectionStatus } from "@/lib/useConnectionStatus";
@@ -148,6 +148,7 @@ export default function Matches() {
           partnerId: partnerId as string,
           name: partner.name as string,
           nameAge: age ? `${partner.name}, ${age}` : (partner.name as string),
+          verified: !!partner.identityVerified,
           shared: sharedTags,
           when,
           img: (partner.avatarUrl || "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=150&q=80&fit=crop") as string,
@@ -467,7 +468,16 @@ export default function Matches() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-base font-semibold" data-testid={`text-match-name-${m.id}`}>{m.nameAge}</div>
+                        <div className="text-base font-semibold flex items-center gap-1.5" data-testid={`text-match-name-${m.id}`}>
+                          {m.nameAge}
+                          {m.verified && (
+                            <span className="flex items-center gap-0.5 font-mono text-[8px] tracking-wider px-1.5 py-0.5 rounded-full flex-shrink-0"
+                                  style={{ background: "rgba(var(--roam-electric-rgb),0.15)", color: "var(--roam-electric)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)" }}
+                                  title="ID verified">
+                              <ShieldCheck size={9} /> ID
+                            </span>
+                          )}
+                        </div>
                         <div className="flex flex-wrap gap-1 mt-0.5 mb-1">
                           {m.shared.map(t => (
                             <span key={t} className="font-mono text-[8px] tracking-wider px-1.5 py-0.5 rounded-md"
