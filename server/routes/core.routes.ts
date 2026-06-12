@@ -174,13 +174,23 @@ export function registerCoreRoutes(app: Express, deps: RouteDeps) {
     if (nickname !== undefined && typeof nickname === "string" && nickname.length > 40) {
       return res.status(400).json({ message: "Nickname must be 40 characters or less" });
     }
+    // Avatars must be a storage URL, never an inline base64 data URL. Storing the
+    // raw base64 bloated the users row to ~4.6 MB and made every user-fetching
+    // query (discover, matches, groups) drag megabytes across the network. If the
+    // client sent a data: URL, upload it to storage and keep only the short URL.
+    let avatarToStore = avatarUrl;
+    if (typeof avatarUrl === "string" && avatarUrl.startsWith("data:")) {
+      const up = await uploadImageDataUrl(req.params.id, avatarUrl, "avatars");
+      if (!up.ok) return res.status(up.status).json({ message: up.message });
+      avatarToStore = up.url;
+    }
     try {
       const updated = await storage.updateUser(req.params.id, {
         ...(name !== undefined && { name }),
         ...(nickname !== undefined && { nickname: nickname || null }),
         ...(tagline !== undefined && { tagline }),
         ...(location !== undefined && { location }),
-        ...(avatarUrl !== undefined && { avatarUrl }),
+        ...(avatarUrl !== undefined && { avatarUrl: avatarToStore }),
         ...(adventureTags !== undefined && { adventureTags }),
       });
       if (!updated) return res.status(404).json({ message: "User not found" });
