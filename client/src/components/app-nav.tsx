@@ -41,6 +41,7 @@ export default function AppNav() {
   const [quickForm, setQuickForm] = useState({ name: "", type: "" });
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState("");
+  const [feedbackHp, setFeedbackHp] = useState(""); // honeypot — must stay empty
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [feedbackDone, setFeedbackDone] = useState(false);
   const paletteRef = useRef<HTMLDivElement>(null);
@@ -92,7 +93,7 @@ export default function AppNav() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ message: feedbackMsg.trim(), page: location }),
+        body: JSON.stringify({ message: feedbackMsg.trim(), page: location, company: feedbackHp }),
       });
       setFeedbackDone(true);
       setFeedbackMsg("");
@@ -333,6 +334,17 @@ export default function AppNav() {
                     value={feedbackMsg}
                     onChange={e => setFeedbackMsg(e.target.value)}
                     data-testid="input-feedback-message"
+                  />
+                  {/* Honeypot — hidden from real users, bots fill it and get silently dropped */}
+                  <input
+                    type="text"
+                    name="company"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    aria-hidden="true"
+                    value={feedbackHp}
+                    onChange={e => setFeedbackHp(e.target.value)}
+                    style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }}
                   />
                   <button
                     onClick={handleFeedbackSubmit}

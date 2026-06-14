@@ -10,5 +10,6 @@ export interface RouteDeps {
   verifyLimiter: RequestHandler;
   uploadLimiter: RequestHandler;
   checkoutLimiter: RequestHandler;
+  feedbackLimiter: RequestHandler;
   io: SocketServer;
 }

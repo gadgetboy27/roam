@@ -137,10 +137,11 @@ export async function registerRoutes(
   verifyLimiter     = makeLimiter(3,  60 * 60 * 1000, "Too many verification attempts. Please try again in an hour.");
   uploadLimiter     = makeLimiter(30, 60 * 60 * 1000);
   const checkoutLimiter = makeLimiter(5, 60 * 60 * 1000);
+  const feedbackLimiter = makeLimiter(6, 60 * 60 * 1000, "Thanks for all the feedback! Please try again in an hour.");
 
   // Shared runtime deps passed to route modules that need limiters / io.
   const deps: RouteDeps = {
-    loginLimiter, adminLoginLimiter, profileLimiter, verifyLimiter, uploadLimiter, checkoutLimiter, io,
+    loginLimiter, adminLoginLimiter, profileLimiter, verifyLimiter, uploadLimiter, checkoutLimiter, feedbackLimiter, io,
   };
 
   app.use(
@@ -195,7 +196,7 @@ export async function registerRoutes(
   });
 
   // ─── Notifications + feedback (see routes/misc.routes.ts)
-  registerMiscRoutes(app);
+  registerMiscRoutes(app, deps);
 
   return httpServer;
 }
