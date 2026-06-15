@@ -70,6 +70,7 @@ export default function Discover() {
   const [expandedTag, setExpandedTag] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
   const [dragOffsetY, setDragOffsetY] = useState(0);
+  const [photoIdx, setPhotoIdx] = useState(0);
   const [exitDir, setExitDir] = useState<"up" | "left" | "right" | null>(null);
   const [matchCelebration, setMatchCelebration] = useState<{
     name: string; hero: string; sharedTags: string[]; almostMet: { location: string; dateHint: string } | null;
@@ -81,6 +82,9 @@ export default function Discover() {
   const dragStartX = useRef<number | null>(null);
   const dragStartY = useRef<number | null>(null);
   const isMouseDown = useRef(false);
+  // True when a gesture started on an interactive overlay (badge/tag/button) —
+  // used to suppress tap-to-cycle-photo so those controls keep working.
+  const downOnControl = useRef(false);
   const pendingMatchRef = useRef<typeof matchCelebration>(null);
   const [, navigate] = useLocation();
 
@@ -116,6 +120,9 @@ export default function Discover() {
         ethnicity: (u.ethnicity || "") as string,
         tagline: (u.tagline || "Adventure awaits") as string,
         hero,
+        // Tap-through gallery: approved photos from the API (hero first), or
+        // just the hero if the profile has none. Always at least one entry.
+        photos: (Array.isArray(u.photos) && u.photos.length ? u.photos : [hero]) as string[],
         dna,
         honestyTier: (u.identityVerified ? "verified-adventure" : "unverified") as HonestyTier,
         almostMet: (u.almostMet ?? null) as { location: string; dateHint: string } | null,
@@ -134,6 +141,15 @@ export default function Discover() {
   const profile = deck[Math.min(profileIdx, Math.max(deck.length - 1, 0))];
   const isVerifiedUser = profile?.honestyTier === "verified-adventure";
   const cardKey = `profile-${animKey}`;
+
+  // Reset the photo carousel whenever the visible profile changes (advance,
+  // pass, block, restart) so each new card starts on its hero photo.
+  useEffect(() => { setPhotoIdx(0); }, [profile?.id]);
+
+  const photoCount = profile?.photos.length ?? 0;
+  const currentPhoto = profile
+    ? profile.photos[Math.min(photoIdx, photoCount - 1)] ?? profile.hero
+    : "";
 
   const roamMutation = useMutation({
     mutationFn: async (targetId: string) => {
@@ -261,9 +277,29 @@ export default function Discover() {
     }, 320);
   };
 
+  // Tap-to-cycle: a 4th "movement" alongside swipe up/left/right. A tap (no
+  // meaningful drag) on the photo advances to the profile's next photo,
+  // wrapping back to the first after the last.
+  const cyclePhoto = () => {
+    if (photoCount <= 1) return;
+    setPhotoIdx(i => (i + 1) % photoCount);
+  };
+
+  // Below this px of total movement, a press counts as a tap rather than a swipe.
+  const TAP_SLOP = 10;
+  const isTap = () =>
+    Math.abs(dragOffset) < TAP_SLOP && Math.abs(dragOffsetY) < TAP_SLOP;
+
   const evaluateGesture = () => {
     const absX = Math.abs(dragOffset);
     const absY = Math.abs(dragOffsetY);
+    // Tap (no swipe) on the photo — cycle to the next pic. Skip when the press
+    // started on an overlay control so badges/tags/report keep working.
+    if (isTap()) {
+      if (!downOnControl.current) cyclePhoto();
+      resetDrag();
+      return;
+    }
     if (absY > absX && dragOffsetY < -80) {
       triggerExit("up", "advance");
     } else if (absX > absY) {
@@ -277,6 +313,7 @@ export default function Discover() {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (exitDir) return;
+    downOnControl.current = !!(e.target as HTMLElement).closest("button,a");
     dragStartX.current = e.touches[0].clientX;
     dragStartY.current = e.touches[0].clientY;
   };
@@ -292,6 +329,7 @@ export default function Discover() {
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (exitDir) return;
+    downOnControl.current = !!(e.target as HTMLElement).closest("button,a");
     isMouseDown.current = true;
     dragStartX.current = e.clientX;
     dragStartY.current = e.clientY;
@@ -442,9 +480,25 @@ export default function Discover() {
            onMouseLeave={handleMouseLeave}
            onContextMenu={e => e.preventDefault()}>
 
-        <img src={profile.hero} alt={profile.name}
+        <img key={photoIdx} src={currentPhoto} alt={profile.name}
              className="absolute inset-0 w-full h-full object-cover"
-             draggable={false} style={{ pointerEvents: "none" }} />
+             draggable={false} style={{ pointerEvents: "none", animation: "cardFadeIn 0.25s ease-out both" }} />
+
+        {/* Photo carousel indicator — story-style segments, shown only when the
+            profile has more than one photo so tap-to-cycle is discoverable. */}
+        {photoCount > 1 && (
+          <div className="absolute left-3 right-3 flex gap-1.5 pointer-events-none z-20" style={{ top: "10px" }}>
+            {profile.photos.map((_, i) => (
+              <div key={i} className="flex-1 rounded-full transition-all duration-200"
+                   style={{
+                     height: "3px",
+                     background: i === Math.min(photoIdx, photoCount - 1)
+                       ? "rgba(255,255,255,0.95)"
+                       : "rgba(255,255,255,0.32)",
+                   }} />
+            ))}
+          </div>
+        )}
 
         <div className="absolute inset-0 pointer-events-none"
              style={{ background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.5) 35%, rgba(0,0,0,0.1) 58%, transparent 72%)" }} />

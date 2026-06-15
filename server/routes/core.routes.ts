@@ -109,6 +109,14 @@ export function registerCoreRoutes(app: Express, deps: RouteDeps) {
         ethnicity: candidate.ethnicity,
         tagline: candidate.tagline,
         heroPhotoUrl: heroPhotoMap[candidate.id] ?? candidate.avatarUrl ?? null,
+        // Full approved gallery (hero first, ordered by displayOrder) so the
+        // discover card can let users tap through a profile's photos. Already
+        // loaded above for fingerprinting, so this adds no extra query; capped
+        // at 9 to keep the payload small (storage URLs are ~147 chars each).
+        photos: candidatePhotos
+          .filter(p => p.verdict === "approved")
+          .map(p => p.storageUrl)
+          .slice(0, 9),
         adventureTags: candidate.adventureTags,
         identityVerified: candidate.identityVerified,
         openToRoaming: candidate.openToRoaming,
