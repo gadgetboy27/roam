@@ -4,6 +4,7 @@ import {
   type User, type InsertUser, type Photo, type InsertPhoto,
   type Match, type InsertMatch, type Message, type InsertMessage,
   type BucketListItem, type InsertBucketList, type Ad, type InsertAd,
+  type VisitedPlace, type InsertVisitedPlace,
   type AdminUser, type InsertAdminUser,
   type Group, type InsertGroup, type GroupMember, type InsertGroupMember,
   type GroupMessage, type GroupEvent, type InsertGroupEvent,
@@ -17,6 +18,7 @@ import { photosRepo } from "./storage/photos.repo";
 import { matchesRepo } from "./storage/matches.repo";
 import { messagesRepo } from "./storage/messages.repo";
 import { bucketListRepo } from "./storage/bucketList.repo";
+import { placesRepo } from "./storage/places.repo";
 import { adsRepo } from "./storage/ads.repo";
 import { adminRepo } from "./storage/admin.repo";
 import { groupsRepo } from "./storage/groups.repo";
@@ -51,6 +53,12 @@ export interface IStorage {
   getBucketItem(id: string): Promise<BucketListItem | undefined>;
   getBucketListByUser(userId: string): Promise<BucketListItem[]>;
   deleteBucketItem(id: string): Promise<void>;
+
+  createVisitedPlace(item: InsertVisitedPlace): Promise<VisitedPlace>;
+  getVisitedPlace(id: string): Promise<VisitedPlace | undefined>;
+  getVisitedPlacesByUser(userId: string): Promise<VisitedPlace[]>;
+  getVisitedPlacesForUsers(userIds: string[]): Promise<VisitedPlace[]>;
+  deleteVisitedPlace(id: string): Promise<void>;
 
   updateUserVerification(userId: string, verificationId: string | null, verified: boolean): Promise<User | undefined>;
   deleteUser(userId: string): Promise<void>;
@@ -127,5 +135,5 @@ export interface IStorage {
 // Public API is unchanged; IStorage guarantees all methods are present.
 export const storage: IStorage = {
   ...usersRepo, ...photosRepo, ...matchesRepo, ...messagesRepo, ...bucketListRepo,
-  ...adsRepo, ...adminRepo, ...groupsRepo, ...notificationsRepo,
+  ...placesRepo, ...adsRepo, ...adminRepo, ...groupsRepo, ...notificationsRepo,
 };

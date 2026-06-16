@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { buildFingerprint, computeOverlap, detectAlmostMet, computeHonestyTier } from "../fingerprint";
+import { buildFingerprint, computeOverlap, detectAlmostMet, detectAlmostMetFromPlaces, computeHonestyTier, type VisitedPlaceLite } from "../fingerprint";
 import { authenticateRequest, uploadImageDataUrl, notifyNewMessage } from "../http-helpers";
 import { pool } from "../db";
 import type { RouteDeps } from "./deps";
@@ -84,13 +84,32 @@ export function registerCoreRoutes(app: Express, deps: RouteDeps) {
       }
     } catch { /* non-fatal — degrade gracefully */ }
 
+    // Almost Met — fetch the current user's and all candidates' logged places
+    let myPlaces: VisitedPlaceLite[] = [];
+    const candidatePlacesMap = new Map<string, VisitedPlaceLite[]>();
+    try {
+      const [myVP, candidateVPs] = await Promise.all([
+        pool.query("SELECT place, year FROM visited_places WHERE user_id = $1", [userId]),
+        candidateIds.length > 0
+          ? pool.query("SELECT user_id, place, year FROM visited_places WHERE user_id = ANY($1)", [candidateIds])
+          : Promise.resolve({ rows: [] }),
+      ]);
+      myPlaces = myVP.rows.map((r: any) => ({ place: r.place, year: r.year ?? null }));
+      for (const row of candidateVPs.rows) {
+        if (!candidatePlacesMap.has(row.user_id)) candidatePlacesMap.set(row.user_id, []);
+        candidatePlacesMap.get(row.user_id)!.push({ place: row.place, year: row.year ?? null });
+      }
+    } catch { /* non-fatal — degrade gracefully */ }
+
     const now = Date.now();
 
     const scored = candidates.map(candidate => {
       const candidatePhotos = allCandidatePhotos[candidate.id] ?? [];
       const candidateFp = buildFingerprint(candidatePhotos, candidate.adventureTags);
       const { score, sharedTags } = computeOverlap(myFp, candidateFp);
-      const almostMet = detectAlmostMet(currentPhotos, candidatePhotos);
+      const candidatePlaces = candidatePlacesMap.get(candidate.id) ?? [];
+      const almostMet = detectAlmostMetFromPlaces(myPlaces, candidatePlaces)
+        ?? detectAlmostMet(currentPhotos, candidatePhotos);
       const age = candidate.dob
         ? Math.floor((Date.now() - new Date(candidate.dob).getTime()) / (365.25 * 24 * 3600 * 1000))
         : null;
@@ -350,11 +369,13 @@ export function registerCoreRoutes(app: Express, deps: RouteDeps) {
       let almostMetLocation: string | null = null;
       let almostMetDate: string | null = null;
       try {
-        const [photosA, photosB, userA, userB] = await Promise.all([
+        const [photosA, photosB, userA, userB, placesA, placesB] = await Promise.all([
           storage.getPhotosByUser(userAId),
           storage.getPhotosByUser(userBId),
           storage.getUser(userAId),
           storage.getUser(userBId),
+          storage.getVisitedPlacesByUser(userAId),
+          storage.getVisitedPlacesByUser(userBId),
         ]);
         if (userA && userB) {
           const fpA = buildFingerprint(photosA, userA.adventureTags);
@@ -362,7 +383,7 @@ export function registerCoreRoutes(app: Express, deps: RouteDeps) {
           const overlap = computeOverlap(fpA, fpB);
           overlapScore = overlap.score;
           sharedTags = overlap.sharedTags;
-          const almostMet = detectAlmostMet(photosA, photosB);
+          const almostMet = detectAlmostMetFromPlaces(placesA, placesB) ?? detectAlmostMet(photosA, photosB);
           if (almostMet) {
             almostMetLocation = almostMet.location;
             almostMetDate = almostMet.dateHint;
@@ -519,6 +540,61 @@ export function registerCoreRoutes(app: Express, deps: RouteDeps) {
 
       const item = await storage.createBucketItem({ userId, destinationName: name, imageUrl });
       res.status(201).json(item);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // ─── Places you've roamed (powers "Almost Met") ────────────────────────────
+  app.get("/api/places/:userId", async (req, res) => {
+    const sessionUserId = await authenticateRequest(req);
+    if (!sessionUserId) return res.status(401).json({ message: "Not authenticated" });
+    if (sessionUserId !== req.params.userId) return res.status(403).json({ message: "Not authorized" });
+    const items = await storage.getVisitedPlacesByUser(req.params.userId);
+    res.json(items);
+  });
+
+  app.post("/api/places", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    try {
+      const place = typeof req.body?.place === "string" ? req.body.place.trim() : "";
+      if (!place) return res.status(400).json({ message: "Place is required" });
+      if (place.length > 80) return res.status(400).json({ message: "Place must be 80 characters or less" });
+
+      let year: number | null = null;
+      if (req.body?.year != null && req.body.year !== "") {
+        const y = Number(req.body.year);
+        const currentYear = new Date().getFullYear();
+        if (!Number.isInteger(y) || y < 1950 || y > currentYear) {
+          return res.status(400).json({ message: `Year must be between 1950 and ${currentYear}` });
+        }
+        year = y;
+      }
+
+      // Dedupe on place+year and cap the list.
+      const existing = await storage.getVisitedPlacesByUser(userId);
+      if (existing.length >= 40) return res.status(400).json({ message: "You can add up to 40 places." });
+      if (existing.some(p => p.place.trim().toLowerCase() === place.toLowerCase() && (p.year ?? null) === year)) {
+        return res.status(409).json({ message: "You've already added that place." });
+      }
+
+      const item = await storage.createVisitedPlace({ userId, place, year });
+      res.status(201).json(item);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/places/:id", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    try {
+      const item = await storage.getVisitedPlace(req.params.id);
+      if (!item) return res.status(404).json({ message: "Not found" });
+      if (item.userId !== userId) return res.status(403).json({ message: "Not authorized" });
+      await storage.deleteVisitedPlace(req.params.id);
+      res.json({ message: "Deleted" });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

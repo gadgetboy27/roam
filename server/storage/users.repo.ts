@@ -3,7 +3,7 @@ import { db } from "../db";
 import {
   users, photos, matches, messages, bucketList, ads, adminUsers, adminAuditLog,
   groups, groupMembers, groupMessages, groupEvents, groupEventAttendees, groupInvites, notifications,
-  blocks, reports, safetyContacts, safetyCheckins, safetyAlertLog, typingIndicators,
+  blocks, reports, safetyContacts, safetyCheckins, safetyAlertLog, typingIndicators, visitedPlaces,
   type User, type InsertUser, type Photo, type InsertPhoto,
   type Match, type InsertMatch, type Message, type InsertMessage,
   type BucketListItem, type InsertBucketList, type Ad, type InsertAd,
@@ -96,6 +96,7 @@ export const usersRepo = {
 
       // Misc owned rows.
       await tx.delete(bucketList).where(eq(bucketList.userId, userId));
+      await tx.delete(visitedPlaces).where(eq(visitedPlaces.userId, userId));
       await tx.delete(typingIndicators).where(eq(typingIndicators.userId, userId));
 
       // Finally the user row — cascades matches/messages/notifications/photos.

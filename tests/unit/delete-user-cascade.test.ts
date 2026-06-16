@@ -53,6 +53,7 @@ import {
   groupMessages,
   groupMembers,
   bucketList,
+  visitedPlaces,
   typingIndicators,
 } from "../../shared/schema";
 
@@ -72,6 +73,7 @@ describe("usersRepo.deleteUser — cascade covers all user-owned tables", () => 
     { name: "groupMessages", table: groupMessages },
     { name: "groupMembers", table: groupMembers },
     { name: "bucketList", table: bucketList },
+    { name: "visitedPlaces", table: visitedPlaces },
     { name: "typingIndicators", table: typingIndicators },
   ];
 

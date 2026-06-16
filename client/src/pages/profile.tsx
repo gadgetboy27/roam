@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import AppNav from "@/components/app-nav";
+import PlacesRoamed from "@/components/places-roamed";
 import { useAuth } from "@/lib/auth";
 import { useCrewUp } from "@/lib/useCrewUp";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -615,6 +616,11 @@ export default function Profile() {
                   </span>
                 ))}
               </div>
+            </div>
+
+            {/* ── Places you've roamed (powers Almost Met) ── */}
+            <div className="mb-5">
+              <PlacesRoamed />
             </div>
 
             {/* ── My groups ── */}

@@ -121,6 +121,45 @@ export function detectAlmostMet(
   return null;
 }
 
+export interface VisitedPlaceLite { place: string; year: number | null }
+
+/**
+ * "Almost Met" from places users have explicitly logged — preferred over the
+ * photo-caption guess in detectAlmostMet(). Matches on a normalised place name
+ * (case-insensitive, trimmed, ignoring anything after a comma so "Queenstown"
+ * and "Queenstown, NZ" match). If both logged a year, the hint reflects whether
+ * it was the same window or different trips.
+ */
+export function detectAlmostMetFromPlaces(
+  placesA: VisitedPlaceLite[],
+  placesB: VisitedPlaceLite[],
+): { location: string; dateHint: string } | null {
+  const norm = (s: string) => s.toLowerCase().trim().replace(/,.*$/, "").replace(/\s+/g, " ").trim();
+
+  const byPlaceA = new Map<string, VisitedPlaceLite>();
+  for (const p of placesA) {
+    const k = norm(p.place);
+    if (k) byPlaceA.set(k, p);
+  }
+
+  for (const p of placesB) {
+    const k = norm(p.place);
+    if (!k) continue;
+    const a = byPlaceA.get(k);
+    if (!a) continue;
+
+    const display = p.place.trim().replace(/,.*$/, "").trim();
+    let dateHint: string;
+    if (a.year && p.year) {
+      dateHint = Math.abs(a.year - p.year) <= 1 ? `${Math.max(a.year, p.year)}` : "different trips";
+    } else {
+      dateHint = "you've both roamed here";
+    }
+    return { location: display.charAt(0).toUpperCase() + display.slice(1), dateHint };
+  }
+  return null;
+}
+
 /** Compute honesty tier from a user's photo record */
 export function computeHonestyTier(photos: Photo[]): "verified-adventure" | "mostly-verified" | "unverified" {
   if (!photos.length) return "unverified";

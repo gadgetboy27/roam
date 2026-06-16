@@ -108,6 +108,21 @@ export const bucketList = pgTable("bucket_list", {
   index("idx_bucket_list_user").on(table.userId),
 ]);
 
+// Places a user has actually been (past adventures) — powers "Almost Met":
+// when two users share a place (and roughly a time), they almost crossed paths.
+export const visitedPlaces = pgTable("visited_places", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  place: text("place").notNull(),
+  year: integer("year"),            // optional — sharpens the "when" of an almost-met
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_visited_places_user").on(table.userId),
+]);
+
+export type VisitedPlace = typeof visitedPlaces.$inferSelect;
+export type InsertVisitedPlace = typeof visitedPlaces.$inferInsert;
+
 export const ads = pgTable("ads", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   advertiserName: text("advertiser_name").notNull(),
