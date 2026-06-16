@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { MapPin, Camera, Edit3, Settings, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2, Trash2, Banknote, ExternalLink, AlertCircle, ShieldCheck, Zap, Users, Tent } from "lucide-react";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { computeVibeWord } from "@/lib/fingerprint";
+import { friendlyVerifyReason, verifyIsPhotoFixable } from "@/lib/verifyError";
 
 const FALLBACK_HERO = "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&q=80&fit=crop";
 
@@ -85,6 +86,7 @@ export default function Profile() {
   const [verifyTimedOut, setVerifyTimedOut] = useState(false);
   const [verifyNeedsRetry, setVerifyNeedsRetry] = useState(false);
   const [verifyReason, setVerifyReason] = useState("");
+  const [verifyPhotoFixable, setVerifyPhotoFixable] = useState(true);
   const [resetting, setResetting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -202,8 +204,8 @@ export default function Profile() {
         if (data?.status === "requires_input") {
           // Stripe couldn't verify the document/selfie — stop polling and show a retry.
           clearInterval(interval);
-          const code = data?.lastError?.reason || data?.lastError?.code;
-          setVerifyReason(code ? `Stripe couldn't verify it (${String(code).replace(/_/g, " ")}).` : "");
+          setVerifyReason(friendlyVerifyReason(data?.lastError));
+          setVerifyPhotoFixable(verifyIsPhotoFixable(data?.lastError));
           setVerifyNeedsRetry(true);
           await refresh();
           return;
@@ -237,6 +239,7 @@ export default function Profile() {
     if (!user) return;
     setVerifyNeedsRetry(false);
     setVerifyReason("");
+    setVerifyPhotoFixable(true);
     setVerifyTimedOut(false);
     setVerifying(true);
     setVerifyError("");
@@ -464,7 +467,7 @@ export default function Profile() {
                       <div className="flex-1 min-w-0">
                         <div className="font-mono text-[11px] font-semibold" style={{ color: "var(--roam-ember)" }}>Verification didn't pass</div>
                         <div className="font-mono text-[10px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
-                          {verifyReason ? `${verifyReason} ` : ""}Retry with a clear, well-lit photo of your ID and face.
+                          {verifyReason ? `${verifyReason} ` : ""}{verifyPhotoFixable ? "Retry with a clear, well-lit photo of your ID and face." : "Once that's sorted, you can try again."}
                         </div>
                       </div>
                       <button onClick={handleStartVerification} disabled={verifying}
