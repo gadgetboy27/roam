@@ -1,6 +1,4 @@
-const CACHE_NAME = "roam-v1";
-const STATIC_CACHE = "roam-static-v1";
-const API_CACHE = "roam-api-v1";
+const STATIC_CACHE = "roam-static-v2";
 
 const STATIC_ASSETS = [
   "/",
@@ -21,31 +19,28 @@ function shouldNeverCache(url) {
   return NEVER_CACHE.some((pattern) => url.includes(pattern));
 }
 
-function isApiRequest(url) {
-  return url.includes("/api/");
-}
-
 function isNavigationRequest(request) {
   return request.mode === "navigate";
 }
 
 self.addEventListener("install", (event) => {
+  // Precache the app shell. We do NOT skipWaiting here: an updated worker stays
+  // in "waiting" until the user taps Refresh (handled via the SKIP_WAITING
+  // message below), so deploys never force a surprise reload mid-session.
   event.waitUntil(
-    caches
-      .open(STATIC_CACHE)
-      .then((cache) => cache.addAll(STATIC_ASSETS))
-      .then(() => self.skipWaiting())
+    caches.open(STATIC_CACHE).then((cache) => cache.addAll(STATIC_ASSETS))
   );
 });
 
 self.addEventListener("activate", (event) => {
+  // On activation, drop any caches from older versions, then take control.
   event.waitUntil(
     caches
       .keys()
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => key !== STATIC_CACHE && key !== API_CACHE)
+            .filter((key) => key !== STATIC_CACHE)
             .map((key) => caches.delete(key))
         )
       )
@@ -58,22 +53,8 @@ self.addEventListener("fetch", (event) => {
   const url = request.url;
 
   if (request.method !== "GET") return;
+  // /api and /socket.io bail here — authed data is never cached.
   if (shouldNeverCache(url)) return;
-
-  if (isApiRequest(url)) {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(API_CACHE).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        })
-        .catch(() => caches.match(request))
-    );
-    return;
-  }
 
   if (isNavigationRequest(request)) {
     event.respondWith(
