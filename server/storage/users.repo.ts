@@ -3,6 +3,7 @@ import { db } from "../db";
 import {
   users, photos, matches, messages, bucketList, ads, adminUsers, adminAuditLog,
   groups, groupMembers, groupMessages, groupEvents, groupEventAttendees, groupInvites, notifications,
+  blocks, reports, safetyContacts, safetyCheckins, safetyAlertLog, typingIndicators,
   type User, type InsertUser, type Photo, type InsertPhoto,
   type Match, type InsertMatch, type Message, type InsertMessage,
   type BucketListItem, type InsertBucketList, type Ad, type InsertAd,
@@ -58,8 +59,48 @@ export const usersRepo = {
     return found;
   },
 
+  // Fully delete a user and ALL of their personal data, atomically.
+  //
+  // Only four tables (matches, messages, notifications, photos) have an
+  // ON DELETE CASCADE FK to users, so deleting just the users row would leave
+  // the rest behind — including PII like safety contacts and check-in
+  // locations. That breaks the deletion promise (and "right to be forgotten").
+  // So we explicitly remove every user-owned row first, in one transaction, then
+  // delete the users row (which fires the existing cascades). If any step fails
+  // the whole thing rolls back — no half-deleted account.
+  //
+  // Shared/community artifacts the user created (groups they lead, group events,
+  // paid ads) are intentionally left intact so other members aren't affected;
+  // reassigning group leadership on delete is a separate policy decision.
   async deleteUser(userId: string): Promise<void> {
-    await db.delete(users).where(eq(users.id, userId));
+    await db.transaction(async (tx) => {
+      // Safety data (PII: emergency contacts, locations, alert history).
+      await tx.delete(safetyAlertLog).where(eq(safetyAlertLog.userId, userId));
+      await tx.delete(safetyCheckins).where(eq(safetyCheckins.userId, userId));
+      await tx.delete(safetyContacts).where(
+        or(eq(safetyContacts.userId, userId), eq(safetyContacts.contactUserId, userId))
+      );
+
+      // Moderation rows referencing the user on either side.
+      await tx.delete(blocks).where(
+        or(eq(blocks.blockerId, userId), eq(blocks.blockedId, userId))
+      );
+      await tx.delete(reports).where(
+        or(eq(reports.reporterId, userId), eq(reports.reportedId, userId))
+      );
+
+      // Group participation + the user's own group chat content.
+      await tx.delete(groupEventAttendees).where(eq(groupEventAttendees.userId, userId));
+      await tx.delete(groupMessages).where(eq(groupMessages.senderId, userId));
+      await tx.delete(groupMembers).where(eq(groupMembers.userId, userId));
+
+      // Misc owned rows.
+      await tx.delete(bucketList).where(eq(bucketList.userId, userId));
+      await tx.delete(typingIndicators).where(eq(typingIndicators.userId, userId));
+
+      // Finally the user row — cascades matches/messages/notifications/photos.
+      await tx.delete(users).where(eq(users.id, userId));
+    });
   },
 
   async updateUserVerification(userId: string, verificationId: string | null, verified: boolean): Promise<User | undefined> {
