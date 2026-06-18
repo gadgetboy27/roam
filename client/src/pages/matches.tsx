@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
 import AppNav from "@/components/app-nav";
 import {
-  Send, ArrowLeft, WifiOff, Clock, MapPin, BookmarkCheck,
+  Send, ArrowLeft, WifiOff, Clock, MapPin,
   Bookmark, Compass, Flame, MessageCircle, Hourglass, Zap, ShieldCheck,
   Plus, X, ImagePlus, Loader2
 } from "lucide-react";
@@ -393,35 +393,6 @@ export default function Matches() {
               </div>
 
               {offlineBanner()}
-
-              {bucketList.length > 0 && (
-                <div className="px-3.5 mb-4 animate-fade-up">
-                  <div className="font-mono text-[10px] tracking-[1.5px] uppercase mb-2.5 flex items-center gap-1.5"
-                       style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
-                    <BookmarkCheck size={11} style={{ color: "var(--roam-sky)" }} />
-                    Your pinned destinations
-                  </div>
-                  <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-                    {bucketList.map(b => (
-                      <div key={b.id} className="flex-shrink-0 rounded-2xl overflow-hidden relative"
-                           style={{ width: 90, height: 90, border: "1px solid rgba(var(--roam-sky-rgb),0.3)" }}>
-                        {b.imageUrl
-                          ? <img src={b.imageUrl} alt={b.destinationName} className="w-full h-full object-cover" />
-                          : <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--roam-moss)" }}>
-                              <MapPin size={18} style={{ color: "var(--roam-sky)" }} />
-                            </div>
-                        }
-                        <div className="absolute inset-0 flex items-end p-1.5"
-                             style={{ background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 55%)" }}>
-                          <span className="font-mono text-[8px] tracking-wider leading-tight" style={{ color: "var(--roam-sky)" }}>
-                            {b.destinationName}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               <div className="px-3.5 space-y-2" data-testid="connections-list">
                 {!hasConnections && (
