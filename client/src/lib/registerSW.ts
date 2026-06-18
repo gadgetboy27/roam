@@ -15,6 +15,16 @@ const SW_UPDATE_EVENT = "roam:sw-update";
 // fires controllerchange — does NOT reload the page out from under the user.
 let userTriggeredUpdate = false;
 
+// Module-level so the controllerchange handler and applyServiceWorkerUpdate's
+// fallback timeout share one guard — the page reloads exactly once.
+let reloaded = false;
+
+function reloadOnce() {
+  if (reloaded) return;
+  reloaded = true;
+  window.location.reload();
+}
+
 export function registerServiceWorker() {
   if (!import.meta.env.PROD) return;
   if (typeof window === "undefined") return;
@@ -44,19 +54,28 @@ export function registerServiceWorker() {
 
   // After a user-triggered update, the new worker takes control — reload once
   // onto the fresh shell. Ignored on first-install claim (see flag above).
-  let reloaded = false;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (!userTriggeredUpdate || reloaded) return;
-    reloaded = true;
-    window.location.reload();
+    if (!userTriggeredUpdate) return;
+    reloadOnce();
   });
 }
 
 // Activate the waiting worker (called from the update prompt). The SW listens
 // for this message and calls self.skipWaiting(); controllerchange then reloads.
+//
+// Hardened so the button always does something: if there's no waiting worker
+// (already activated, or the reference was lost), we just reload onto whatever
+// is current. And because controllerchange isn't guaranteed to fire on every
+// browser/state, a short fallback timeout reloads anyway — reloadOnce() makes
+// the double-path safe.
 export function applyServiceWorkerUpdate(reg: ServiceWorkerRegistration) {
   userTriggeredUpdate = true;
-  reg.waiting?.postMessage({ type: "SKIP_WAITING" });
+  if (reg.waiting) {
+    reg.waiting.postMessage({ type: "SKIP_WAITING" });
+    window.setTimeout(reloadOnce, 2000);
+  } else {
+    reloadOnce();
+  }
 }
 
 export const SW_UPDATE_EVENT_NAME = SW_UPDATE_EVENT;

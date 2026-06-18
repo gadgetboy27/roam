@@ -340,13 +340,27 @@ export default function Profile() {
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !user) return;
     setUploadingAvatar(true);
+    setSaveError("");
     try {
       const dataUrl = await fileToDataUrl(file);
-      setEditForm(f => ({ ...f, avatarUrl: dataUrl }));
+      // Persist the photo to the server immediately rather than deferring to
+      // "Save changes" — otherwise closing the sheet silently loses it. The
+      // server uploads the data URL to Supabase storage and returns the user
+      // with the stored public URL, which we then reflect everywhere.
+      const res = await apiRequest("PATCH", `/api/users/${user.id}`, { avatarUrl: dataUrl });
+      const updated = await res.json();
+      const savedUrl = updated?.avatarUrl ?? dataUrl;
+      setEditForm(f => ({ ...f, avatarUrl: savedUrl }));
+      setProfileData(p => ({ ...p, avatarUrl: savedUrl }));
+      await refresh();
+    } catch (err: any) {
+      setSaveError(err?.message || "Photo upload failed. Please try again.");
+    } finally {
       setUploadingAvatar(false);
-    } catch { setUploadingAvatar(false); }
+      e.target.value = "";
+    }
   };
 
   const vibeWord = computeVibeWord(profileData.dna);

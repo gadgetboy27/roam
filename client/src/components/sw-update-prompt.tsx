@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 import { applyServiceWorkerUpdate, SW_UPDATE_EVENT_NAME } from "@/lib/registerSW";
 
 // Shows a small "new version available" banner when the service worker has an
@@ -32,6 +33,15 @@ export function SwUpdatePrompt() {
         data-testid="button-sw-refresh"
       >
         Refresh
+      </button>
+      <button
+        className="flex items-center justify-center w-6 h-6 rounded-lg shrink-0"
+        style={{ color: "rgba(var(--roam-cream-rgb),0.6)" }}
+        onClick={() => setReg(null)}
+        aria-label="Dismiss"
+        data-testid="button-sw-dismiss"
+      >
+        <X size={14} />
       </button>
     </div>
   );
