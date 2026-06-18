@@ -76,7 +76,7 @@ export default function Home() {
     <div className="min-h-screen flex flex-col" style={{ background: "var(--roam-bg)", color: "var(--roam-cream)" }}>
       <AppNav />
 
-      <div className="flex-1 overflow-y-auto pb-8">
+      <div className="flex-1 overflow-y-auto pb-8 w-full max-w-lg mx-auto">
         {/* Greeting */}
         <div className="px-5 pt-6 pb-4 flex items-end justify-between">
           <div>
