@@ -16,10 +16,8 @@ import NotificationBell from "@/components/notification-bell";
 const NAV_ITEMS = [
   { path: "/home",      label: "Home",       icon: Home },
   { path: "/discover",  label: "Discover",   icon: Compass },
-  { path: "/whats-on", label: "What's On",   icon: CalendarDays },
   { path: "/matches",  label: "Adventurers", icon: MessageCircle },
   { path: "/profile",  label: "Profile",     icon: User },
-  { path: "/safety",   label: "Safety",      icon: ShieldCheck },
 ];
 
 const QUICK_TYPES = [
@@ -224,7 +222,6 @@ export default function AppNav() {
              }}>
           {NAV_ITEMS.map(item => {
             const active = location === item.path || (item.path === "/groups" && location.startsWith("/groups/"));
-            const hasSafetyBadge = item.path === "/safety" && activeCheckins.length > 0;
             return (
               <Link key={item.path} href={item.path}>
                 <button title={item.label}
@@ -238,10 +235,6 @@ export default function AppNav() {
                   {active && (
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
                          style={{ background: "var(--roam-electric)" }} />
-                  )}
-                  {hasSafetyBadge && (
-                    <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
-                         style={{ background: "#ef4444", boxShadow: "0 0 0 1.5px var(--roam-forest)" }} />
                   )}
                 </button>
               </Link>
@@ -277,7 +270,7 @@ export default function AppNav() {
           )}
           <div style={{ width: 20, height: 1, background: "rgba(var(--roam-cream-rgb),0.12)", flexShrink: 0, margin: "1px 0" }} />
           <button title="Create"
-                  className="w-10 h-10 rounded-[14px] flex items-center justify-center transition-all hover:opacity-90 active:scale-95"
+                  className="relative w-10 h-10 rounded-[14px] flex items-center justify-center transition-all hover:opacity-90 active:scale-95"
                   style={{
                     background: createOpen ? "rgba(var(--roam-electric-rgb),0.8)" : "var(--roam-electric)",
                     boxShadow: "0 2px 12px rgba(var(--roam-electric-rgb),0.4)",
@@ -287,6 +280,10 @@ export default function AppNav() {
             {createOpen
               ? <X size={16} strokeWidth={2.5} style={{ color: "var(--roam-forest)" }} />
               : <Plus size={18} strokeWidth={2.5} style={{ color: "var(--roam-forest)" }} />}
+            {!createOpen && activeCheckins.length > 0 && (
+              <div className="absolute top-1 right-1 w-2 h-2 rounded-full"
+                   style={{ background: "#ef4444", boxShadow: "0 0 0 1.5px var(--roam-forest)" }} />
+            )}
           </button>
         </div>
         {feedbackOpen && user && (
@@ -416,6 +413,42 @@ export default function AppNav() {
                     <div className="flex-1">
                       <div className="text-[13px] font-medium leading-tight">Promote an event</div>
                       <div className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>Paid · public listing</div>
+                    </div>
+                  </button>
+
+                  <div className="mx-3 my-0.5 h-px" style={{ background: "rgba(var(--roam-cream-rgb),0.06)" }} />
+
+                  <button className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left hover:bg-white/5"
+                          style={{ color: "var(--roam-cream)" }}
+                          onClick={() => { setCreateOpen(false); navigate("/whats-on"); }}
+                          data-testid="create-whats-on">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                         style={{ background: "rgba(var(--roam-electric-rgb),0.12)" }}>
+                      <CalendarDays size={15} style={{ color: "var(--roam-electric)" }} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-[13px] font-medium leading-tight">What's on</div>
+                      <div className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>Events & communities near you</div>
+                    </div>
+                  </button>
+
+                  <button className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left hover:bg-white/5"
+                          style={{ color: "var(--roam-cream)" }}
+                          onClick={() => { setCreateOpen(false); navigate("/safety"); }}
+                          data-testid="create-safety">
+                    <div className="relative w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                         style={{ background: "rgba(var(--roam-electric-rgb),0.12)" }}>
+                      <ShieldCheck size={15} style={{ color: "var(--roam-electric)" }} />
+                      {activeCheckins.length > 0 && (
+                        <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full"
+                             style={{ background: "#ef4444", boxShadow: "0 0 0 1.5px var(--roam-surface)" }} />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-[13px] font-medium leading-tight">Safety</div>
+                      <div className="font-mono text-[9px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
+                        {activeCheckins.length > 0 ? `${activeCheckins.length} active check-in${activeCheckins.length > 1 ? "s" : ""}` : "Check-ins & safety net"}
+                      </div>
                     </div>
                   </button>
                 </div>
