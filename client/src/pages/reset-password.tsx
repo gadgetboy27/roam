@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
+import { isLeakedPasswordError, PWNED_PASSWORD_MESSAGE } from "@/lib/passwordError";
 import { Eye, EyeOff, Lock } from "lucide-react";
 
 const inputStyle = {
@@ -13,6 +15,7 @@ const inputStyle = {
 export default function ResetPassword() {
   const [, navigate] = useLocation();
   const { refresh } = useAuth();
+  const { toast } = useToast();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -47,7 +50,12 @@ export default function ResetPassword() {
       setDone(true);
       setTimeout(() => navigate("/discover"), 1500);
     } catch (err: any) {
-      setError(err.message || "Could not update password. Please try again.");
+      if (isLeakedPasswordError(err)) {
+        toast({ variant: "destructive", title: "That password isn't safe", description: PWNED_PASSWORD_MESSAGE });
+        setError(PWNED_PASSWORD_MESSAGE);
+      } else {
+        setError(err.message || "Could not update password. Please try again.");
+      }
     } finally {
       setSaving(false);
     }

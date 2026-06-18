@@ -3,6 +3,8 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { consumeNextRoute } from "@/lib/nextRoute";
+import { useToast } from "@/hooks/use-toast";
+import { isLeakedPasswordError, PWNED_PASSWORD_MESSAGE } from "@/lib/passwordError";
 import { Check, X, Compass, ShieldAlert } from "lucide-react";
 import { SiFacebook, SiGoogle } from "react-icons/si";
 
@@ -113,6 +115,7 @@ const inputStyle = {
 export default function Signup() {
   const [, navigate] = useLocation();
   const { refresh, user, loading: authLoading } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!authLoading && user) navigate(consumeNextRoute());
@@ -160,7 +163,16 @@ export default function Signup() {
         password: form.password,
       });
 
-      if (signUpError) throw new Error(signUpError.message);
+      if (signUpError) {
+        if (isLeakedPasswordError(signUpError)) {
+          toast({ variant: "destructive", title: "That password isn't safe", description: PWNED_PASSWORD_MESSAGE });
+          setError(PWNED_PASSWORD_MESSAGE);
+          setStep(1); // password field lives on step 1 — send them back to change it
+          setSubmitting(false);
+          return;
+        }
+        throw new Error(signUpError.message);
+      }
 
       const token = signUpData.session?.access_token;
       if (!token) throw new Error("Signup succeeded but no session returned — please check your email to confirm, then sign in.");
