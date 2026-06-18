@@ -97,7 +97,7 @@ export default function Home() {
         {/* Verification nudge (only if not verified) */}
         {user && !verified && (
           <div className="px-5 pb-4">
-            <button onClick={() => navigate("/profile")}
+            <button onClick={() => navigate("/profile?verify=1")}
                     className="w-full flex items-center gap-3 rounded-2xl px-4 py-3 text-left"
                     style={{ background: "rgba(var(--roam-electric-rgb),0.08)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)" }}
                     data-testid="home-verify-nudge">
