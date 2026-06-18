@@ -3,12 +3,11 @@ import { useLocation, Link } from "wouter";
 import AppNav from "@/components/app-nav";
 import PlacesRoamed from "@/components/places-roamed";
 import { useAuth } from "@/lib/auth";
-import { useCrewUp } from "@/lib/useCrewUp";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { fileToDataUrl } from "@/lib/file";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Camera, Edit3, Settings, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2, Trash2, Banknote, ExternalLink, AlertCircle, ShieldCheck, Zap, Users, Tent } from "lucide-react";
+import { MapPin, Camera, Edit3, Settings, X, Check, Bell, Shield, LogOut, ChevronRight, Plus, Upload, Loader2, Trash2, Banknote, ExternalLink, AlertCircle, ShieldCheck, Zap } from "lucide-react";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { computeVibeWord } from "@/lib/fingerprint";
 import { friendlyVerifyReason, verifyIsPhotoFixable } from "@/lib/verifyError";
@@ -286,11 +285,6 @@ export default function Profile() {
     enabled: !!user,
   });
 
-  const { data: connections = [] } = useQuery<{ id: string; name: string; avatarUrl: string | null; tagline: string | null }[]>({
-    queryKey: ["/api/connections"],
-    enabled: !!user,
-  });
-  const crewUp = useCrewUp();
 
   const toggleOpenToRoaming = async (val: boolean) => {
     if (!user) return;
@@ -669,46 +663,6 @@ export default function Profile() {
                         <ChevronRight size={14} style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }} />
                       </div>
                     </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* ── Crew up with your connections ── */}
-            {connections.length > 0 && (
-              <div className="mb-5 rounded-2xl p-4"
-                   style={{ background: "rgba(var(--roam-electric-rgb),0.06)", border: "1px solid rgba(var(--roam-electric-rgb),0.22)" }}>
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(var(--roam-electric-rgb),0.15)" }}>
-                    <Tent size={15} style={{ color: "var(--roam-electric)" }} />
-                  </div>
-                  <h3 className="font-serif text-lg font-black" style={{ color: "var(--roam-cream)" }}>Crew up with your people</h3>
-                </div>
-                <p className="text-[12px] mb-3.5 leading-relaxed" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
-                  Turn any connection into a squad in one tap — a private crew + campsite chat, and the adventures begin.
-                </p>
-                <div className="space-y-2.5">
-                  {connections.slice(0, 6).map((c) => (
-                    <div key={c.id} className="flex items-center gap-3 p-2.5 rounded-2xl"
-                         style={{ background: "var(--roam-surface)", border: "1px solid rgba(var(--roam-cream-rgb),0.08)" }}
-                         data-testid={`crew-up-row-${c.id}`}>
-                      <div className="w-11 h-11 rounded-xl overflow-hidden flex-shrink-0" style={{ background: "rgba(var(--roam-electric-rgb),0.1)" }}>
-                        {c.avatarUrl
-                          ? <img src={c.avatarUrl} alt={c.name} className="w-full h-full object-cover" />
-                          : <div className="w-full h-full flex items-center justify-center"><Users size={16} style={{ color: "var(--roam-electric)" }} /></div>}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[15px] font-semibold truncate" style={{ color: "var(--roam-cream)" }}>{c.name}</div>
-                        {c.tagline && <div className="text-[11px] truncate" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>{c.tagline}</div>}
-                      </div>
-                      <button onClick={() => crewUp.mutate({ id: c.id, name: c.name })}
-                              disabled={crewUp.isPending}
-                              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-all active:scale-95 disabled:opacity-50"
-                              style={{ background: "var(--roam-electric)", color: "var(--roam-bg)" }}
-                              data-testid={`button-crew-up-${c.id}`}>
-                        <Tent size={14} /> Crew up
-                      </button>
-                    </div>
                   ))}
                 </div>
               </div>
