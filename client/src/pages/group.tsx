@@ -9,7 +9,7 @@ import { io as ioClient } from "socket.io-client";
 import {
   ArrowLeft, MapPin, Users, Lock, Globe, Send, Calendar, Plus,
   Trash2, CheckCircle, XCircle, LogOut, Crown, UserPlus, CalendarPlus, Check, Megaphone, Share2,
-  Mail, Copy, CheckCheck, Camera, Tag, MessageSquare,
+  Mail, Copy, CheckCheck, Camera, Tag, MessageSquare, ShieldCheck,
 } from "lucide-react";
 import { ActionModal, friendlyError, closedModal, type ModalState } from "@/components/action-modal";
 import ShareSheet from "@/components/share-sheet";
@@ -66,7 +66,10 @@ function GroupEventCard({ ev, group, isLeader, isApproved, userId, deleteEventMu
 }) {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const viewerVerified = !!(user as any)?.identityVerified;
   const [shareOpen, setShareOpen] = useState(false);
+  const [showTicketNudge, setShowTicketNudge] = useState(false);
   const { data: attendees = [] } = useQuery<any[]>({
     queryKey: ["/api/events", ev.id, "attendees"],
     queryFn: async () => {
@@ -208,7 +211,13 @@ function GroupEventCard({ ev, group, isLeader, isApproved, userId, deleteEventMu
           )}
           {isApproved && userId && (
             <button
-              onClick={() => rsvpMutation.mutate()}
+              onClick={() => {
+                // Strong (non-blocking) safety nudge: prompt unverified users to
+                // verify before buying a ticket to an in-person event — they can
+                // still continue. Browsing/free RSVPs are never gated.
+                if (!isRsvpd && ev.ticketPriceNzd && !viewerVerified) { setShowTicketNudge(true); return; }
+                rsvpMutation.mutate();
+              }}
               disabled={rsvpMutation.isPending}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-[10px] tracking-wider font-medium transition-all"
               style={isRsvpd
@@ -223,6 +232,37 @@ function GroupEventCard({ ev, group, isLeader, isApproved, userId, deleteEventMu
           )}
         </div>
       </div>
+
+      {showTicketNudge && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6"
+             style={{ background: "rgba(0,0,0,0.6)" }}
+             onClick={() => setShowTicketNudge(false)}>
+          <div className="w-full max-w-sm rounded-2xl p-5"
+               style={{ background: "var(--roam-surface)", border: "1px solid rgba(var(--roam-cream-rgb),0.12)" }}
+               onClick={e => e.stopPropagation()}
+               data-testid="ticket-verify-nudge">
+            <div className="flex items-center gap-2 mb-2">
+              <ShieldCheck size={18} style={{ color: "var(--roam-electric)" }} />
+              <h3 className="font-serif text-[17px] font-black" style={{ color: "var(--roam-cream)" }}>Verify for safer meetups</h3>
+            </div>
+            <p className="text-[12px] leading-relaxed mb-4" style={{ color: "rgba(var(--roam-cream-rgb),0.7)" }}>
+              This is an in-person event. Verifying your ID (2 min) builds trust with the organiser and everyone attending. You can still continue to your ticket.
+            </p>
+            <button onClick={() => { setShowTicketNudge(false); navigate("/profile?verify=1"); }}
+                    className="w-full py-2.5 rounded-xl font-mono text-[11px] tracking-wider uppercase font-semibold mb-2"
+                    style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
+                    data-testid="ticket-nudge-verify">
+              Verify my ID first
+            </button>
+            <button onClick={() => { setShowTicketNudge(false); rsvpMutation.mutate(); }}
+                    className="w-full py-2.5 rounded-xl font-mono text-[11px] tracking-wider uppercase"
+                    style={{ background: "transparent", border: "1px solid rgba(var(--roam-cream-rgb),0.18)", color: "rgba(var(--roam-cream-rgb),0.7)" }}
+                    data-testid="ticket-nudge-continue">
+              Continue to ticket →
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
