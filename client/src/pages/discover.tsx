@@ -52,6 +52,20 @@ export default function Discover() {
 
   const [profileIdx, setProfileIdx] = useState(0);
   const [animKey, setAnimKey] = useState(0);
+  // "Verified only" — lets a user choose a safer feed of ID-verified people.
+  // Persisted so the choice sticks across sessions.
+  const [verifiedOnly, setVerifiedOnly] = useState(() => {
+    try { return localStorage.getItem("roam:verifiedOnly") === "1"; } catch { return false; }
+  });
+  const toggleVerifiedOnly = () => {
+    setVerifiedOnly(v => {
+      const next = !v;
+      try { localStorage.setItem("roam:verifiedOnly", next ? "1" : "0"); } catch { /* ignore */ }
+      return next;
+    });
+    setProfileIdx(0);
+    setAnimKey(k => k + 1);
+  };
   const [roamedIds, setRoamedIds] = useState<Set<string>>(new Set());
   const [swipedCount, setSwipedCount] = useState(0);
   const [showingAd, setShowingAd] = useState(false);
@@ -134,7 +148,7 @@ export default function Discover() {
     });
   }, [allUsers, user]);
 
-  const deck = realDeck ?? [];
+  const deck = (realDeck ?? []).filter(p => !verifiedOnly || p.honestyTier === "verified-adventure");
   const deckExhausted = user != null && !loadingUsers && deck.length > 0 && profileIdx >= deck.length;
   const noUsersYet = user != null && !loadingUsers && deck.length === 0;
 
@@ -366,10 +380,31 @@ export default function Discover() {
         <button
           onClick={() => navigate("/profile?verify=1")}
           className="fixed top-[64px] left-1/2 -translate-x-1/2 z-[55] flex items-center gap-2 px-4 py-2 rounded-full shadow-lg animate-fade-up"
-          style={{ background: "var(--roam-electric)", color: "var(--roam-forest)", maxWidth: "calc(100% - 80px)" }}
+          style={{
+            background: "var(--roam-electric)", color: "var(--roam-forest)", maxWidth: "calc(100% - 80px)",
+            boxShadow: "0 0 0 0 rgba(var(--roam-electric-rgb),0.6)", animation: "verify-pulse 2.4s ease-in-out infinite",
+          }}
           data-testid="discover-verify-banner">
           <ShieldCheck size={14} />
-          <span className="font-mono text-[11px] font-semibold tracking-wide whitespace-nowrap">Get verified — stand out & build trust →</span>
+          <span className="font-mono text-[11px] font-semibold tracking-wide whitespace-nowrap">Get verified — rank higher &amp; earn a trust badge →</span>
+        </button>
+      )}
+
+      {/* Verified-only filter — puts safety in the user's hands without forcing it */}
+      {user && (
+        <button
+          onClick={toggleVerifiedOnly}
+          className="fixed top-[64px] left-3 z-[56] flex items-center gap-1.5 px-3 py-1.5 rounded-full shadow-lg transition-all"
+          style={{
+            background: verifiedOnly ? "var(--roam-electric)" : "rgba(var(--roam-forest-rgb),0.92)",
+            color: verifiedOnly ? "var(--roam-forest)" : "rgba(var(--roam-cream-rgb),0.72)",
+            border: `1px solid ${verifiedOnly ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.2)"}`,
+            backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+          }}
+          aria-pressed={verifiedOnly}
+          data-testid="discover-verified-only-toggle">
+          <ShieldCheck size={13} />
+          <span className="font-mono text-[10px] font-semibold tracking-wide">Verified only{verifiedOnly ? " ✓" : ""}</span>
         </button>
       )}
 
@@ -407,13 +442,24 @@ export default function Discover() {
         <div className="absolute inset-0 flex flex-col items-center justify-center z-10 px-8 text-center">
           <Compass size={52} style={{ color: "var(--roam-electric)", marginBottom: 20, opacity: 0.7 }} />
           <div className="font-serif text-[26px] font-black mb-3 leading-tight" style={{ color: "rgba(var(--roam-cream-rgb),0.95)" }}>
-            {noUsersYet ? "You're early!" : "All caught up"}
+            {verifiedOnly && noUsersYet ? "No verified adventurers yet" : noUsersYet ? "You're early!" : "All caught up"}
           </div>
           <div className="font-mono text-[11px] leading-relaxed max-w-[260px]" style={{ color: "rgba(var(--roam-cream-rgb),0.65)" }}>
-            {noUsersYet
+            {verifiedOnly && noUsersYet
+              ? "Verified-only is on, so the feed is limited to ID-verified people. Turn it off to see everyone."
+              : noUsersYet
               ? "You're one of the first adventurers here. Invite your crew or jump into an adventure to start meeting people."
               : "You've seen everyone for now. More adventurers are joining every day — check back soon."}
           </div>
+          {verifiedOnly && noUsersYet && (
+            <button
+              className="mt-5 px-5 py-2.5 rounded-2xl font-mono text-[11px] tracking-wider font-semibold"
+              style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
+              onClick={toggleVerifiedOnly}
+              data-testid="button-empty-show-all">
+              Show everyone
+            </button>
+          )}
           {noUsersYet && (
             <div className="flex flex-col gap-2.5 mt-6 w-full max-w-[260px]">
               <button
