@@ -117,6 +117,13 @@ export default function Profile() {
     staleTime: 60_000,
   });
 
+  // The user's own adventure photos — for the "Manage adventure photos" card
+  // (count + thumbnail preview).
+  const { data: myPhotos = [] } = useQuery<{ id: string; storageUrl: string }[]>({
+    queryKey: [`/api/users/${user?.id}/photos`],
+    enabled: !!user?.id,
+  });
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("verified") === "1") { setVerifySubmitted(true); window.history.replaceState({}, "", "/profile"); refresh(); }
@@ -707,23 +714,34 @@ export default function Profile() {
               </div>
             )}
 
-            {/* ── Adventure photos CTA ── */}
+            {/* ── Adventure photos — manage + preview ── */}
             <Link href="/upload">
               <div className="mb-4 flex items-center justify-between px-4 py-3.5 rounded-2xl cursor-pointer transition-all hover:scale-[1.01]"
-                   style={{ background: "rgba(var(--roam-cream-rgb),0.03)", border: "1px solid rgba(var(--roam-cream-rgb),0.08)" }}>
-                <div className="flex items-center gap-3">
+                   style={{ background: "rgba(var(--roam-cream-rgb),0.03)", border: "1px solid rgba(var(--roam-cream-rgb),0.08)" }}
+                   data-testid="card-manage-photos">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
                        style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.15)" }}>
                     <Camera size={15} style={{ color: "var(--roam-electric)" }} />
                   </div>
-                  <div>
-                    <div className="font-mono text-[12px] font-semibold" style={{ color: "var(--roam-cream)" }}>Your adventure photos</div>
+                  <div className="min-w-0">
+                    <div className="font-mono text-[12px] font-semibold" style={{ color: "var(--roam-cream)" }}>Manage adventure photos</div>
                     <div className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
-                      Photos with you get 3× more matches
+                      {myPhotos.length > 0
+                        ? `${myPhotos.length} photo${myPhotos.length === 1 ? "" : "s"} · tap to add or reorder`
+                        : "Add photos with you — 3× more matches"}
                     </div>
                   </div>
                 </div>
-                <ChevronRight size={14} style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }} />
+                <div className="flex items-center gap-2 flex-shrink-0 pl-2">
+                  {myPhotos.slice(0, 3).map(p => (
+                    <img key={p.id} src={p.storageUrl} alt=""
+                         className="w-8 h-8 rounded-lg object-cover"
+                         style={{ border: "1px solid rgba(var(--roam-cream-rgb),0.12)" }}
+                         loading="lazy" />
+                  ))}
+                  <ChevronRight size={14} style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }} />
+                </div>
               </div>
             </Link>
 
