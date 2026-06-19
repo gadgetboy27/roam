@@ -48,6 +48,7 @@ export interface IStorage {
 
   createMessage(message: InsertMessage): Promise<Message>;
   getMessagesByMatch(matchId: string): Promise<Message[]>;
+  getInboxSummary(userId: string): Promise<{ matchId: string; content: string; senderId: string; createdAt: string; unread: number }[]>;
 
   createBucketItem(item: InsertBucketList): Promise<BucketListItem>;
   getBucketItem(id: string): Promise<BucketListItem | undefined>;

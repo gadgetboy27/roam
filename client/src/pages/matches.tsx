@@ -55,6 +55,17 @@ function getMomentum(msgs: CachedMessage[], myId: string): MomentumState {
   return "your-turn";
 }
 
+// Compact relative time for inbox rows ("2h", "3d", "now").
+function shortAgo(dateStr?: string | null): string {
+  if (!dateStr) return "";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000), h = Math.floor(m / 60), d = Math.floor(h / 24);
+  if (d > 0) return `${d}d`;
+  if (h > 0) return `${h}h`;
+  if (m > 0) return `${m}m`;
+  return "now";
+}
+
 function MomentumBadge({ state, compact = false }: { state: MomentumState; compact?: boolean }) {
   const sz = compact ? "text-[9px]" : "text-[10px]";
   const icon = compact ? 9 : 11;
@@ -169,6 +180,33 @@ export default function Matches() {
   const [typingTimeout, setTypingTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [openerUsed, setOpenerUsed] = useState<Record<string, boolean>>({});
   const [sbReady, setSbReady] = useState(false);
+
+  // Inbox summary — latest message + unread count per conversation, for the
+  // list (recency ordering, preview, unread badges). See /api/conversations/summary.
+  const { data: inboxSummary = [] } = useQuery<
+    { matchId: string; content: string; senderId: string; createdAt: string; unread: number }[]
+  >({
+    queryKey: ["/api/conversations/summary"],
+    enabled: !!user,
+    refetchInterval: 30000,
+  });
+  const summaryByMatch = useMemo(() => {
+    const map: Record<string, { content: string; senderId: string; createdAt: string; unread: number }> = {};
+    for (const s of inboxSummary) map[s.matchId] = s;
+    return map;
+  }, [inboxSummary]);
+
+  // Most-recent conversations first (live cache wins over summary); connections
+  // with no messages yet fall to the bottom.
+  const sortedConnections = useMemo(() => {
+    const at = (c: any) => {
+      const live = conversations[c.id];
+      const liveLast = live && live.length ? live[live.length - 1] : null;
+      const ts = liveLast?.createdAt ?? summaryByMatch[c.id]?.createdAt ?? null;
+      return ts ? new Date(ts).getTime() : 0;
+    };
+    return [...connections].sort((a, b) => at(b) - at(a));
+  }, [connections, conversations, summaryByMatch]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const connectionStatus = useConnectionStatus();
@@ -410,9 +448,14 @@ export default function Matches() {
                     </button>
                   </div>
                 )}
-                {connections.map((m, i) => {
+                {sortedConnections.map((m, i) => {
                   const msgs = conversations[m.id] ?? [];
-                  const last = msgs[msgs.length - 1] ?? null;
+                  const liveLast = msgs[msgs.length - 1] ?? null;
+                  const sum = summaryByMatch[m.id];
+                  const lastContent = liveLast?.content ?? sum?.content ?? null;
+                  const lastSenderId = liveLast?.senderId ?? sum?.senderId ?? null;
+                  const lastAt = liveLast?.createdAt ?? sum?.createdAt ?? null;
+                  const unread = m.id !== selectedId ? (sum?.unread ?? 0) : 0;
                   const hasPending = msgs.some(msg => msg.pending);
                   const momentum = getMomentum(msgs, myId);
                   return (
@@ -439,7 +482,9 @@ export default function Matches() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-base font-semibold flex items-center gap-1.5" data-testid={`text-match-name-${m.id}`}>
+                        <div className="text-base flex items-center gap-1.5"
+                             style={{ fontWeight: unread > 0 ? 800 : 600, color: unread > 0 ? "var(--roam-cream)" : undefined }}
+                             data-testid={`text-match-name-${m.id}`}>
                           {m.nameAge}
                           {m.verified && (
                             <span className="flex items-center gap-0.5 font-mono text-[8px] tracking-wider px-1.5 py-0.5 rounded-full flex-shrink-0"
@@ -457,16 +502,29 @@ export default function Matches() {
                             </span>
                           ))}
                         </div>
-                        {last ? (
-                          <div className="text-[11px] truncate" style={{ color: "rgba(var(--roam-cream-rgb),0.45)" }}>
-                            {last.senderId === myId && <span style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>You: </span>}
-                            {last.content}
+                        {lastContent ? (
+                          <div className="text-[11px] truncate"
+                               style={{ color: unread > 0 ? "rgba(var(--roam-cream-rgb),0.85)" : "rgba(var(--roam-cream-rgb),0.45)", fontWeight: unread > 0 ? 600 : 400 }}>
+                            {lastSenderId === myId && <span style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>You: </span>}
+                            {lastContent}
                           </div>
                         ) : (
                           <div className="text-[11px]" style={{ color: "rgba(var(--roam-cream-rgb),0.3)" }}>{m.when}</div>
                         )}
                       </div>
                       <div className="flex-shrink-0 flex flex-col items-end gap-2">
+                        <div className="flex items-center gap-1.5">
+                          {lastAt && (
+                            <span className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.4)" }}>{shortAgo(lastAt)}</span>
+                          )}
+                          {unread > 0 && (
+                            <span className="min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center font-mono text-[9px] font-bold"
+                                  style={{ background: "var(--roam-electric)", color: "var(--roam-forest)" }}
+                                  data-testid={`unread-${m.id}`}>
+                              {unread > 9 ? "9+" : unread}
+                            </span>
+                          )}
+                        </div>
                         <MomentumBadge state={momentum} />
                         {/* Primary: tapping the row opens the 1:1 chat — this icon signals that */}
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center"

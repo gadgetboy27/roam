@@ -186,6 +186,21 @@ export function registerCoreRoutes(app: Express, deps: RouteDeps) {
     res.json(users.filter(Boolean).map(u => ({ id: u!.id, name: u!.nickname || u!.name, avatarUrl: u!.avatarUrl, tagline: u!.tagline })));
   });
 
+  // Inbox summary — one row per conversation with messages: latest message +
+  // unread count. Lets the Matches list sort by recency, preview the last
+  // message, and badge unread without loading every thread.
+  app.get("/api/conversations/summary", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+    try {
+      const summary = await storage.getInboxSummary(userId);
+      res.json(summary);
+    } catch (err: any) {
+      console.error("[inbox-summary] Error:", err.message);
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.patch("/api/users/:id", async (req, res) => {
     const sessionUserId = await authenticateRequest(req);
     if (!sessionUserId || sessionUserId !== req.params.id) {
