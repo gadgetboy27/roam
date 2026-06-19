@@ -359,6 +359,9 @@ export default function Profile() {
 
   const vibeWord = computeVibeWord(profileData.dna);
   const boostActive = (user as any)?.boostExpiresAt && new Date((user as any).boostExpiresAt) > new Date();
+  const boostHoursLeft = boostActive
+    ? Math.max(1, Math.ceil((new Date((user as any).boostExpiresAt).getTime() - Date.now()) / 3_600_000))
+    : 0;
 
   return (
     <div className="min-h-screen relative" data-testid="page-profile">
@@ -440,6 +443,36 @@ export default function Profile() {
                   Manage subscription →
                 </button>
               )}
+            </div>
+
+            {/* ── Your standing — at-a-glance entitlements ── */}
+            <div className="mb-4 rounded-2xl p-4"
+                 style={{ background: "rgba(var(--roam-cream-rgb),0.03)", border: "1px solid rgba(var(--roam-cream-rgb),0.08)" }}
+                 data-testid="section-your-standing">
+              <div className="font-mono text-[9px] tracking-[1.5px] uppercase mb-2.5" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                Your standing
+              </div>
+              <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+                {[
+                  { label: "Plan", value: user?.tier === "free" ? "Explorer · free" : user?.tier === "contributor" ? "Contributor" : "Adventurer", on: user?.tier !== "free" },
+                  { label: "Identity", value: user?.identityVerified ? "Verified ✓" : "Not verified", on: !!user?.identityVerified },
+                  { label: "Boost", value: boostActive ? `Active · ${boostHoursLeft}h` : "Off", on: !!boostActive },
+                  { label: "Squad Leader", value: isOrganiser ? "Active" : "—", on: isOrganiser },
+                  ...(isOrganiser ? [{ label: "Payouts", value: connectStatus?.status === "active" ? "Connected" : "Set up needed", on: connectStatus?.status === "active" }] : []),
+                ].map(row => (
+                  <div key={row.label} className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-[10px]" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>{row.label}</span>
+                    <span className="font-mono text-[10px] font-semibold text-right"
+                          style={{ color: row.on ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.4)" }}>{row.value}</span>
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => navigate("/plans")}
+                      className="w-full mt-3 py-2 rounded-xl font-mono text-[10px] tracking-wider uppercase transition-all"
+                      style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.25)", color: "var(--roam-electric)" }}
+                      data-testid="button-standing-plans">
+                Manage plans &amp; perks →
+              </button>
             </div>
 
             {/* ── Return banners ── */}

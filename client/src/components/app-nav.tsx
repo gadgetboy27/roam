@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import {
-  Home, Compass, MessageCircle, Plus, User, Palette, Check, Users, CalendarDays,
+  LayoutDashboard, Compass, MessageCircle, Plus, User, Palette, Check, Users, CalendarDays,
   Camera, X, ChevronRight, Tent, Ship, Mountain, Building2, ArrowRight, Megaphone, Zap,
   MessageSquarePlus, Send, CheckCircle2, ShieldCheck,
 } from "lucide-react";
@@ -14,10 +14,9 @@ import { useToast } from "@/hooks/use-toast";
 import NotificationBell from "@/components/notification-bell";
 
 const NAV_ITEMS = [
-  { path: "/home",      label: "Home",       icon: Home },
-  { path: "/discover",  label: "Discover",   icon: Compass },
-  { path: "/matches",  label: "Adventurers", icon: MessageCircle },
-  { path: "/profile",  label: "Profile",     icon: User },
+  { path: "/discover",  label: "Discover",    icon: Compass },
+  { path: "/home",      label: "Dashboard",   icon: LayoutDashboard },
+  { path: "/matches",   label: "Adventurers", icon: MessageCircle },
 ];
 
 const QUICK_TYPES = [
@@ -204,6 +203,24 @@ export default function AppNav() {
                 </div>
               )}
             </div>
+
+            {user && (
+              <Link href="/profile">
+                <button
+                  title="Profile"
+                  className="w-8 h-8 rounded-full flex items-center justify-center transition-all overflow-hidden"
+                  style={{
+                    background: location === "/profile" ? "rgba(var(--roam-electric-rgb),0.15)" : "transparent",
+                    border: `1px solid ${location === "/profile" ? "rgba(var(--roam-electric-rgb),0.5)" : "rgba(var(--roam-cream-rgb),0.14)"}`,
+                    color: location === "/profile" ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.5)",
+                  }}
+                  data-testid="nav-profile">
+                  {(user as any)?.avatarUrl
+                    ? <img src={(user as any).avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                    : <User size={14} />}
+                </button>
+              </Link>
+            )}
           </div>
         </div>
       </nav>
