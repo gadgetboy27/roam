@@ -52,6 +52,29 @@ export function registerMiscRoutes(app: Express, deps: RouteDeps) {
     res.json({ success: true });
   });
 
+  // ─── Boost feedback (one-tap 👍/👎 from the post-boost notification) ────────
+  // Stored in the same feedback table so it surfaces in the admin feedback view
+  // alongside written feedback — the keep/tune/kill signal for the Boost feature.
+  app.post("/api/boost/feedback", async (req, res) => {
+    const userId = await authenticateRequest(req);
+    if (!userId) return res.status(401).json({ message: "Please sign in." });
+    const worked = req.body?.worked === true;
+    const u = await storage.getUser(userId);
+    await pool.query(
+      "INSERT INTO feedback (user_id, user_name, user_email, message, page) VALUES ($1,$2,$3,$4,$5)",
+      [userId, u?.name ?? null, u?.email ?? null,
+       `Boost feedback: ${worked ? "👍 worked — more matches" : "👎 didn't help"}`, "boost"],
+    );
+    // Mark the prompting notification read so it stops nagging.
+    const notifId = Number(req.body?.notificationId);
+    if (notifId) {
+      const n = await storage.getNotificationById(notifId);
+      if (n && n.userId === userId) await storage.markNotificationRead(notifId);
+    }
+    console.log(`[boost-feedback] user ${userId}: ${worked ? "worked" : "didn't"}`);
+    res.json({ ok: true });
+  });
+
   // ─── Feedback ──────────────────────────────────────────────────────────────
 
   app.post("/api/feedback", feedbackLimiter, async (req, res) => {

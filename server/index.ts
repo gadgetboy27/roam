@@ -207,6 +207,79 @@ function startSafetyWorker() {
   console.log("[safety-worker] Started — checks every 5 min, alerts at +15 min and +45 min overdue");
 }
 
+// Boost lifecycle worker — nudges a boosted user at ~6h and ~1h before their
+// Profile Boost expires (with a buy-again CTA), then asks for a 👍/👎 after it
+// ends. In-app only (notifications table); dedup is read-agnostic per boost
+// instance (keyed on the exact boostExpiresAt) so a nudge fires once per boost.
+function startBoostWorker() {
+  async function exists(pool: pg.Pool, userId: string, type: string, expiresAtIso: string): Promise<boolean> {
+    const needle = `%"expiresAt":"${expiresAtIso}"%`;
+    const { rows } = await pool.query(
+      `SELECT 1 FROM notifications WHERE user_id=$1 AND type=$2 AND data LIKE $3 LIMIT 1`,
+      [userId, type, needle],
+    );
+    return rows.length > 0;
+  }
+
+  async function runBoostWorker() {
+    const pool = new pg.Pool(pgConnectConfig(process.env.DATABASE_URL));
+    try {
+      const now = new Date();
+      const in6h = new Date(now.getTime() + 6 * 3_600_000);
+      const ago24h = new Date(now.getTime() - 24 * 3_600_000);
+
+      // 1) Expiring-soon nudges — boost still active, ending within 6h.
+      const { rows: expiring } = await pool.query(
+        `SELECT id, boost_expires_at FROM users
+         WHERE boost_expires_at IS NOT NULL AND boost_expires_at > $1 AND boost_expires_at <= $2`,
+        [now.toISOString(), in6h.toISOString()],
+      );
+      for (const u of expiring) {
+        const exp = new Date(u.boost_expires_at);
+        const expIso = exp.toISOString();
+        const hoursLeft = (exp.getTime() - now.getTime()) / 3_600_000;
+        const stage = hoursLeft <= 1 ? "1h" : "6h";
+        const type = `boost_expiring_${stage}`;
+        if (await exists(pool, u.id, type, expIso)) continue;
+        const title = stage === "1h" ? "Your Boost ends in ~1 hour" : "Your Boost ends soon";
+        const body = stage === "1h"
+          ? "Last hour at the top of discovery — want another 24h of boosted visibility?"
+          : `About ${Math.round(hoursLeft)}h left at the top of discovery. Extend your Boost for another 24h?`;
+        await pool.query(
+          `INSERT INTO notifications (user_id, type, title, body, data) VALUES ($1,$2,$3,$4,$5)`,
+          [u.id, type, title, body, JSON.stringify({ expiresAt: expIso, stage, cta: "boost" })],
+        );
+        console.log(`[boost-worker] ${type} nudge for user ${u.id}`);
+      }
+
+      // 2) Post-boost feedback — boost ended within the last 24h, ask once.
+      const { rows: ended } = await pool.query(
+        `SELECT id, boost_expires_at FROM users
+         WHERE boost_expires_at IS NOT NULL AND boost_expires_at <= $1 AND boost_expires_at > $2`,
+        [now.toISOString(), ago24h.toISOString()],
+      );
+      for (const u of ended) {
+        const expIso = new Date(u.boost_expires_at).toISOString();
+        if (await exists(pool, u.id, "boost_feedback", expIso)) continue;
+        await pool.query(
+          `INSERT INTO notifications (user_id, type, title, body, data) VALUES ($1,$2,$3,$4,$5)`,
+          [u.id, "boost_feedback", "How did your Boost go?",
+            "Tap 👍 if it brought you more matches, or 👎 if it fell flat — it helps us improve.",
+            JSON.stringify({ expiresAt: expIso, cta: "boost_feedback" })],
+        );
+        console.log(`[boost-worker] feedback prompt for user ${u.id}`);
+      }
+    } catch (err: any) {
+      console.error("[boost-worker] Error:", err.message);
+    } finally {
+      await pool.end().catch(() => {});
+    }
+  }
+  setTimeout(runBoostWorker, 45_000);
+  setInterval(runBoostWorker, 15 * 60_000);
+  console.log("[boost-worker] Started — nudges at 6h & 1h before expiry, feedback after");
+}
+
 if (!process.env.SESSION_SECRET) {
   console.error("FATAL: SESSION_SECRET environment variable is not set. Exiting.");
   process.exit(1);
@@ -346,6 +419,7 @@ process.on("unhandledRejection", (reason) => {
 
     await registerRoutes(httpServer, app);
     startSafetyWorker();
+    startBoostWorker();
 
     await seedDatabase().catch((err) => {
       console.error("Seed error (non-fatal):", err.message);

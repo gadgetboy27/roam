@@ -56,6 +56,15 @@ export default function NotificationBell() {
     },
   });
 
+  const boostFeedbackMutation = useMutation({
+    mutationFn: ({ id, worked }: { id: number; worked: boolean }) =>
+      apiRequest("POST", "/api/boost/feedback", { notificationId: id, worked }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications/unread-count"] });
+    },
+  });
+
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -76,6 +85,9 @@ export default function NotificationBell() {
       case "group_invite_accepted": return "🤝";
       case "group_invite":      return "✉️";
       case "group_broadcast":   return "📢";
+      case "boost_expiring_6h": return "🚀";
+      case "boost_expiring_1h": return "🚀";
+      case "boost_feedback":    return "📊";
       default:                  return "🔔";
     }
   }
@@ -86,7 +98,9 @@ export default function NotificationBell() {
     try {
       const d = notif.data ? JSON.parse(notif.data) : {};
       // Route based on notification type first, fall back to data fields
-      if (notif.type === "match" || notif.type === "message") {
+      if (notif.type === "boost_expiring_6h" || notif.type === "boost_expiring_1h") {
+        navigate("/plans");
+      } else if (notif.type === "match" || notif.type === "message") {
         navigate("/matches");
       } else if (notif.type === "group_event" && d.groupId) {
         navigate(`/groups/${d.groupId}?tab=events`);
@@ -153,37 +167,79 @@ export default function NotificationBell() {
                 No notifications yet
               </div>
             )}
-            {notifications.map(n => (
-              <button key={n.id}
-                      onClick={() => handleNotifClick(n)}
-                      className="w-full text-left px-4 py-3 transition-all"
-                      style={{
-                        background: n.isRead ? "transparent" : "rgba(var(--roam-electric-rgb),0.05)",
-                        borderBottom: "1px solid rgba(var(--roam-cream-rgb),0.05)",
-                      }}
-                      data-testid={`notif-${n.id}`}>
-                <div className="flex items-start gap-2.5">
-                  <span className="text-[16px] flex-shrink-0 mt-0.5">{notifIcon(n.type)}</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[13px] font-medium leading-snug" style={{ color: "var(--roam-cream)" }}>
-                      {n.title}
-                    </div>
-                    {n.body && (
-                      <div className="text-[11px] mt-0.5 line-clamp-2" style={{ color: "rgba(var(--roam-cream-rgb),0.75)" }}>
-                        {n.body}
+            {notifications.map(n => {
+              // The post-boost prompt renders inline 👍/👎 actions (can't nest
+              // buttons inside a button), so it's a div rather than a click row.
+              if (n.type === "boost_feedback") {
+                return (
+                  <div key={n.id}
+                       className="w-full text-left px-4 py-3"
+                       style={{
+                         background: n.isRead ? "transparent" : "rgba(var(--roam-electric-rgb),0.05)",
+                         borderBottom: "1px solid rgba(var(--roam-cream-rgb),0.05)",
+                       }}
+                       data-testid={`notif-${n.id}`}>
+                    <div className="flex items-start gap-2.5">
+                      <span className="text-[16px] flex-shrink-0 mt-0.5">{notifIcon(n.type)}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[13px] font-medium leading-snug" style={{ color: "var(--roam-cream)" }}>{n.title}</div>
+                        {n.body && (
+                          <div className="text-[11px] mt-0.5" style={{ color: "rgba(var(--roam-cream-rgb),0.75)" }}>{n.body}</div>
+                        )}
+                        {n.isRead ? (
+                          <div className="text-[11px] mt-2 font-mono" style={{ color: "rgba(var(--roam-electric-rgb),0.85)" }}>Thanks for the feedback 🙏</div>
+                        ) : (
+                          <div className="flex gap-2 mt-2">
+                            <button onClick={() => boostFeedbackMutation.mutate({ id: n.id, worked: true })}
+                                    disabled={boostFeedbackMutation.isPending}
+                                    className="flex-1 py-1.5 rounded-lg text-[13px] font-medium transition-all"
+                                    style={{ background: "rgba(var(--roam-electric-rgb),0.12)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)", color: "var(--roam-electric)" }}
+                                    data-testid={`boost-feedback-up-${n.id}`}>👍 Worked</button>
+                            <button onClick={() => boostFeedbackMutation.mutate({ id: n.id, worked: false })}
+                                    disabled={boostFeedbackMutation.isPending}
+                                    className="flex-1 py-1.5 rounded-lg text-[13px] font-medium transition-all"
+                                    style={{ background: "rgba(var(--roam-cream-rgb),0.06)", border: "1px solid rgba(var(--roam-cream-rgb),0.14)", color: "rgba(var(--roam-cream-rgb),0.75)" }}
+                                    data-testid={`boost-feedback-down-${n.id}`}>👎 Not really</button>
+                          </div>
+                        )}
+                        <div className="text-[10px] mt-1.5 font-mono" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>{timeAgo(n.createdAt)}</div>
                       </div>
-                    )}
-                    <div className="text-[10px] mt-1 font-mono" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
-                      {timeAgo(n.createdAt)}
                     </div>
                   </div>
-                  {!n.isRead && (
-                    <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
-                         style={{ background: "var(--roam-electric)" }} />
-                  )}
-                </div>
-              </button>
-            ))}
+                );
+              }
+              return (
+                <button key={n.id}
+                        onClick={() => handleNotifClick(n)}
+                        className="w-full text-left px-4 py-3 transition-all"
+                        style={{
+                          background: n.isRead ? "transparent" : "rgba(var(--roam-electric-rgb),0.05)",
+                          borderBottom: "1px solid rgba(var(--roam-cream-rgb),0.05)",
+                        }}
+                        data-testid={`notif-${n.id}`}>
+                  <div className="flex items-start gap-2.5">
+                    <span className="text-[16px] flex-shrink-0 mt-0.5">{notifIcon(n.type)}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] font-medium leading-snug" style={{ color: "var(--roam-cream)" }}>
+                        {n.title}
+                      </div>
+                      {n.body && (
+                        <div className="text-[11px] mt-0.5 line-clamp-2" style={{ color: "rgba(var(--roam-cream-rgb),0.75)" }}>
+                          {n.body}
+                        </div>
+                      )}
+                      <div className="text-[10px] mt-1 font-mono" style={{ color: "rgba(var(--roam-cream-rgb),0.55)" }}>
+                        {timeAgo(n.createdAt)}
+                      </div>
+                    </div>
+                    {!n.isRead && (
+                      <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
+                           style={{ background: "var(--roam-electric)" }} />
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
