@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import AppNav from "@/components/app-nav";
 import PlacesRoamed from "@/components/places-roamed";
+import DreamDestinations from "@/components/dream-destinations";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { fileToDataUrl } from "@/lib/file";
@@ -662,6 +663,11 @@ export default function Profile() {
             {/* ── Places you've roamed (powers Almost Met) ── */}
             <div className="mb-5">
               <PlacesRoamed />
+            </div>
+
+            {/* ── Dream destinations (bucket list — powers Bucket List matching) ── */}
+            <div className="mb-5">
+              <DreamDestinations />
             </div>
 
             {/* ── My groups ── */}
