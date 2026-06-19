@@ -20,6 +20,9 @@ export function registerPaymentRoutes(app: Express, deps: RouteDeps) {
     try {
       const user = await storage.getUser(userId);
       if (!user) return res.status(404).json({ message: "User not found" });
+      if (user.tier === "adventurer" || user.tier === "contributor") {
+        return res.status(400).json({ message: "You're already on Adventurer" });
+      }
 
       const stripe = getUncachableStripeClient();
       const domain = process.env.APP_URL || "http://localhost:5000";

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import AppNav from "@/components/app-nav";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
@@ -54,6 +55,7 @@ export default function Plans() {
   const [loadingAdventurer, setLoadingAdventurer] = useState(false);
   const [loadingBoost, setLoadingBoost] = useState(false);
   const [loadingOrganiser, setLoadingOrganiser] = useState(false);
+  const [loadingConnect, setLoadingConnect] = useState(false);
 
   const startCheckout = async (endpoint: string, setter: (v: boolean) => void) => {
     if (!user) { navigate("/login"); return; }
@@ -69,6 +71,21 @@ export default function Plans() {
   const isFree = !user || user.tier === "free";
   const isAdventurer = user?.tier === "adventurer" || user?.tier === "contributor";
   const isOrganiser = (user as any)?.isOrganiser;
+
+  // Time-based entitlement: a Boost is "active" until boostExpiresAt passes.
+  const boostExpiresAt = (user as any)?.boostExpiresAt;
+  const boostActive = !!boostExpiresAt && new Date(boostExpiresAt) > new Date();
+  const boostHoursLeft = boostActive
+    ? Math.max(1, Math.ceil((new Date(boostExpiresAt).getTime() - Date.now()) / 3_600_000))
+    : 0;
+
+  // Payout-account status — needed to know if a Squad Leader can actually
+  // collect ticket revenue yet (Connect onboarding complete).
+  const { data: connectStatus } = useQuery<{ status: string; payoutsEnabled: boolean }>({
+    queryKey: ["/api/stripe/connect/status"],
+    enabled: !!user && !!isOrganiser,
+  });
+  const payoutsReady = connectStatus?.status === "active";
 
   return (
     <div className="min-h-screen relative" data-testid="page-plans">
@@ -163,12 +180,19 @@ export default function Plans() {
                   <div className="font-mono text-[8px]" style={{ color: "rgba(var(--roam-cream-rgb),0.58)" }}>NZD</div>
                 </div>
                 <button
-                  onClick={() => startCheckout("/api/checkout/boost", setLoadingBoost)}
-                  disabled={loadingBoost}
+                  onClick={() => { if (!boostActive) startCheckout("/api/checkout/boost", setLoadingBoost); }}
+                  disabled={loadingBoost || boostActive}
+                  title={boostActive ? `Boost active — ${boostHoursLeft}h left` : undefined}
                   className="py-2 px-4 rounded-xl font-mono text-[10px] tracking-wider uppercase font-semibold transition-all"
-                  style={{ background: "rgba(var(--roam-electric-rgb),0.12)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)", color: "var(--roam-electric)", opacity: loadingBoost ? 0.7 : 1 }}
+                  style={{
+                    background: boostActive ? "rgba(var(--roam-cream-rgb),0.06)" : "rgba(var(--roam-electric-rgb),0.12)",
+                    border: `1px solid ${boostActive ? "rgba(var(--roam-cream-rgb),0.12)" : "rgba(var(--roam-electric-rgb),0.3)"}`,
+                    color: boostActive ? "rgba(var(--roam-cream-rgb),0.45)" : "var(--roam-electric)",
+                    opacity: loadingBoost ? 0.7 : 1,
+                    cursor: boostActive ? "not-allowed" : "pointer",
+                  }}
                   data-testid="button-plan-boost">
-                  {loadingBoost ? "…" : "Boost"}
+                  {loadingBoost ? "…" : boostActive ? `Active · ${boostHoursLeft}h` : "Boost"}
                 </button>
               </div>
             </div>
@@ -190,7 +214,7 @@ export default function Plans() {
               accent="ember"
               features={[
                 "Create unlimited groups & squads",
-                "Run ticketed events (platform takes 10%)",
+                "Run ticketed events (attendees pay a 10% fee — you keep 100%)",
                 "Full member management tools",
                 "Custom invite links for your group",
                 "Priority event notifications sent to members",
@@ -225,18 +249,71 @@ export default function Plans() {
               <div className="flex-1">
                 <div className="font-serif text-[15px] font-black mb-0.5" style={{ color: "var(--roam-cream)" }}>Event Ticketing</div>
                 <div className="font-mono text-[10px] mb-2" style={{ color: "rgba(var(--roam-cream-rgb),0.72)" }}>
-                  Charge entry for your group events. roam. handles payment and takes a 10% platform fee — you keep the rest.
+                  Charge entry for your group events. roam. handles payment securely — attendees pay a small 10% service fee on top, and you keep 100% of your ticket price.
                 </div>
-                <div className="font-mono text-[9px] px-3 py-2 rounded-xl mb-2"
+                <div className="font-mono text-[9px] px-3 py-2 rounded-xl mb-3"
                      style={{ background: "rgba(var(--roam-cream-rgb),0.04)", border: "1px solid rgba(var(--roam-cream-rgb),0.08)", color: "rgba(var(--roam-cream-rgb),0.78)" }}>
-                  Example: You set $20 entry → attendees pay $22 → you receive $20
+                  Example: you set $20 → attendee pays $22 → you receive your full $20
                 </div>
-                <div className="font-mono text-[9px]" style={{ color: "rgba(var(--roam-cream-rgb),0.58)" }}>
-                  Requires Squad Leader plan · Available when creating group events
+
+                {/* 3-step path — shows where the user is in unlocking ticketing */}
+                <div className="flex items-center gap-1.5 mb-3">
+                  {[
+                    { label: "Squad Leader", done: !!isOrganiser },
+                    { label: "Payouts", done: !!isOrganiser && payoutsReady },
+                    { label: "Ticket an event", done: false },
+                  ].map((s, i) => (
+                    <div key={s.label} className="flex items-center gap-1.5">
+                      <span className="font-mono text-[9px] flex items-center gap-1"
+                            style={{ color: s.done ? "var(--roam-electric)" : "rgba(var(--roam-cream-rgb),0.45)" }}>
+                        {s.done ? <Check size={9} /> : <span>{i + 1}.</span>}{s.label}
+                      </span>
+                      {i < 2 && <span style={{ color: "rgba(var(--roam-cream-rgb),0.25)" }}>→</span>}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
-            <div className="px-5 pb-4" />
+
+            {/* State-aware CTA: sell Squad Leader → set up payouts → create event */}
+            <div className="px-5 pb-4">
+              {!isOrganiser && (
+                <button
+                  onClick={() => startCheckout("/api/checkout/organiser", setLoadingOrganiser)}
+                  disabled={loadingOrganiser}
+                  className="w-full py-3 rounded-xl font-mono text-[11px] tracking-wider uppercase font-semibold transition-all flex items-center justify-center gap-2"
+                  style={{ background: "rgba(var(--roam-sky-rgb),0.14)", border: "1px solid rgba(var(--roam-sky-rgb),0.4)", color: "rgba(var(--roam-sky-rgb),0.95)", opacity: loadingOrganiser ? 0.7 : 1 }}
+                  data-testid="button-ticketing-unlock">
+                  {loadingOrganiser ? "…" : <>Unlock with Squad Leader — $20 once <ChevronRight size={13} /></>}
+                </button>
+              )}
+              {isOrganiser && !payoutsReady && (
+                <button
+                  onClick={() => startCheckout("/api/stripe/connect/start", setLoadingConnect)}
+                  disabled={loadingConnect}
+                  className="w-full py-3 rounded-xl font-mono text-[11px] tracking-wider uppercase font-semibold transition-all flex items-center justify-center gap-2"
+                  style={{ background: "rgba(var(--roam-sky-rgb),0.14)", border: "1px solid rgba(var(--roam-sky-rgb),0.4)", color: "rgba(var(--roam-sky-rgb),0.95)", opacity: loadingConnect ? 0.7 : 1 }}
+                  data-testid="button-ticketing-payouts">
+                  {loadingConnect ? "…" : <>Set up payouts to get paid <ChevronRight size={13} /></>}
+                </button>
+              )}
+              {isOrganiser && payoutsReady && (
+                <button
+                  onClick={() => navigate("/groups")}
+                  className="w-full py-3 rounded-xl font-mono text-[11px] tracking-wider uppercase font-semibold transition-all flex items-center justify-center gap-2"
+                  style={{ background: "rgba(var(--roam-electric-rgb),0.14)", border: "1px solid rgba(var(--roam-electric-rgb),0.4)", color: "var(--roam-electric)" }}
+                  data-testid="button-ticketing-create">
+                  Create a ticketed event <ChevronRight size={13} />
+                </button>
+              )}
+              <div className="mt-2 font-mono text-[9px] text-center" style={{ color: "rgba(var(--roam-cream-rgb),0.5)" }}>
+                {!isOrganiser
+                  ? "Ticketing is included with Squad Leader"
+                  : !payoutsReady
+                  ? "Connect your bank so ticket revenue reaches you"
+                  : "Set a ticket price when you create a group event"}
+              </div>
+            </div>
           </div>
 
           <div className="mb-4 rounded-2xl overflow-hidden"
