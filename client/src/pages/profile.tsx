@@ -782,6 +782,17 @@ export default function Profile() {
               </div>
             </button>
 
+            {/* ── Sign out — visible but deliberate (account-ending action) ── */}
+            <div className="mt-6 pt-5" style={{ borderTop: "1px solid rgba(var(--roam-cream-rgb),0.08)" }}>
+              <button
+                onClick={async () => { await logout(); navigate("/login"); }}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-mono text-[12px] tracking-wider uppercase transition-all hover:opacity-90"
+                style={{ background: "rgba(var(--roam-ember-rgb),0.08)", border: "1px solid rgba(var(--roam-ember-rgb),0.3)", color: "var(--roam-ember)" }}
+                data-testid="button-profile-signout">
+                <LogOut size={14} /> Sign out
+              </button>
+            </div>
+
           </div>
         </div>
       </div>
