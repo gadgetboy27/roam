@@ -55,9 +55,12 @@ export function registerAuthRoutes(app: Express, deps: RouteDeps) {
     try {
       const { data } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
       const u = data?.users?.find((x: any) => (x.email || "").toLowerCase() === email);
-      const providers = (u?.identities || [])
-        .map((i: any) => i.provider)
-        .filter((p: string) => p && p !== "email");
+      // listUsers doesn't reliably populate `identities`, so read providers from
+      // app_metadata (provider/providers), falling back to identities if present.
+      const meta = (u as any)?.app_metadata ?? {};
+      const fromMeta = Array.isArray(meta.providers) ? meta.providers : (meta.provider ? [meta.provider] : []);
+      const fromIdentities = ((u as any)?.identities || []).map((i: any) => i.provider);
+      const providers = [...fromMeta, ...fromIdentities].filter((p: string) => p && p !== "email");
       res.json({ oauthProviders: Array.from(new Set(providers)) });
     } catch {
       res.json({ oauthProviders: [] });
