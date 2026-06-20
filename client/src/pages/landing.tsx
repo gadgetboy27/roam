@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Mountain, Camera, MapPin, Compass, Zap, ArrowRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import HowItWorks from "@/components/how-it-works";
+import LandingEvents from "@/components/landing-events";
 
 const HERO_IMAGES = [
   "https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&q=80&fit=crop",
@@ -61,6 +63,7 @@ export default function Landing() {
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
   const [founding, setFounding] = useState<{ remaining: number; limit: number; open: boolean } | null>(null);
+  const [showHow, setShowHow] = useState(false);
 
   useEffect(() => {
     if (!loading && user) navigate("/discover");
@@ -137,13 +140,12 @@ export default function Landing() {
                       Start Your Adventure
                     </button>
                   </Link>
-                  <Link href="/signup">
-                    <button className="px-7 py-3.5 rounded-2xl text-sm font-mono tracking-wider uppercase transition-all border"
-                            style={{ borderColor: "rgba(var(--roam-cream-rgb),0.15)", color: "rgba(var(--roam-cream-rgb),0.6)" }}
-                            data-testid="button-explore">
-                      See how it works
-                    </button>
-                  </Link>
+                  <button onClick={() => setShowHow(true)}
+                          className="px-7 py-3.5 rounded-2xl text-sm font-mono tracking-wider uppercase transition-all border"
+                          style={{ borderColor: "rgba(var(--roam-cream-rgb),0.15)", color: "rgba(var(--roam-cream-rgb),0.6)" }}
+                          data-testid="button-explore">
+                    See how it works
+                  </button>
                 </div>
               </div>
 
@@ -225,6 +227,8 @@ export default function Landing() {
           </div>
         </section>
 
+        <LandingEvents />
+
         <section className="py-16 px-5">
           <div className="max-w-3xl mx-auto">
             <div className="text-center p-10 rounded-3xl"
@@ -285,6 +289,12 @@ export default function Landing() {
           </div>
         </footer>
       </div>
+
+      <HowItWorks
+        open={showHow}
+        onClose={() => setShowHow(false)}
+        onSeeEvents={() => { setShowHow(false); setTimeout(() => document.getElementById("whats-on")?.scrollIntoView({ behavior: "smooth" }), 120); }}
+      />
     </div>
   );
 }
