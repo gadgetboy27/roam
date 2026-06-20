@@ -26,6 +26,9 @@ export default function Login() {
   const [showPw, setShowPw] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState("");
+  // If a failed email/password login is actually an OAuth-only account, hint
+  // which social button to use instead of leaving the user stuck.
+  const [oauthHint, setOauthHint] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && user) navigate(consumeNextRoute());
@@ -52,12 +55,24 @@ export default function Login() {
     if (!valid) return;
     setSigningIn(true);
     setError("");
+    setOauthHint(null);
     try {
       await login(email, password);
       navigate(consumeNextRoute());
     } catch (err: any) {
       const msg = err?.message || "Invalid email or password";
       setError(msg.includes("fetch") ? "Could not reach the server. Please try again." : msg);
+      // Was this actually a social-login account? If so, nudge them to it.
+      try {
+        const res = await fetch("/api/auth/login-method", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json();
+        const provider = (data?.oauthProviders || []).find((p: string) => p === "google" || p === "facebook");
+        if (provider) setOauthHint(provider);
+      } catch { /* hint is best-effort */ }
     } finally {
       setSigningIn(false);
     }
@@ -111,7 +126,7 @@ export default function Login() {
                        style={inputStyle}
                        placeholder="you@example.com"
                        value={email}
-                       onChange={e => { setEmail(e.target.value); setError(""); }}
+                       onChange={e => { setEmail(e.target.value); setError(""); setOauthHint(null); }}
                        data-testid="input-email" />
               </div>
 
@@ -126,7 +141,7 @@ export default function Login() {
                          style={inputStyle}
                          placeholder="Your password"
                          value={password}
-                         onChange={e => { setPassword(e.target.value); setError(""); }}
+                         onChange={e => { setPassword(e.target.value); setError(""); setOauthHint(null); }}
                          data-testid="input-password" />
                   <button type="button" tabIndex={-1}
                           className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1"
@@ -143,6 +158,18 @@ export default function Login() {
                      data-testid="text-login-error">
                   {error}
                 </div>
+              )}
+
+              {oauthHint && (
+                <button
+                  type="button"
+                  onClick={oauthHint === "facebook" ? handleFacebook : handleGoogle}
+                  className="w-full text-left text-xs font-mono py-2.5 px-4 rounded-xl animate-fade-up flex items-center gap-2"
+                  style={{ background: "rgba(var(--roam-electric-rgb),0.1)", border: "1px solid rgba(var(--roam-electric-rgb),0.3)", color: "var(--roam-electric)" }}
+                  data-testid="oauth-hint">
+                  {oauthHint === "facebook" ? <SiFacebook size={13} /> : <SiGoogle size={13} />}
+                  This email signed up with {oauthHint === "facebook" ? "Facebook" : "Google"} — tap to continue with it.
+                </button>
               )}
 
               <div className="text-right -mt-1 mb-1">

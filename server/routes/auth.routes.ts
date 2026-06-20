@@ -46,6 +46,24 @@ export function registerAuthRoutes(app: Express, deps: RouteDeps) {
     }
   });
 
+  // After a failed email/password login the client asks which OAuth providers
+  // an email is linked to, so it can nudge "you signed up with Google" instead
+  // of leaving the user stuck. Rate-limited (loginLimiter) like login itself.
+  app.post("/api/auth/login-method", loginLimiter, async (req, res) => {
+    const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+    if (!email) return res.json({ oauthProviders: [] });
+    try {
+      const { data } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+      const u = data?.users?.find((x: any) => (x.email || "").toLowerCase() === email);
+      const providers = (u?.identities || [])
+        .map((i: any) => i.provider)
+        .filter((p: string) => p && p !== "email");
+      res.json({ oauthProviders: Array.from(new Set(providers)) });
+    } catch {
+      res.json({ oauthProviders: [] });
+    }
+  });
+
   app.get("/api/auth/me", async (req, res) => {
     const userId = await authenticateRequest(req);
     if (userId) {
