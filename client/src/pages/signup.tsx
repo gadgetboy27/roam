@@ -72,9 +72,9 @@ const CONSENTS = [
 ];
 
 const HERO_URLS = [
-  "https://images.unsplash.com/photo-1551632811-561732d1e306?w=400&q=75&fit=crop",
-  "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=400&q=75&fit=crop",
-  "https://images.unsplash.com/photo-1527856263986-730571966ce7?w=400&q=75&fit=crop",
+  "/photo-1551632811-561732d1e306.jpeg",
+  "/photo-1505118380757-91f5f5632de0.jpeg",
+  "/photo-1501854140801-50d01698950b.jpeg",
 ];
 
 const ETHNICITIES = [

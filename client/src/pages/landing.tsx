@@ -6,10 +6,10 @@ import HowItWorks from "@/components/how-it-works";
 import LandingEvents from "@/components/landing-events";
 
 const HERO_IMAGES = [
-  "https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&q=80&fit=crop",
-  "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=600&q=80&fit=crop",
-  "https://images.unsplash.com/photo-1527856263986-730571966ce7?w=600&q=80&fit=crop",
-  "https://images.unsplash.com/photo-1473773508845-188df298d2d1?w=600&q=80&fit=crop",
+  "/photo-1551632811-561732d1e306.jpeg",
+  "/photo-1505118380757-91f5f5632de0.jpeg",
+  "/photo-1501854140801-50d01698950b.jpeg",
+  "/photo-1473773508845-188df298d2d1.jpeg",
 ];
 
 const FEATURES = [
@@ -37,21 +37,21 @@ const FEATURES = [
 
 const STORIES = [
   {
-    img: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=300&q=80&fit=crop",
+    img: "/photo-1551632811-561732d1e306.jpeg",
     name: "Mia & Alex",
     overlap: 78,
     shared: "Alpine hiking, night markets, coastal walks",
     quote: "We'd both been to Milford Sound the same week and never knew it.",
   },
   {
-    img: "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=300&q=80&fit=crop",
+    img: "/photo-1505118380757-91f5f5632de0.jpeg",
     name: "Kai & Jordan",
     overlap: 64,
     shared: "Surfing, urban exploration, food trails",
     quote: "Matched on surf photos. Our first date was at a break we'd both ridden.",
   },
   {
-    img: "https://images.unsplash.com/photo-1473773508845-188df298d2d1?w=300&q=80&fit=crop",
+    img: "/photo-1473773508845-188df298d2d1.jpeg",
     name: "Sam & Riley",
     overlap: 59,
     shared: "Backpacking, kayaking, forest trails",

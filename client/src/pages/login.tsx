@@ -7,9 +7,9 @@ import { Eye, EyeOff, Compass } from "lucide-react";
 import { SiFacebook, SiGoogle } from "react-icons/si";
 
 const HERO_URLS = [
-  "https://images.unsplash.com/photo-1551632811-561732d1e306?w=400&q=75&fit=crop",
-  "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=400&q=75&fit=crop",
-  "https://images.unsplash.com/photo-1473773508845-188df298d2d1?w=400&q=75&fit=crop",
+  "/photo-1551632811-561732d1e306.jpeg",
+  "/photo-1505118380757-91f5f5632de0.jpeg",
+  "/photo-1473773508845-188df298d2d1.jpeg",
 ];
 
 const inputStyle: React.CSSProperties = {
